@@ -224,7 +224,7 @@ def main() -> None:
     ap.add_argument("--concurrency", type=int, default=None, help="max concurrent LLM calls of node agents (default: config file)")
     ap.add_argument("--mock-error-rate", type=float, default=0.0, help="inject +-1 errors into mock node agents")
     ap.add_argument("--tag", default=None, help="sub-directory name; default: mock or <provider>_<model>")
-    ap.add_argument("--verbose", action="store_true", help="print every run")
+    ap.add_argument("--verbose", action="store_true", help="print one line per finished run; a model-call progress bar is always shown")
     ap.add_argument("--log-level", default="WARNING")
     args = ap.parse_args()
 

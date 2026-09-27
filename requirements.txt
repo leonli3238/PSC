@@ -1,5 +1,6 @@
 agentscope>=1.0,<2.0
 mcp>=1.10,<2          # agentscope 1.0.x is incompatible with mcp 2.x
+greenlet              # agentscope 1.0.x imports sqlalchemy asyncio, but only declares greenlet as a dev extra
 tqdm
 openai
 python-dotenv

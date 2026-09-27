@@ -19,6 +19,7 @@ import time
 import numpy as np
 
 from .graph import Graph, TaskRecord, kstar_k
+from .progress import note_phase
 from .prompts import raw_prompt, refined_prompt
 
 # ---------------------------------------------------------------------------
@@ -110,6 +111,7 @@ class SingleLLMBaseline:
         t0 = time.perf_counter()
         graph = record.graph()
         curator = self.factory.curator()
+        note_phase("answer")
         estimate = await curator.answer_prompt(build_single_llm_prompt(self.style, record.task, graph))
         return RunResult(
             method=self.name,

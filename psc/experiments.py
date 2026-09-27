@@ -15,6 +15,7 @@ from .framework import NaiveFramework, PSCFramework, RunResult
 from .graph import TASKS, TaskRecord, load_dataset
 from .ground_truth import average_relative_error, gt_naive, gt_psc, relative_error
 from .models import ModelConfig
+from .progress import llm_progress
 
 DATASETS: tuple[str, ...] = ("CU", "Do", "ML", "CS", "EE", "PM")
 
@@ -188,15 +189,36 @@ def run_ground_truth(
 # ---------------------------------------------------------------------------
 
 
+def llm_calls_per_run(method: str, task: str, n: int) -> int:
+    """Model calls one ``framework.run`` makes. Matches the bookkeeping tests."""
+    if method in ("RAW", "REFINED"):
+        return 1
+    if method.startswith("Naive"):
+        return 2  # privacy-controller select + curator answer
+    # PSC / PSC-B / PSC-noDP: select + design + aggregate, plus n updates
+    # and (triangle only) n sends.
+    return 2 * n + 3 if task == "triangle" else n + 3
+
+
+def effective_runs(method: str, runs: int, provider: str) -> int:
+    """Non-DP methods are deterministic under the mock reasoner, so one run is enough."""
+    if method in NON_DP_METHODS and provider == "mock":
+        return 1
+    return runs
+
+
 async def run_agent_method(
     framework,
     record: TaskRecord,
     eps: float,
     runs: int,
     log: Callable[[str], None] | None = None,
+    on_run: Callable[[int], None] | None = None,
 ) -> tuple[float, list[RunResult]]:
     results: list[RunResult] = []
     for i in range(runs):
+        if on_run is not None:
+            on_run(i)
         res = await framework.run(record, eps)
         results.append(res)
         if log:
@@ -249,44 +271,69 @@ async def run_agent_experiment(
     log: Callable[[str], None] = print,
     verbose: bool = False,
 ) -> tuple[list[dict], list[dict]]:
-    """Return ``(summary rows, per-run rows)``."""
+    """Return ``(summary rows, per-run rows)``.
+
+    A tqdm bar on stderr advances once per model call, labelled with the
+    current dataset, task, method and pipeline phase. ``log`` lines are
+    written through the bar so they do not overwrite it.
+    """
     summary: list[dict] = []
     per_run: list[dict] = []
-    for ds in datasets:
-        recs = load_dataset(data_dir, ds)
-        for task in tasks:
-            rec = recs[task]
-            for eps in eps_values:
-                line = f"[Agents/{cfg.provider}] {ds:>3} {task:<9} eps={eps:<4}"
-                for method in methods:
-                    fw = make_framework(method, cfg, seed, r1, r2)
-                    # non-DP methods are deterministic up to LLM behaviour
-                    n_runs = runs if method not in NON_DP_METHODS or cfg.provider != "mock" else 1
-                    re, results = await run_agent_method(fw, rec, eps, n_runs, log if verbose else None)
-                    per_run.extend(r.to_dict() for r in results)
-                    summary.append(
-                        {
-                            "method": method,
-                            "dataset": ds,
-                            "task": task,
-                            "eps": eps if method not in NON_DP_METHODS else None,
-                            "runs": n_runs,
-                            "truth": rec.answer,
-                            "mean_estimate": float(np.mean([r.estimate for r in results])),
-                            "avg_relative_error": re,
-                            "llm_calls_per_run": float(np.mean([r.llm_calls for r in results])),
-                            "parse_failures": int(sum(r.parse_failures for r in results)),
-                            "paper": paper_value(task, method, ds) if (eps == 2.0 or method in NON_DP_METHODS) else None,
-                            "provider": cfg.provider,
-                            "node_model": cfg.node_model,
-                            "curator_model": cfg.curator_model,
-                            "r1": r1,
-                            "r2": r2,
-                            **validation_summary(results, rec.vertex_num),
-                        },
-                    )
-                    line += f"  {method}={re:.4f}"
-                log(line)
+    loaded = {ds: load_dataset(data_dir, ds) for ds in datasets}
+    total_calls = sum(
+        llm_calls_per_run(method, task, loaded[ds][task].vertex_num)
+        * effective_runs(method, runs, cfg.provider)
+        for ds in datasets
+        for task in tasks
+        for _eps in eps_values
+        for method in methods
+    )
+    with llm_progress(total_calls) as bar:
+        def emit(msg: str) -> None:
+            bar.write(msg, file=bar.fp)
+            if log is not print:
+                log(msg)
+
+        for ds in datasets:
+            recs = loaded[ds]
+            for task in tasks:
+                rec = recs[task]
+                for eps in eps_values:
+                    line = f"[Agents/{cfg.provider}] {ds:>3} {task:<9} eps={eps:<4}"
+                    for method in methods:
+                        fw = make_framework(method, cfg, seed, r1, r2)
+                        n_runs = effective_runs(method, runs, cfg.provider)
+
+                        def _mark(i: int, _ds=ds, _task=task, _eps=eps, _method=method, _n=n_runs) -> None:
+                            bar.set_description(f"{_ds} {_task} eps={_eps:g} {_method} {i + 1}/{_n}", refresh=True)
+
+                        re, results = await run_agent_method(
+                            fw, rec, eps, n_runs, emit if verbose else None, on_run=_mark,
+                        )
+                        per_run.extend(r.to_dict() for r in results)
+                        summary.append(
+                            {
+                                "method": method,
+                                "dataset": ds,
+                                "task": task,
+                                "eps": eps if method not in NON_DP_METHODS else None,
+                                "runs": n_runs,
+                                "truth": rec.answer,
+                                "mean_estimate": float(np.mean([r.estimate for r in results])),
+                                "avg_relative_error": re,
+                                "llm_calls_per_run": float(np.mean([r.llm_calls for r in results])),
+                                "parse_failures": int(sum(r.parse_failures for r in results)),
+                                "paper": paper_value(task, method, ds) if (eps == 2.0 or method in NON_DP_METHODS) else None,
+                                "provider": cfg.provider,
+                                "node_model": cfg.node_model,
+                                "curator_model": cfg.curator_model,
+                                "r1": r1,
+                                "r2": r2,
+                                **validation_summary(results, rec.vertex_num),
+                            },
+                        )
+                        line += f"  {method}={re:.4f}"
+                    emit(line)
     return summary, per_run
 
 

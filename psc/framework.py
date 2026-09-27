@@ -19,6 +19,7 @@ from .dp import BudgetSplit
 from .graph import Graph, TaskRecord, task_prompt
 from .library import AlgorithmSpec
 from .models import ModelConfig, create_formatter, create_model
+from .progress import note_phase
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,7 @@ class PSCFramework:
         controller = self.factory.controller(self.r1, self.r2)
 
         # Line 4: DP framework selection, budget split and sensitivity
+        note_phase("select")
         spec = await controller.select_framework(input_prompt)
         if self.dp:
             split: BudgetSplit = controller.determine_budget(eps, spec, self.gs_optimization)
@@ -134,12 +136,14 @@ class PSCFramework:
             sensitivity = spec.sensitivity(n, None)
 
         # Line 9: curator designs the distributed algorithm
+        note_phase("design")
         algo = await curator.design_algorithm(input_prompt)
         if algo.task != spec.task:
             logger.warning("Curator (%s) and privacy controller (%s) disagree on the task", algo.task, spec.task)
 
         # Line 10: send messages to noisy neighbors
         if algo.needs_messages:
+            note_phase("send")
             send_instr = Msg(curator.name, algo.send, "assistant", metadata={"phase": "send", "task": algo.task})
             outgoing = await fanout_pipeline(nodes, send_instr, enable_gather=True)
             for msg in outgoing:
@@ -147,6 +151,7 @@ class PSCFramework:
                     await nodes[j].observe(msg)
 
         # Lines 11-12: update local counts
+        note_phase("update")
         update_instr = Msg(curator.name, algo.update, "assistant", metadata={"phase": "update", "task": algo.task})
         await fanout_pipeline(nodes, update_instr, enable_gather=True)
 
@@ -159,6 +164,7 @@ class PSCFramework:
             await curator.observe(Msg(node.name, f"{value}", "assistant", metadata={"kind": "report"}))
 
         # Line 14: aggregation
+        note_phase("aggregate")
         estimate = await curator.aggregate(algo, input_prompt, reports, n)
 
         validation = _validate_psc(nodes, algo, reports, estimate, n)
@@ -213,10 +219,12 @@ class NaiveFramework:
         curator = self.factory.curator()
         controller = self.factory.controller(0.5, 0.2)
 
+        note_phase("select")
         spec = await controller.select_framework(input_prompt)
         split = controller.determine_budget(eps, spec, naive=True)
         noisy_graph = controller.build_noisy_graph(nodes, split.eps1)  # Algorithm 1
 
+        note_phase("answer")
         if self.prompt_style == "raw":
             estimate = await curator.answer_with_noisy_graph(spec.task, input_prompt, graph.n, noisy_graph.edges)
         else:

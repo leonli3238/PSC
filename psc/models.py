@@ -30,6 +30,7 @@ from agentscope.model import ChatModelBase, ChatResponse
 from dotenv import load_dotenv
 
 from .mock_model import MockChatModel
+from .progress import note_llm_call
 from .prompts import strip_structured
 
 PROVIDERS = ("openai", "dashscope", "ollama", "mock")
@@ -210,6 +211,8 @@ async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user
         async for chunk in res:
             last = chunk
         if last is None:
+            note_llm_call()
             return ""
         res = last
+    note_llm_call()
     return response_text(res)
