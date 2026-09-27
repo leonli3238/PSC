@@ -1,0 +1,9 @@
+.venv/
+.venv_broken/
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+data/raw/
+results/**/runs.json
+.env
