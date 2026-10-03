@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from .graph import TASKS, kstar_k
+from .mechanism import MechanismProfile, get_mechanism
 
 # ---------------------------------------------------------------------------
 # Distributed algorithm library
@@ -187,13 +188,21 @@ class DPFrameworkSpec:
     gs_optimization: bool  # can the global sensitivity be optimised (Alg. 2)?
     _sensitivity: Callable[[int, int | None], float]
 
-    def sensitivity(self, n: int, d_hat_max: int | None) -> float:
+    def sensitivity(
+        self, n: int, d_hat_max: int | None,
+        mechanism: str | MechanismProfile = "legacy",
+        sensitivity_degree: float | None = None,
+    ) -> float:
         """Global sensitivity ``GS_f`` for ``n`` nodes.
 
         ``d_hat_max`` is the optimised maximum degree (``None`` when the
         optimisation is disabled, in which case the worst-case bound in
         ``n`` from the paper is used).
         """
+        if self.task in ("2-star", "3-star"):
+            return get_mechanism(mechanism).kstar_sensitivity(
+                kstar_k(self.task), n, d_hat_max, sensitivity_degree,
+            )
         return float(self._sensitivity(n, d_hat_max))
 
     def describe(self) -> str:

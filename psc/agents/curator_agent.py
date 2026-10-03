@@ -12,14 +12,13 @@ Responsibilities (Section 3):
 
 from __future__ import annotations
 
-import logging
-
 from agentscope.agent import AgentBase
 from agentscope.formatter import FormatterBase
 from agentscope.memory import InMemoryMemory
 from agentscope.message import Msg
 from agentscope.model import ChatModelBase
 
+from ..events import record_error
 from ..graph import TASKS, infer_task_from_prompt
 from ..library import AlgorithmSpec, algorithm_library_summary, get_algorithm
 from ..models import chat
@@ -31,8 +30,6 @@ from ..prompts import (
     naive_answer_prompt,
     task_selection_prompt,
 )
-
-logger = logging.getLogger(__name__)
 
 
 class CuratorAgent(AgentBase):
@@ -60,8 +57,11 @@ class CuratorAgent(AgentBase):
         task = str(payload.get("task", "")).strip().lower()
         if task not in TASKS:
             self.parse_failures += 1
-            logger.warning("Curator: invalid task %r, falling back to rule-based inference", task)
             task = infer_task_from_prompt(input_prompt)
+            record_error(
+                "parse_failure", f"Curator: invalid task, falling back to rule-based inference ({task})",
+                reply=text, agent=self.name, phase="design",
+            )
         return get_algorithm(task)
 
     # ------------------------------------------------------------------
@@ -69,7 +69,7 @@ class CuratorAgent(AgentBase):
     # ------------------------------------------------------------------
     async def aggregate(self, algo: AlgorithmSpec, input_prompt: str, counts: list[float], n: int) -> float:
         text = await self._llm(curator_aggregate_prompt(algo.task, input_prompt, algo.aggregate, counts, n))
-        return self._parse_result(text)
+        return self._parse_result(text, "aggregate")
 
     # ------------------------------------------------------------------
     # Naive baseline (Section 2.4)
@@ -82,13 +82,13 @@ class CuratorAgent(AgentBase):
         noisy_edges: list[tuple[int, int]],
     ) -> float:
         text = await self._llm(naive_answer_prompt(task, input_prompt, n, noisy_edges))
-        return self._parse_result(text)
+        return self._parse_result(text, "answer")
 
     async def answer_prompt(self, prompt: str) -> float:
         """Answer an arbitrary counting prompt (RAW / REFINED baselines)."""
-        return self._parse_result(await self._llm(prompt))
+        return self._parse_result(await self._llm(prompt), "answer")
 
-    def _parse_result(self, text: str) -> float:
+    def _parse_result(self, text: str, phase: str) -> float:
         payload = extract_json(text)
         if payload and "result" in payload:
             try:
@@ -98,7 +98,10 @@ class CuratorAgent(AgentBase):
         value = extract_number(text)
         if value is None:
             self.parse_failures += 1
-            logger.warning("Curator: could not parse a numeric result from %r", text[:200])
+            record_error(
+                "parse_failure", "Curator: could not parse a numeric result, using 0.0",
+                reply=text, agent=self.name, phase=phase,
+            )
             return 0.0
         return value
 

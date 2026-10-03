@@ -1,0 +1,31 @@
+[
+  {
+    "method": "PSC",
+    "dataset": "Do",
+    "task": "triangle",
+    "eps": 2.0,
+    "runs": 1,
+    "truth": 95.0,
+    "mean_estimate": 0.0,
+    "avg_relative_error": 1.0,
+    "llm_calls_per_run": 127.0,
+    "parse_failures": 0,
+    "api_retries": 0,
+    "failed_calls": 0,
+    "paper": 0.8628,
+    "provider": "openai",
+    "node_model": "hy3-ioa",
+    "curator_model": "hy3-ioa",
+    "r1": 0.5,
+    "r2": 0.2,
+    "task_acc": 1.0,
+    "rule_relative_error": 1.0,
+    "delta": 0.0,
+    "node_samples": 62,
+    "node_update_acc": 1.0,
+    "node_e2e_acc": 1.0,
+    "send_acc": 1.0,
+    "count_rel_diff": 0.0,
+    "aggregate_acc": 1.0
+  }
+]

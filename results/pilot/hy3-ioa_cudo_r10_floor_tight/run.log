@@ -1,0 +1,22 @@
+2026-09-29 00:36:51,002 WARNING psc.errors: [api_error] dataset=CU task=degree method=Naive run=5 APIConnectionError: Connection error.
+2026-09-29 00:51:43,172 WARNING psc.errors: [api_error] dataset=CU task=2-star method=PSC run=9 APITimeoutError: Request timed out.
+2026-09-29 01:03:31,118 WARNING psc.errors: [api_error] dataset=CU task=3-star method=Naive run=9 APIConnectionError: Connection error.
+2026-09-29 01:03:31,341 WARNING psc.errors: [api_error] dataset=CU task=3-star method=Naive run=8 APIConnectionError: Connection error.
+2026-09-29 01:40:29,995 WARNING psc.errors: [api_error] dataset=CU task=triangle method=Naive run=4 APIConnectionError: Connection error.
+2026-09-29 01:41:00,799 WARNING psc.errors: [empty_reply] dataset=CU task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-29 01:41:10,289 WARNING psc.errors: [api_error] dataset=CU task=triangle method=Naive run=5 APIConnectionError: Connection error.
+2026-09-29 01:41:10,298 WARNING psc.errors: [api_error] dataset=CU task=triangle method=PSC run=7 APIConnectionError: Connection error.
+2026-09-29 01:43:10,606 WARNING psc.errors: [api_error] dataset=CU task=triangle method=PSC run=7 APIConnectionError: Connection error.
+2026-09-29 01:57:28,051 WARNING psc.errors: [empty_reply] dataset=CU task=triangle method=Naive run=7 no text in reply (content blocks: ['thinking'])
+2026-09-29 02:47:31,124 WARNING psc.errors: [empty_reply] dataset=Do task=3-star method=Naive run=1 no text in reply (content blocks: ['thinking'])
+2026-09-29 02:51:31,790 WARNING psc.errors: [empty_reply] dataset=Do task=3-star method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-09-29 02:55:14,191 WARNING psc.errors: [empty_reply] dataset=Do task=3-star method=Naive run=10 no text in reply (content blocks: ['thinking'])
+2026-09-29 03:06:08,073 WARNING psc.errors: [empty_reply] dataset=Do task=3-star method=Naive run=10 no text in reply (content blocks: ['thinking'])
+2026-09-29 03:31:50,770 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-29 03:42:54,805 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-29 03:54:37,052 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-29 03:54:38,771 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=10 no text in reply (content blocks: ['thinking'])
+2026-09-29 04:04:20,448 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-29 04:16:53,978 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-29 04:16:53,978 WARNING psc.errors: [call_failed] dataset=Do task=triangle method=Naive run=2 no usable reply after 5 attempts
+2026-09-29 04:16:53,979 WARNING psc.errors: [parse_failure] dataset=Do task=triangle method=Naive run=2 Curator: could not parse a numeric result, using 0.0 | reply (0 chars): ''

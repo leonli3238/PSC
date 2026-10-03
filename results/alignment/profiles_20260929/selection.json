@@ -1,0 +1,26 @@
+{
+  "selected": "floor_tight",
+  "default": "floor_tight",
+  "selection_rule": "minimum mean absolute log ratio over unique Table 2 and available Table 3 cells",
+  "confirmation_scores": [
+    {
+      "mechanism": "floor_tight",
+      "table2_log_gap": 0.28646870585479617,
+      "table3_pscb_log_gap": 0.063783685100779,
+      "joint_log_gap": 0.23079745066629187,
+      "mean_relative_gap": 0.28225973754408706,
+      "max_relative_gap": 0.8227279602209139,
+      "cells": 16
+    },
+    {
+      "mechanism": "legacy",
+      "table2_log_gap": 0.36128257654049367,
+      "table3_pscb_log_gap": 0.08625649962126804,
+      "joint_log_gap": 0.29252605731068726,
+      "mean_relative_gap": 0.371698229149784,
+      "max_relative_gap": 0.8797126944639908,
+      "cells": 16
+    }
+  ],
+  "note": "Selection uses published paper values; no claim of recovering author code. Confirmation uses a new random stream, not unseen datasets."
+}

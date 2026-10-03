@@ -7,7 +7,7 @@ each of them 1,000 times and uses the average as the ground truth.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -18,12 +18,13 @@ from .dp import (
     graph_projection,
     laplace_noise,
     naive_budget,
-    noisy_max_degree,
+    estimate_degree_bound,
     project_neighbor_list,
     split_budget,
 )
 from .graph import Graph, kstar_k
 from .library import get_dp_framework
+from .mechanism import MechanismProfile, get_mechanism
 
 
 @dataclass
@@ -37,6 +38,34 @@ class RunTrace:
     raw_counts: list[float]
     noisy_counts: list[float]
     result: float
+    mechanism: str = "legacy"
+    noisy_degree_reports: list[float] = field(default_factory=list)
+    noisy_max_degree: float | None = None
+    sensitivity_degree: float | None = None
+    node_projection_degrees: list[int] | None = None
+    node_sensitivities: list[float] | None = None
+
+    def audit_dict(self) -> dict:
+        return {
+            "mechanism": self.mechanism,
+            "split": self.split.as_tuple(),
+            "noisy_degree_reports": self.noisy_degree_reports,
+            "noisy_max_degree": self.noisy_max_degree,
+            "sensitivity_degree": self.sensitivity_degree,
+            "d_hat_max": self.d_hat_max,
+            "sensitivity": self.sensitivity,
+            "laplace_scale": self.sensitivity / self.split.eps3,
+            "node_projection_degrees": self.node_projection_degrees,
+            "node_laplace_scales": (
+                [s / self.split.eps3 for s in self.node_sensitivities]
+                if self.node_sensitivities is not None else None
+            ),
+            "raw_counts": self.raw_counts,
+            "noisy_counts": self.noisy_counts,
+            "report_noise": [r - c for r, c in zip(self.noisy_counts, self.raw_counts)],
+            "report_sum_before_clamp": float(sum(self.noisy_counts)),
+            "result": self.result,
+        }
 
 
 def gt_naive(graph: Graph, task: str, eps: float, rng: np.random.Generator) -> float:
@@ -55,9 +84,16 @@ def gt_psc(
     r1: float = 0.5,
     r2: float = 0.2,
     return_trace: bool = False,
+    mechanism: str | MechanismProfile = "legacy",
 ) -> float | RunTrace:
-    """GT-PSC (``gs_optimization=True``) / GT-PSC-B (``False``), Algorithm 3."""
+    """GT-PSC / GT-PSC-B, Algorithm 3.
+
+    The low-level helper keeps the legacy default for historical audit scripts.
+    Experiment runners explicitly pass their selected profile (floor_tight by
+    default), as does the agent framework.
+    """
     n = graph.n
+    profile = get_mechanism(mechanism)
     spec = get_dp_framework(task)
     split = split_budget(eps, spec.noisy_graph, spec.gs_optimization and gs_optimization, r1, r2)
 
@@ -66,11 +102,19 @@ def gt_psc(
 
     # Lines 7-8: global sensitivity optimisation
     d_hat_max: int | None = None
+    degree_reports: list[float] = []
+    bound = None
+    node_degrees: list[int] | None = None
     if split.eps2 > 0:
-        _, d_hat_max = noisy_max_degree(graph.degrees(), split.eps2, rng)
+        degree_reports, bound = estimate_degree_bound(graph.degrees(), split.eps2, rng, task, profile)
+        d_hat_max = bound.projection_degree
         if noisy is not None:
             noisy = graph_projection(noisy, d_hat_max, rng)
-    sensitivity = spec.sensitivity(n, d_hat_max)
+        else:
+            per_node = profile.node_projection_degrees(degree_reports, d_hat_max, task, split.eps2)
+            node_degrees = None if per_node is None else [int(x) for x in per_node]
+    sensitivity = spec.sensitivity(n, d_hat_max, profile, bound.sensitivity_degree if bound else None)
+    node_sens = None if node_degrees is None else [spec.sensitivity(n, D, profile) for D in node_degrees]
 
     # Lines 10-12: distributed execution (send + update)
     raw: list[float] = []
@@ -84,17 +128,23 @@ def gt_psc(
         k = kstar_k(task)
         for i in range(n):
             nbrs = graph.neighbors(i)
-            if d_hat_max is not None:
-                nbrs = project_neighbor_list(nbrs, d_hat_max, rng)
+            limit = node_degrees[i] if node_degrees is not None else d_hat_max
+            if limit is not None:
+                nbrs = project_neighbor_list(nbrs, limit, rng)
             raw.append(rules.update_kstar(nbrs, k))
 
     # Line 13: Laplace mechanism on each local count
-    noisy_counts = [c + laplace_noise(sensitivity, split.eps3, rng) for c in raw]
+    scales = node_sens if node_sens is not None else [sensitivity] * n
+    noisy_counts = [c + laplace_noise(s, split.eps3, rng) for c, s in zip(raw, scales)]
 
     # Line 14: aggregation
     result = rules.aggregate(task, noisy_counts, n)
     if return_trace:
-        return RunTrace(split, sensitivity, d_hat_max, noisy, raw, noisy_counts, result)
+        return RunTrace(
+            split, sensitivity, d_hat_max, noisy, raw, noisy_counts, result,
+            profile.name, degree_reports, bound.raw_max if bound else None,
+            bound.sensitivity_degree if bound else None, node_degrees, node_sens,
+        )
     return result
 
 

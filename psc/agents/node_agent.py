@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
+import re
 from typing import Iterable
 
 import numpy as np
@@ -27,10 +27,9 @@ from agentscope.model import ChatModelBase
 
 from .. import rules
 from ..dp import laplace_mechanism, node_noisy_lower_row, project_neighbor_list
+from ..events import record_error
 from ..models import chat
 from ..prompts import NODE_SYSTEM, extract_json, extract_number, node_send_prompt, node_update_prompt
-
-logger = logging.getLogger(__name__)
 
 
 class NodeAgent(AgentBase):
@@ -155,7 +154,10 @@ class NodeAgent(AgentBase):
         self.sent_payload = _parse_send_payload(extract_json(text))
         if self.sent_payload is None:
             self.parse_failures += 1
-            logger.warning("Node %d: could not parse send message, nothing is sent: %r", self.node_id, text[:200])
+            record_error(
+                "parse_failure", f"Node {self.node_id}: could not parse send message, nothing is sent",
+                reply=text, agent=self.name, phase="send",
+            )
         return Msg(
             name=self.name,
             content=json.dumps(self.sent_payload),
@@ -184,7 +186,10 @@ class NodeAgent(AgentBase):
             value = extract_number(text)
         if value is None:
             self.parse_failures += 1
-            logger.warning("Node %d: could not parse count from reply: %r", self.node_id, text[:200])
+            record_error(
+                "parse_failure", f"Node {self.node_id}: could not parse count, keeping {self.count}",
+                reply=text, agent=self.name, phase="update",
+            )
             value = self.count
         self.count = value
         return Msg(
@@ -195,13 +200,34 @@ class NodeAgent(AgentBase):
         )
 
 
+_NODE_REF = re.compile(r"\s*(?:node\s*)?(\d+)\s*", re.IGNORECASE)
+
+
+def _node_id(x) -> int:
+    """Accept ``12``, ``"12"`` and ``"Node 12"``: the send prompt lists the
+    neighbors as ``Node 12`` (Appendix E format) and models echo that form."""
+    if isinstance(x, bool):
+        raise TypeError(f"not a node id: {x!r}")
+    if isinstance(x, int):
+        return x
+    if isinstance(x, float) and x.is_integer():
+        return int(x)
+    m = _NODE_REF.fullmatch(x) if isinstance(x, str) else None
+    if m is None:
+        raise ValueError(f"not a node id: {x!r}")
+    return int(m.group(1))
+
+
 def _parse_send_payload(payload: dict | None) -> dict | None:
     if not payload or "Sender_ID" not in payload or "Sender_Neighbors" not in payload:
         return None
+    neighbors = payload["Sender_Neighbors"]
+    if not isinstance(neighbors, list):
+        return None
     try:
         return {
-            "Sender_ID": int(payload["Sender_ID"]),
-            "Sender_Neighbors": sorted(int(x) for x in payload["Sender_Neighbors"]),
+            "Sender_ID": _node_id(payload["Sender_ID"]),
+            "Sender_Neighbors": sorted(_node_id(x) for x in neighbors),
         }
     except (TypeError, ValueError):
         return None

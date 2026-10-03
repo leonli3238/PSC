@@ -1,0 +1,4 @@
+2026-09-28 12:19:55,980 WARNING psc.errors: [empty_reply] dataset=CU task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-28 12:31:46,115 WARNING psc.errors: [api_error] dataset=Do task=2-star method=PSC run=1 APITimeoutError: Request timed out.
+2026-09-28 12:39:00,210 WARNING psc.errors: [empty_reply] dataset=Do task=2-star method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-09-28 12:49:27,613 WARNING psc.errors: [empty_reply] dataset=Do task=triangle method=Naive run=2 no text in reply (content blocks: ['thinking'])

@@ -9,15 +9,18 @@ provider = "mock"
 # Shared defaults; any of them can also be set per provider below.
 temperature = 0.0     # paper: 0
 max_concurrency = 8   # max concurrent LLM calls of node agents
+parallel_runs = 8     # runs executed at once (Naive answers and curator calls are not capped by max_concurrency)
 stream = false        # streaming chat requests; some OpenAI-compatible gateways require true
+max_retries = 4       # retries per call on 429 / 5xx / connection errors / empty replies
+retry_backoff = 5.0   # seconds; waits 5, 10, 20, 40 s (or the server's Retry-After)
 
 # node_model    -> node agents (send / update)
 # curator_model -> curator agent (algorithm selection, aggregation, Naive answer)
 #                  and the privacy controller (DP framework selection)
 
 [openai]              # paper setting (also used for OpenAI-compatible endpoints)
-node_model = "hy3-ioa"
-curator_model = "hy3-ioa"
+node_model = "hy4-preview-ioa"
+curator_model = "hy4-preview-ioa"
 stream = true         # the gateway in .env rejects non-stream requests; false for the official API
 
 [dashscope]           # paper Exp7

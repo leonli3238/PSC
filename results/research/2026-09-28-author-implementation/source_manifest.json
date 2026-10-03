@@ -1,0 +1,49 @@
+{
+  "date": "2026-09-28",
+  "upstream_commit": "a0707f6fc26b855c0ed5e8f052cc4117768948ed",
+  "official_psc_pdf_sha256": "cbca485059bed8dd26cc60361a79ef1159ecbe67446e555ee7dbd6ad9965467a",
+  "official_pdf_matches_local": true,
+  "file_sha256": {
+    "github_issues_search.json": "840185ac69ff01c964c2bfead7f7b8a5a7764c3814155124f82ebe285189a90f",
+    "arxiv_search.atom": "49d0d9de28915b34b111ff79e2ec1b1891a626057dcad170dc2a4558ee814910",
+    "noisy_degree_candidate.json": "98f07990eca488d9d04fd7bd2392d1eb624ca1aa60fede501ffff10d845c5d29",
+    "orcid_person.json": "158f8fa426847910ea7c5b3d30a66ef5535eb82dd74873b3a77f27e191d5c504",
+    "upstream_function_harness.cpp": "d0c42ce43f8c7eea6bc1591ece72fb048d938e11fcae09236bbeca47f1c8f730",
+    "github_full_title_search.json": "a4d047a7e6bd29c8d653ff9cfef5d1dff7a373ce89ae1a16e53964b09783922f",
+    "github_author_prior_search.json": "08c082fdf7ca87ba911a2aabb0f0cf2d3e482a6feeaac9713e4578c20b2600b2",
+    "github_title_search.json": "3ca221ce4bae120a0d91dda13c29e02027164c8e99de66acc9ecc6bcb441eb29",
+    "checklist.txt": "7fcda928c2de5822a4cb59927661d071dc0bff24011be49e315c399f6e648bab",
+    "acl_author_page.html": "b492eca50bd67fe093514692298f428f4628bcbf7a0931ea367c8b80a6cfbc2b",
+    "checklist.pdf": "90c6472daa5caf96473816d8ff5612543ac480c536ac5bfb0d061c50a2b78aca",
+    "mechanism_research.json": "61597ed47f3b133a6a5a8a31b80c095ba7ccf047aae46c41ffa13d9a489e24ee",
+    "github_title_readme_search.json": "a4d047a7e6bd29c8d653ff9cfef5d1dff7a373ce89ae1a16e53964b09783922f",
+    "orcid_works.json": "18effa17e5e419737c263fcf171ca81e77027994747d5aebd6eb629bb81fecc3",
+    "github_author_community_search.json": "73e87912513841c65a53fe38ddb1808862949d61b254ee305f51cc298160f5a7",
+    "github_gtpsc_search.json": "08c082fdf7ca87ba911a2aabb0f0cf2d3e482a6feeaac9713e4578c20b2600b2",
+    "verify_upstream_translation.py": "e844c8645fa600d6ac30e29d2d1e2c0ecbce3e8f6f8402c144cc90318bc9b996",
+    "acl_page.html": "f657d071dfab51186b6693f09040d670b6f257cf3dfeed9dbb4f9ea73c73331e",
+    "noisy_degree_candidate.py": "afca2225a6c152fd4157f9de3961bb8602f6c003e4437b94b8c5561ede63167d",
+    "upstream_translation_check.json": "c5ec572069904dbb4d53ed65a89a757253aa9efd9a818fa98db5ddfaf3834fe7",
+    "github_doi_search.json": "08c082fdf7ca87ba911a2aabb0f0cf2d3e482a6feeaac9713e4578c20b2600b2",
+    "research_mechanism.py": "8eb950e49ed8fd85ec7e0faf3ef04b5ee0d6e2baad68883f1363c77931247883",
+    "upstream/README.md": "3041f1dbe44c0c9c6a878dd812120dead10738e11c67a44a425f7c90e8fd1db3",
+    "upstream/LICENSE": "88d9c464833c99f8b68affcce652a3e264a6d96e5a20f9a06eabf954fb8eb190",
+    "upstream/sec21-imola.txt": "3dac4d09a817fe2a712c55d7ec2c6acae5c0fb7e8df31f703393f2a56b57129b",
+    "upstream/sec21-imola.pdf": "85b351cb434fff711c64065c72cb1e7b3f3c6631068927b8fc74343efcd741b7",
+    "upstream/EvalLossLocal.cpp": "5172f91d5bbd7f5891262ed6c2a5b8f0e2bc0bb74def885345439d648d4eec5e"
+  },
+  "scope_note": "No PSC author implementation located in inspected sources; upstream code is Imola et al. 2021, not PSC author code. Some author homepages inaccessible. No email sent.",
+  "sources": {
+    "psc_paper": "https://aclanthology.org/2026.acl-long.1032/",
+    "psc_checklist": "https://aclanthology.org/attachments/2026.acl-long.1032.checklist.pdf",
+    "author": "https://aclanthology.org/people/yuting-zhang/",
+    "author_orcid": "https://orcid.org/0009-0002-3988-730X",
+    "imola_paper": "https://www.usenix.org/conference/usenixsecurity21/presentation/imola",
+    "imola_repo": "https://github.com/LDPGraphStatistics/LDPGraphStatistics",
+    "imola_pinned_source": "https://github.com/LDPGraphStatistics/LDPGraphStatistics/blob/a0707f6fc26b855c0ed5e8f052cc4117768948ed/cpp/EvalLossLocal.cpp"
+  },
+  "reports": {
+    "docs/PSC_SOURCE_RESEARCH_2026-09-28.md": "3f853dfc473f41d00d9f573f4d604444a47d0d735714559cebcdd24178d9032a",
+    "docs/PSC_AUTHOR_INQUIRY_DRAFT.md": "95184b72feed241fb0264555d04e33dd57280e1ac4fbee500e9b8654e68ff564"
+  }
+}

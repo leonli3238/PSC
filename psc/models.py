@@ -14,7 +14,9 @@ with temperature 0.
 
 from __future__ import annotations
 
+import asyncio
 import os
+import time
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -29,6 +31,7 @@ from agentscope.message import Msg
 from agentscope.model import ChatModelBase, ChatResponse
 from dotenv import load_dotenv
 
+from .events import record_error
 from .mock_model import MockChatModel
 from .progress import note_llm_call
 from .prompts import strip_structured
@@ -48,11 +51,17 @@ class ModelConfig:
     base_url: str | None = None
     temperature: float = 0.0
     max_concurrency: int = 8
+    # Runs (of all dataset / task / method cells) executed concurrently
+    parallel_runs: int = 1
     mock_error_rate: float = 0.0
     # Send the <structured_input> block to the model; None -> only for "mock"
     structured_input: bool | None = None
     # Streaming chat requests (some OpenAI-compatible gateways reject non-stream calls)
     stream: bool = False
+    # Retries per model call on rate limits / 5xx / connection errors / empty
+    # replies, waiting retry_backoff * 2^attempt seconds (or the server's Retry-After)
+    max_retries: int = 4
+    retry_backoff: float = 5.0
     extra: dict = field(default_factory=dict)
 
     @property
@@ -108,7 +117,10 @@ class ModelConfig:
 
 
 _CONFIG_KEYS = frozenset(
-    {"node_model", "curator_model", "temperature", "max_concurrency", "structured_input", "stream"},
+    {
+        "node_model", "curator_model", "temperature", "max_concurrency", "structured_input", "stream",
+        "max_retries", "retry_backoff", "parallel_runs",
+    },
 )
 
 
@@ -137,6 +149,8 @@ def create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
     """Instantiate the chat model for ``role in {"node", "curator"}``."""
     model = _create_model(cfg, role)
     model.psc_structured_input = cfg.use_structured_input
+    model.psc_max_retries = cfg.max_retries
+    model.psc_retry_backoff = cfg.retry_backoff
     return model
 
 
@@ -149,7 +163,8 @@ def _create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
 
         if not cfg.api_key:
             raise RuntimeError(f"OPENAI_API_KEY is not set (fill it in {DEFAULT_ENV})")
-        client_kwargs = {"base_url": cfg.base_url} if cfg.base_url else None
+        # retries are done (and recorded) by ``chat``, not silently by the client
+        client_kwargs = {"max_retries": 0, **({"base_url": cfg.base_url} if cfg.base_url else {})}
         return OpenAIChatModel(
             model_name=name,
             api_key=cfg.api_key,
@@ -198,12 +213,32 @@ def response_text(res: ChatResponse) -> str:
     return "\n".join(parts)
 
 
-async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user: str) -> str:
-    """One-shot system+user call returning the reply text."""
-    if not getattr(model, "psc_structured_input", True):
-        user = strip_structured(user)
-    msgs = [Msg("system", system, "system"), Msg("user", user, "user")]
-    prompt = await formatter.format(msgs)
+_RETRYABLE_STATUS = frozenset({408, 409, 429})
+# Exceptions without an HTTP status: openai connection / timeout / mid-stream
+# errors and the underlying httpx transport errors
+_RETRYABLE_NAMES = frozenset({"APIConnectionError", "APITimeoutError", "APIError", "TransportError", "TimeoutException"})
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        return status in _RETRYABLE_STATUS or status >= 500
+    if isinstance(exc, (TimeoutError, ConnectionError)):
+        return True
+    return any(c.__name__ in _RETRYABLE_NAMES for c in type(exc).__mro__)
+
+
+def _retry_after(exc: BaseException) -> float | None:
+    response = getattr(exc, "response", None)
+    value = getattr(response, "headers", {}).get("retry-after") if response is not None else None
+    try:
+        return float(value) if value is not None else None
+    except ValueError:
+        return None
+
+
+async def _call_once(model: ChatModelBase, prompt) -> tuple[str, list[str]]:
+    """Return the reply text and the types of all content blocks."""
     res = await model(prompt)
     if not isinstance(res, ChatResponse):
         # streaming: every chunk carries the accumulated content, keep the last
@@ -211,8 +246,51 @@ async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user
         async for chunk in res:
             last = chunk
         if last is None:
-            note_llm_call()
-            return ""
+            return "", []
         res = last
+    types = [b.get("type", "?") if isinstance(b, dict) else type(b).__name__ for b in res.content]
+    return response_text(res), types
+
+
+async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user: str) -> str:
+    """One-shot system+user call returning the reply text.
+
+    Retryable API errors and empty replies are recorded and retried with
+    exponential backoff; ``""`` is returned when every attempt failed, so the
+    caller's parser records a failure instead of the experiment crashing.
+    Non-retryable errors (bad request, authentication, ...) are raised.
+    """
+    if not getattr(model, "psc_structured_input", True):
+        user = strip_structured(user)
+    msgs = [Msg("system", system, "system"), Msg("user", user, "user")]
+    prompt = await formatter.format(msgs)
+    retries = max(0, int(getattr(model, "psc_max_retries", 0)))
+    backoff = float(getattr(model, "psc_retry_backoff", 0.0))
+    model_name = getattr(model, "model_name", type(model).__name__)
+    for attempt in range(1, retries + 2):
+        t0 = time.perf_counter()
+        wait = backoff * 2 ** (attempt - 1)
+        try:
+            text, block_types = await _call_once(model, prompt)
+        except Exception as exc:  # noqa: BLE001 - classified below
+            if not _is_retryable(exc):
+                raise
+            wait = max(wait, _retry_after(exc) or 0.0)
+            record_error(
+                "api_error", f"{type(exc).__name__}: {exc}",
+                model=model_name, attempt=attempt, elapsed=round(time.perf_counter() - t0, 2),
+                status=getattr(exc, "status_code", None),
+            )
+        else:
+            if text.strip():
+                note_llm_call()
+                return text
+            record_error(
+                "empty_reply", f"no text in reply (content blocks: {block_types})",
+                model=model_name, attempt=attempt, elapsed=round(time.perf_counter() - t0, 2),
+            )
+        if attempt <= retries:
+            await asyncio.sleep(wait)
     note_llm_call()
-    return response_text(res)
+    record_error("call_failed", f"no usable reply after {retries + 1} attempts", model=model_name)
+    return ""

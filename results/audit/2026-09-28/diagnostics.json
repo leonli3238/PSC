@@ -1,0 +1,297 @@
+{
+  "distribution_checks": [
+    {
+      "dataset": "CU",
+      "task": "degree",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.0185660073016916,
+      "se_re": 0.00019695133102541244,
+      "mean_raw_aggregate": 4.367346938775511,
+      "zero_output_rate": 0.0,
+      "pilot_paired_rule_re": 0.02974628021872584,
+      "three_run_mean_interval_95": [
+        0.0052596872434994835,
+        0.0364671961986563
+      ],
+      "pilot_percentile": 0.90758,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "CU",
+      "task": "2-star",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.17152230824985892,
+      "se_re": 0.001958228328835968,
+      "mean_raw_aggregate": 421.0,
+      "zero_output_rate": 0.0002,
+      "pilot_paired_rule_re": 0.3239629810933588,
+      "three_run_mean_interval_95": [
+        0.04715743876750775,
+        0.355470572020294
+      ],
+      "pilot_percentile": 0.95486,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "CU",
+      "task": "3-star",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.8610829665255362,
+      "se_re": 0.010853192540059486,
+      "mean_raw_aggregate": 494.0,
+      "zero_output_rate": 0.1992,
+      "pilot_paired_rule_re": 2.0190727220773805,
+      "three_run_mean_interval_95": [
+        0.2592239611318258,
+        2.021286611798453
+      ],
+      "pilot_percentile": 0.97482,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 1.0067171611855323,
+      "se_re": 0.011680005923854911,
+      "mean_raw_aggregate": 45.18253333333334,
+      "zero_output_rate": 0.304,
+      "pilot_paired_rule_re": 1.9325611574307189,
+      "three_run_mean_interval_95": [
+        0.358952350798232,
+        2.2173510405167614
+      ],
+      "pilot_percentile": 0.95186,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "Do",
+      "task": "degree",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.013852636041607752,
+      "se_re": 0.0001467162150208568,
+      "mean_raw_aggregate": 5.129032258064515,
+      "zero_output_rate": 0.0,
+      "pilot_paired_rule_re": 0.019413816432888142,
+      "three_run_mean_interval_95": [
+        0.0039926428335407315,
+        0.026914619997911504
+      ],
+      "pilot_percentile": 0.82514,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "Do",
+      "task": "2-star",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.10504249824850749,
+      "se_re": 0.0011709679041112633,
+      "mean_raw_aggregate": 922.9912,
+      "zero_output_rate": 0.0,
+      "pilot_paired_rule_re": 0.19734926520687304,
+      "three_run_mean_interval_95": [
+        0.02965056402635494,
+        0.21404275314784715
+      ],
+      "pilot_percentile": 0.9574,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "Do",
+      "task": "3-star",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.42674808905725575,
+      "se_re": 0.004993557066315699,
+      "mean_raw_aggregate": 1860.956,
+      "zero_output_rate": 0.0456,
+      "pilot_paired_rule_re": 0.759634082947572,
+      "three_run_mean_interval_95": [
+        0.11534126325550212,
+        0.8791312695647475
+      ],
+      "pilot_percentile": 0.94046,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    },
+    {
+      "dataset": "Do",
+      "task": "triangle",
+      "runs": 5000,
+      "seed_recipe": "default_rng([9131, i]), i=0..4999",
+      "mean_re": 0.8421294194587358,
+      "se_re": 0.00913468877666633,
+      "mean_raw_aggregate": 85.94776666666668,
+      "zero_output_rate": 0.2354,
+      "pilot_paired_rule_re": 0.5688444863570778,
+      "three_run_mean_interval_95": [
+        0.2702667526199932,
+        1.7340169736674225
+      ],
+      "pilot_percentile": 0.22646,
+      "resampling_note": "Empirical distribution of means of 3 independent draws; bootstrap over 5000 code runs, 50000 groups, RNG seed 119. Not a CI for paper results."
+    }
+  ],
+  "rounding_ablation": [
+    {
+      "dataset": "CU",
+      "task": "2-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.1062,
+      "ceil_mean_re": 0.17140974947481089,
+      "floor_mean_re": 0.15983397146560585,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "CU",
+      "task": "3-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.8035,
+      "ceil_mean_re": 0.8609640918737546,
+      "floor_mean_re": 0.7706219851375976,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "Do",
+      "task": "2-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.0585,
+      "ceil_mean_re": 0.10433238550551024,
+      "floor_mean_re": 0.09839805990692979,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "Do",
+      "task": "3-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.3434,
+      "ceil_mean_re": 0.42541281500994993,
+      "floor_mean_re": 0.38180598841445207,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "ML",
+      "task": "2-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.0444,
+      "ceil_mean_re": 0.08335973233918488,
+      "floor_mean_re": 0.08254874905850944,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "ML",
+      "task": "3-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.2077,
+      "ceil_mean_re": 0.27580140336517706,
+      "floor_mean_re": 0.26577219821978754,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "CS",
+      "task": "2-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.121,
+      "ceil_mean_re": 0.2313343327469443,
+      "floor_mean_re": 0.2173743616362625,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "CS",
+      "task": "3-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.541,
+      "ceil_mean_re": 0.8238960020661472,
+      "floor_mean_re": 0.7453186545705374,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "EE",
+      "task": "2-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.0295,
+      "ceil_mean_re": 0.04917050848669844,
+      "floor_mean_re": 0.04847213161427912,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "EE",
+      "task": "3-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.1647,
+      "ceil_mean_re": 0.19325055431223728,
+      "floor_mean_re": 0.18604906293909818,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "PM",
+      "task": "2-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.0284,
+      "ceil_mean_re": 0.04564188415841075,
+      "floor_mean_re": 0.04562236485638278,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "runs": 10000,
+      "seed": 94714,
+      "eps2": 0.4,
+      "eps3": 1.6,
+      "paper_gt_re": 0.129,
+      "ceil_mean_re": 0.1274721124410081,
+      "floor_mean_re": 0.1268826099843265,
+      "note": "Paired analytic count simulation: k-star local count depends only on clipped degree; independent of which neighbors are retained. Diagnostic only; no production change."
+    }
+  ],
+  "ee_triangle_check": {
+    "dataset": "EE",
+    "task": "triangle",
+    "runs": 5000,
+    "seed_recipe": "default_rng([9131, i])",
+    "mean_re": 0.3999336101134124,
+    "se_re": 0.003730259988877757,
+    "paper_gt_re": 0.2803,
+    "mean_raw_aggregate": 609.8030333333332,
+    "truth": 889.0
+  }
+}

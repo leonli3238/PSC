@@ -1,0 +1,2658 @@
+PAGE 1
+This paper is included in the Proceedings of the 
+30th USENIX Security Symposium.
+August 11–13, 2021
+978-1-939133-24-3
+Open access to the Proceedings of the 
+30th USENIX Security Symposium 
+is sponsored by USENIX.
+Locally Differentially Private Analysis of 
+Graph Statistics
+Jacob Imola, UC San Diego; Takao Murakami, AIST; 
+Kamalika Chaudhuri, UC San Diego
+https://www.usenix.org/conference/usenixsecurity21/presentation/imola
+
+PAGE 2
+Locally Differentially Private Analysis of Graph Statistics
+Jacob Imola∗
+UC San Diego
+Takao Murakami∗
+AIST
+Kamalika Chaudhuri
+UC San Diego
+Abstract
+Differentially private analysis of graphs is widely used for
+releasing statistics from sensitive graphs while still preserv-
+ing user privacy. Most existing algorithms however are in a
+centralized privacy model, where a trusted data curator holds
+the entire graph. As this model raises a number of privacy and
+security issues – such as, the trustworthiness of the curator
+and the possibility of data breaches, it is desirable to consider
+algorithms in a more decentralized local model where no
+server holds the entire graph.
+In this work, we consider a local model, and present al-
+gorithms for counting subgraphs – a fundamental task for
+analyzing the connection patterns in a graph – with LDP
+(Local Differential Privacy). For triangle counts, we present
+algorithms that use one and two rounds of interaction, and
+show that an additional round can signiﬁcantly improve the
+utility. For k-star counts, we present an algorithm that achieves
+an order optimal estimation error in the non-interactive lo-
+cal model. We provide new lower-bounds on the estimation
+error for general graph statistics including triangle counts
+and k-star counts. Finally, we perform extensive experiments
+on two real datasets, and show that it is indeed possible to
+accurately estimate subgraph counts in the local differential
+privacy model.
+1
+Introduction
+Analysis of network statistics is a useful tool for ﬁnding mean-
+ingful patterns in graph data, such as social, e-mail, citation
+and epidemiological networks. For example, the average de-
+gree (i.e., number of edges connected to a node) in a social
+graph can reveal the average connectivity. Subgraph counts
+(e.g., the number of triangles, stars, or cliques) can be used
+to measure centrality properties such as the clustering coef-
+ﬁcient, which represents the probability that two friends of
+an individual will also be friends of one another [41]. How-
+ever, the vast majority of graph analytics is carried out on
+∗The ﬁrst and second authors made equal contributions.
+sensitive data, which could be leaked through the results of
+graph analysis. Thus, there is a need to develop solutions that
+can analyze these graph properties while still preserving the
+privacy of individuals in the network.
+The standard way to analyze graphs with privacy is through
+differentially private graph analysis [22,23,49]. Differential
+privacy provides individual privacy against adversaries with
+arbitrary background knowledge, and has currently emerged
+as the gold standard for private analytics. However, a vast
+majority of differentially private graph analysis algorithms
+are in the centralized (or global) model [13,15,16,27,34,36,
+42,48,49,52,58,59], where a single trusted data curator holds
+the entire graph and releases sanitized versions of the statistics.
+By assuming a trusted party that can access the entire graph, it
+is possible to release accurate graph statistics (e.g., subgraph
+counts [34, 36, 52], degree distribution [16, 27, 48], spectra
+[59]) and synthetic graphs [15,58].
+In many applications however, a single trusted curator may
+not be practicable due to security or logistical reasons. A
+centralized data holder is amenable to security issues such
+as data breaches and leaks – a growing threat in recent years
+[39,51]. Additionally, decentralized social networks [43,50]
+(e.g., Diaspora [5]) have no central server that contains an
+entire social graph, and use instead many servers all over the
+world, each containing the data of users who have chosen
+to register there. Finally, a centralized solution is also not
+applicable to fully decentralized applications, where the server
+does not automatically hold information connecting users. An
+example of this is a mobile application that asks each user how
+many of her friends she has seen today, and sends noisy counts
+to a central server. In this application, the server does not hold
+any individual edge, but can still aggregate the responses to
+determine the average mobility in an area.
+The standard privacy solution that does not assume a trusted
+third party is LDP (Local Differential Privacy) [20,35]. This
+is a special case of DP (Differential Privacy) in the local
+model, where each user obfuscates her personal data by herself
+and sends the obfuscated data to a (possibly malicious) data
+collector. Since the data collector does not hold the original
+USENIX Association
+30th USENIX Security Symposium    983
+
+PAGE 3
+
+	
+
+
+
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+  , 	
+Figure 1: Example of subgraph counts.
+personal data, it does not suffer from data leakage issues.
+Therefore, LDP has recently attracted attention from both
+academia [8,10,11,24,32,33,40,45,57,62] as well as industry
+[17,55,56]. However, the use of LDP has mostly been in the
+context of tabular data where each row corresponds to an
+individual, and little attention has been paid to LDP for more
+complex data such as graphs (see Section 2 for details).
+In this paper, we consider LDP for graph data, and pro-
+vide algorithms and theoretical performance guarantees for
+calculating graph statistics in this model. In particular, we
+focus on counting triangles and k-stars – the most basic and
+useful subgraphs. A triangle is a set of three nodes with three
+edges (we exclude automorphisms; i.e., #closed triplets = 3×
+#triangles). A k-star consists of a central node connected to
+k other nodes. Figure 1 shows an example of triangles and
+k-stars. Counting them is a fundamental task of analyzing
+the connection patterns in a graph, as the clustering coefﬁ-
+cient can be calculated from triangle and 2-star counts as:
+3×#triangles
+#2-stars
+(in Figure 1, 3×5
+20 = 0.75).
+When we look to protect privacy of relationship informa-
+tion modeled by edges in a graph, we need to pay attention to
+the fact that some relationship information could be leaked
+from subgraph counts. For example, suppose that user (node)
+v2 in Figure 1 knows all edges connected to v2 and all edges
+between v3,...,v7 as background knowledge, and that v2
+wants to know who are friends with v1. Then “#2-stars =
+20” reveals the fact that v1 has three friends, and “#triangles
+= 5” reveals the fact that the three friends of v1 are v3, v4, and
+v6. Moreover, a central server that holds all friendship infor-
+mation (i.e., all edges) may face data breaches, as explained
+above. Therefore, a private algorithm for counting subgraphs
+in the local model is highly beneﬁcial to individual privacy.
+The main challenge in counting subgraphs in the local
+model is that existing techniques and their analysis do not
+directly apply. The existing work on LDP for tabular data as-
+sumes that each person’s data is independently and identically
+drawn from an underlying distribution. In graphs, this is no
+longer the case; e.g., each triangle is not independent, because
+multiple triangles can involve the same edge; each k-star
+is not independent for the same reason. Moreover, complex
+inter-dependencies involving multiple people are possible in
+graphs. For example, each user cannot count triangles involv-
+ing herself, because she cannot see edges between other users;
+e.g., user v1 cannot see an edge between v3 and v4 in Figure 1.
+We show that although these complex dependency among
+users introduces challenges, it also presents opportunities.
+Speciﬁcally, this kind of interdependency also implies that
+extra interaction between users and a data collector may be
+helpful depending on the prior responses. In this work, we
+investigate this issue and provide algorithms for accurately
+calculating subgraph counts under LDP.
+Our contributions. In this paper, we provide algorithms and
+corresponding performance guarantees for counting triangles
+and k-stars in graphs under edge Local Differential Privacy.
+Speciﬁcally, our contributions are as follows:
+• For triangles, we present two algorithms. The ﬁrst is
+based on Warner’s RR (Randomized Response) [60]
+and empirical estimation [32,40,57]. We then present
+a more sophisticated algorithm that uses an additional
+round of interaction between users and data collector.
+We provide upper-bounds on the estimation error for
+each algorithm, and show that the latter can signiﬁcantly
+reduce the estimation error.
+• For k-stars, we present a simple algorithm using the
+Laplacian mechanism. We analyze the upper-bound on
+the estimation error for this algorithm, and show that it is
+order optimal in terms of the number of users among all
+LDP mechanisms that do not use additional interaction.
+• We provide lower-bounds on the estimation error for gen-
+eral graph functions including triangle counts and k-star
+counts in the local model. These are stronger than known
+upper bounds in the centralized model, and illustrate the
+limitations of the local model over the central.
+• Finally, we evaluate our algorithms on two real datasets,
+and show that it is indeed possible to accurately estimate
+subgraph counts in the local model. In particular, we
+show that the interactive algorithm for triangle counts
+and the Laplacian algorithm for the k-stars provide small
+estimation errors when the number of users is large.
+We implemented our algorithms with C/C++, and published
+them as open-source software [1].
+2
+Related Work
+Graph DP. DP on graphs has been widely studied, with most
+prior work being in the centralized model [13,15,16,27,34,
+36,42,48,49,52,58,59]. In this model, a number of algorithms
+have been proposed for releasing subgraph counts [34,36,52],
+degree distributions [16,27,48], eigenvalues and eigenvectors
+[59], and synthetic graphs [15,58].
+There has also been a handful of work on graph algorithms
+in the local DP model [46, 53, 63–65]. For example, Qin et
+al. [46] propose an algorithm for generating synthetic graphs.
+Zhang et al. [65] propose an algorithm for software usage
+analysis under LDP, where a node represents a software com-
+ponent (e.g., function in a code) and an edge represents a
+984    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 4
+control-ﬂow between components. Neither of these works
+focus on subgraph counts.
+Sun et al. [53] propose an algorithm for counting sub-
+graphs in the local model under the assumption that each user
+allows her friends to see all her connections. However, this
+assumption does not hold in many practical scenarios; e.g.,
+a Facebook user can change her setting so that friends can-
+not see her connections. Therefore, we assume that each user
+knows only her friends rather than all of her friends’ friends.
+The algorithms in [53] cannot be applied to this setting.
+Ye et al. [63] propose a one-round algorithm for estimating
+graph metrics including the clustering coefﬁcient. Here they
+apply Warner’s RR (Randomized Response) to an adjacency
+matrix. However, it introduces a very large bias for triangle
+counts. In [64], they propose a method for reducing the bias in
+the estimate of triangle counts. However, the method in [64]
+introduces some approximation, and it is unclear whether their
+estimate is unbiased. In this paper, we propose a one-round
+algorithm for triangles that uses empirical estimation as a
+post-processing step, and prove that our estimate is unbiased.
+We also show in Appendix A that our one-round algorithm
+signiﬁcantly outperforms the one-round algorithm in [63].
+Moreover, we show in Section 5 that our two-rounds algo-
+rithm signiﬁcantly outperforms our one-round algorithm.
+Our work also differs from [53,63,64] in that we provide
+lower-bounds on the estimation error.
+LDP. Apart from graphs, a number of works have looked
+at analyzing statistics (e.g., discrete distribution estimation
+[8,24,32,33,40,57,62], heavy hitters [10,11,45]) under LDP.
+However, they use LDP in the context of tabular data, and
+do not consider the kind of complex interdependency in graph
+data (as described in Section 1). For example, the RR with
+empirical estimation is optimal in the low privacy regimes for
+estimating a distribution for tabular data [32,33]. We apply
+the RR and empirical estimation to counting triangles, and
+show that it is suboptimal and signiﬁcantly outperformed by
+a more sophisticated two-rounds algorithm.
+Upper/lower-bounds. Finally, we note that existing work
+on upper-bounds and lower-bounds cannot be directly ap-
+plied to our setting. For example, there are upper-bounds
+[8,29,30,32,33,62] and lower-bounds [7,18,19,21,29–31]
+on the estimation error (or sample complexity) in distribu-
+tion estimation of tabular data. However, they assume that
+each original data value is independently sampled from an
+underlying distribution. They cannot be directly applied to
+our graph setting, because each triangle and each k-star in-
+volve multiple edges and are not independent (as described
+in Section 1). Rashtchian et al. [47] provide lower-bounds
+on communication complexity (i.e., number of queries) of
+vector-matrix-vector queries for estimating subgraph counts.
+However, their lower-bounds are not on the estimation error,
+and cannot be applied to our problem.
+3
+Preliminaries
+3.1
+Graphs and Differential Privacy
+Graphs. Let N, Z≥0, R, and R≥0 be the sets of natural num-
+bers, non-negative integers, real numbers, and non-negative
+real numbers, respectively. For a ∈N, let [a] = {1,2,...,a}.
+We consider an undirected graph G = (V,E), where V is
+a set of nodes (i.e., users) and E is a set of edges. Let n ∈N
+be the number of users in V, and let vi ∈V the i-th user;
+i.e., V = {v1,...,vn}. An edge (vi,vj) ∈E represents a re-
+lationship between users vi ∈V and vj ∈V. The number
+of edges connected to a single node is called the degree of
+the node. Let dmax ∈N be the maximum degree (i.e., max-
+imum number of edges connected to a node) in graph G.
+Let G be the set of possible graphs G on n users. A graph
+G ∈G can be represented as a symmetric adjacency ma-
+trix A = (ai,j) ∈{0,1}n×n, where ai,j = 1 if (vi,vj) ∈E and
+ai,j = 0 otherwise.
+Types of DP. DP (Differential Privacy) [22,23] is known as
+a gold standard for data privacy. According to the underlying
+architecture, DP can be divided into two types: centralized DP
+and LDP (Local DP). Centralized DP assumes the centralized
+model, where a “trusted” data collector collects the original
+personal data from all users and obfuscates a query (e.g.,
+counting query, histogram query) on the set of personal data.
+LDP assumes the local model, where each user does not trust
+even the data collector. In this model, each user obfuscates a
+query on her personal data by herself and sends the obfuscated
+data to the data collector.
+If the data are represented as a graph, we can consider
+two types of DP: edge DP and node DP [27, 49]. Edge DP
+considers two neighboring graphs G,G′ ∈G that differ in
+one edge. In contrast, node DP considers two neighboring
+graphs G,G′ ∈G in which G′ is obtained from G by adding
+or removing one node along with its adjacent edges.
+Although Zhang et al. [65] consider node DP in the local
+model where each node represents a software component, we
+consider a totally different problem where each node repre-
+sents a user. In the latter case, node DP requires us to hide
+the existence of each user along with her all edges. However,
+many applications in the local model send the identity of
+each user to a server. For example, we can consider a mobile
+application that sends to a server how many friends a user
+met today along with her user ID. In this case, the user may
+not mind sending her user ID, but may want to hide her edge
+information (i.e., who she met today). Although we cannot
+use node DP in such applications, we can use edge DP to deny
+the presence/absence of each edge (friend). Thus we focus on
+edge DP in the same way as [46,53,63,64].
+Below we explain edge DP in the centralized model.
+Centralized DP. We call edge DP in the centralized model
+edge centralized DP. Formally, it is deﬁned as follows:
+USENIX Association
+30th USENIX Security Symposium    985
+
+PAGE 5
+Deﬁnition 1 (ε-edge centralized DP). Let ε ∈R≥0. A random-
+ized algorithm M with domain G provides ε-edge centralized
+DP if for any two neighboring graphs G,G′ ∈G that differ in
+one edge and any S ⊆Range(M ),
+Pr[M (G) ∈S] ≤eε Pr[M (G′) ∈S].
+(1)
+Edge centralized DP guarantees that an adversary who has
+observed the output of M cannot determine whether it is
+come from G or G′ with a certain degree of conﬁdence. The
+parameter ε is called the privacy budget. If ε is close to zero,
+then G and G′ are almost equally likely, which means that an
+edge in G is strongly protected.
+We also note that edge DP can be used to protect k ∈N
+edges by using the notion of group privacy [23]. Speciﬁcally,
+if M provides ε-edge centralized DP, then for any two graphs
+G,G′ ∈G that differ in k edges and any S ⊆Range(M ), we
+obtain: Pr[M (G) ∈S] ≤ekε Pr[M (G′) ∈S]; i.e., k edges are
+protected with privacy budget kε.
+3.2
+Local Differential Privacy
+LDP (Local Differential Privacy) [20, 35] is a privacy met-
+ric to protect personal data of each user in the local model.
+LDP has been originally introduced to protect each user’s data
+record that is independent from the other records. However, in
+a graph, each edge is connected to two users. Thus, when we
+deﬁne edge DP in the local model, we should consider what
+we want to protect. In this paper, we consider two deﬁnitions
+of edge DP in the local model: edge LDP in [46] and rela-
+tionship DP introduced in this paper. Below, we will explain
+these two deﬁnitions in detail.
+Edge LDP. Qin et al. [46] deﬁned edge LDP based on a user’s
+neighbor list. Speciﬁcally, let ai = (ai,1,...,ai,n) ∈{0,1}n be
+a neighbor list of user vi. Note that ai is the i-th row of the
+adjacency matrix A of graph G. In other words, graph G can
+be represented as neighbor lists a1,...,an.
+Then edge LDP is deﬁned as follows:
+Deﬁnition 2 (ε-edge LDP [46]). Let ε ∈R≥0. For any i ∈[n],
+let Ri with domain {0,1}n be a randomized algorithm of
+user vi. Ri provides ε-edge LDP if for any two neighbor lists
+ai,a′
+i ∈{0,1}n that differ in one bit and any S ⊆Range(Ri),
+Pr[Ri(ai) ∈S] ≤eε Pr[Ri(a′
+i) ∈S].
+(2)
+Edge LDP in Deﬁnition 2 protects a single bit in a neighbor
+list with privacy budget ε. As with edge centralized DP, edge
+LDP can also be used to protect k ∈N bits in a neighbor
+list by using group privacy; i.e., k bits in a neighbor list are
+protected with privacy budget kε.
+RR (Randomized Response). As a simple example of a
+randomized algorithm Ri providing ε-edge LDP, we explain
+Warner’s RR (Randomized Response) [60] applied to a neigh-
+bor list, which is called the randomized neighbor list in [46].
+Given a neighbor list ai ∈{0,1}n, this algorithm outputs
+a noisy neighbor lists b = (b1,...,bn) ∈{0,1}n by ﬂipping
+each bit in ai with probability p =
+1
+eε+1; i.e., for each j ∈[n],
+bj̸ = ai,j with probability p and b j = ai,j with probability
+1−p. Since Pr[R (ai) ∈S] and Pr[R (a′
+i) ∈S] in (2) differ by
+eε for ai and a′
+i that differ in one bit, this algorithm provides
+ε-edge LDP.
+Relationship DP. In graphs such as social networks, it is usu-
+ally the case that two users share knowledge of the presence
+of an edge between them. To hide their mutual edge, we must
+consider that both user’s outputs can leak information. We
+introduce a DP deﬁnition called relationship DP that hides
+one entire edge in graph G during the whole process:
+Deﬁnition 3 (ε-relationship DP). Let ε ∈R≥0. A tuple of
+randomized algorithms (R1,...,Rn), each of which is with
+domain {0,1}n, provides ε-relationship DP if for any two
+neighboring graphs G,G′ ∈G that differ in one edge and any
+S ⊆Range(R1)×...×Range(Rn),
+Pr[(R1(a1),...,Rn(an)) ∈S]
+≤eε Pr[(R1(a′
+1),...,Rn(a′
+n)) ∈S],
+(3)
+where ai (resp. a′
+i) ∈{0,1}n is the i-th row of the adjacency
+matrix of graph G (resp. G′).
+Relationship DP is the same as decentralized DP in [53]
+except that the former (resp. latter) assumes that each user
+knows only her friends (resp. all of her friends’ friends).
+Edge LDP assumes that user vi’s edge connected to user vj
+and user vj’s edge connected to user vi are different secrets,
+with user vi knowing the former and user vj knowing the latter.
+Relationship DP assumes that the two secrets are the same.
+Note that the threat model of relationship DP is different
+from that of LDP – some amount of trust must be given to
+the other users in relationship DP. Speciﬁcally, user vi must
+trust user v j to not leak information about their shared edge.
+If k ∈N users decide not to follow their protocols, then up to
+k edges incident to user vi may be compromised. This trust
+model is stronger than LDP, which assumes nothing about
+what other users do, but is much weaker than centralized DP
+in which all edges are in the hands of the central party.
+Other than the differing threat models, relationship DP and
+edge LDP are quite closely related:
+Proposition 1. If randomized algorithms R1,...,Rn provide
+ε-edge LDP, then (R1,...,Rn) provides 2ε-relationship DP.
+Proof. The existence of edge (vi,vj) ∈E affects two elements
+ai,j,aj,i ∈{0,1} in the adjacency matrix A. Then by group
+privacy [23], Proposition 1 holds.
+Proposition 1 states that when we want to protect one edge
+as a whole, the privacy budget is at most doubled. Note, how-
+ever, that some randomized algorithms do not have this dou-
+bling issue. For example, we can apply the RR to the i-th
+986    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 6
+neighbor list ai so that Ri outputs noisy bits (b1,...,bi−1) ∈
+{0,1}i−1 for only users v1,...,vi−1 with smaller user IDs; i.e.,
+for each j ∈{1,...,i−1}, bj̸ = ai,j with probability p =
+1
+eε+1
+and bj = ai,j with probability 1−p. In other words, we can
+extend the RR for a neighbor list so that (R1,...,Rn) outputs
+only the lower triangular part of the noisy adjacency matrix.
+Then all of R1,...,Rn provide ε-edge LDP. In addition, the
+existence of edge (vi,v j) ∈E (i > j) affects only one ele-
+ment ai,j in the lower triangular part of A. Thus, (R1,...,Rn)
+provides ε-relationship DP (not 2ε).
+Our proposed algorithm in Section 4.3 also has this prop-
+erty; i.e., it provides both ε-edge LDP and ε-relationship DP.
+3.3
+Global Sensitivity
+In this paper, we use the notion of global sensitivity [23] to
+provide edge centralized DP or edge LDP.
+Let D be the set of possible input data of a randomized
+algorithm. In edge centralized DP, D = G. In edge LDP,
+D = {0,1}n. Let f : D →R be a function that takes data
+D ∈D as input and outputs some statistics f(D) ∈R about
+the data. The most basic method for providing DP is to add
+the Laplacian noise proportional to the global sensitivity [23].
+Deﬁnition 4 (Global sensitivity). The global sensitivity of a
+function f : D →R is given by:
+GS f =
+max
+D,D′∈D:D∼D′|f(D)−f(D′)|,
+where D ∼D′ represents that D and D′ are neighbors; i.e.,
+they differ in one edge in edge centralized DP, and differ in
+one bit in edge LDP.
+In graphs, the global sensitivity GSf can be very large.
+For example, adding one edge may result in the increase of
+triangle (resp. k-star) counts by n−2 (resp.
+  n
+k−1
+
+).
+One way to signiﬁcantly reduce the global sensitivity is
+to use graph projection [16, 36, 48], which removes some
+neighbors from a neighbor list so that the maximum degree
+dmax is upper-bounded by a predetermined value ˜dmax ∈Z≥0.
+By using the graph projection with ˜dmax ≪n, we can enforce
+small global sensitivity; e.g., the global sensitivity of triangle
+(resp. k-star) counts is at most ˜dmax (resp.
+  ˜dmax
+k−1
+
+) after the
+projection.
+Ideally, we would like to set ˜dmax = dmax to avoid removing
+neighbors from a neighbor list (i.e., to avoid the loss of utility).
+However, the maximum degree dmax can leak some informa-
+tion about the original graph G. In this paper, we address this
+issue by privately estimating dmax with edge LDP and then
+using the private estimate of dmax as ˜dmax. This technique
+is also known as adaptive clipping in differentially private
+stochastic gradient descent (SGD) [44,54].
+Table 1: Basic notations in this paper.
+Symbol
+Description
+n
+Number of users.
+G = (V,E)
+Graph with n nodes (users) V and edges E.
+vi
+i-th user in V.
+dmax
+Maximum degree of G.
+˜dmax
+Upper-bound on dmax (used for projection).
+G
+Set of possible graphs on n users.
+A = (ai,j)
+Adjacency matrix.
+ai
+i-th row of A (i.e., neighbor list of vi).
+Ri
+Randomized algorithm on ai.
+f△(G)
+Number of triangles in G.
+fk⋆(G)
+Number of k-stars in G.
+3.4
+Graph Statistics and Utility Metrics
+Graph statistics. We consider a graph function that takes
+a graph G ∈G as input and outputs some graph statistics.
+Speciﬁcally, let f△: G →Z≥0 be a graph function that outputs
+the number of triangles in G. For k ∈N, let fk⋆: G →Z≥0 be
+a graph function that outputs the number of k-stars in G. For
+example, if a graph G is as shown in Figure 1, then f△(G) = 5,
+f2⋆(G) = 20, and f3⋆(G) = 8. The clustering coefﬁcient can
+also be calculated from f△(G) and f2⋆(G) as: 3f△(G)
+f2⋆(G) = 0.75.
+Table 1 shows the basic notations used in this paper.
+Utility metrics. We use the l2 loss (i.e., squared error) [32,
+40,57] and the relative error [12,14,61] as utility metrics.
+Speciﬁcally, let ˆf(G) ∈R be an estimate of graph statis-
+tics f(G) ∈R. Here f can be instantiated by f△or fk⋆; i.e.,
+ˆf△(G) and ˆfk⋆(G) are the estimates of f△(G) and fk⋆(G),
+respectively. Let l2
+2 be the l2 loss function, which maps the
+estimate ˆf(G) and the true value f(G) to the l2 loss; i.e.,
+l2
+2( ˆf(G), f(G)) = ( ˆf(G)−f(G))2. Note that when we use a
+randomized algorithm providing edge LDP (or edge central-
+ized DP), ˆf(G) depends on the randomness in the algorithm.
+In our theoretical analysis, we analyze the expectation of the
+l2 loss over the randomness, as with [32,40,57].
+When f(G) is large, the l2 loss can also be large. Thus in
+our experiments, we also evaluate the relative error, along
+with the l2 loss. The relative error is deﬁned as: | ˆf(G)−f(G)|
+max{f(G),η},
+where η ∈R≥0 is a very small positive value. Following the
+convention [12,14,61], we set η = 0.001n for f△and fk⋆.
+4
+Algorithms
+In the local model, there are several ways to model how the
+data collector interacts with the users [20,31,46]. The simplest
+model would be to assume that the data collector sends a query
+Ri to each user vi once, and then each user vi independently
+sends an answer Ri(ai) to the data collector. In this model,
+there is one-round interaction between each user and the data
+USENIX Association
+30th USENIX Security Symposium    987
+
+PAGE 7
+collector. We call this the one-round LDP model. For example,
+the RR for a neighbor list in Section 3.2 assumes this model.
+However, in certain cases it may be possible for the data
+collector to send a query to each user multiple times. This
+could allow for more powerful queries that result in more
+accurate subgraph counts [53] or more accurate synthetic
+graphs [46]. We call this the multiple-rounds LDP model.
+In Sections 4.1 and 4.2, we consider the problems of com-
+puting fk⋆(G) and f△(G) for a graph G ∈G in the one-round
+LDP model. Our algorithms and bounds highlight limitations
+of the one-round LDP model. Compared to the centralized
+graph DP model, the one-round LDP model cannot compute
+fk⋆(G) as accurately. Furthermore, the algorithm for f△(G)
+does not perform well. In Section 4.3, we propose a more so-
+phisticated algorithm for computing f△(G) in the two-rounds
+LDP model, and show that it provides much smaller expected
+l2 loss than the algorithm in the one-round LDP model. In
+Section 4.4, we show a general result about lower bounds on
+the expected l2 loss of graph statistics in LDP. The proofs of
+all statements in Section 4 are given in the full version [28].
+4.1
+One-Round Algorithms for k-Stars
+Algorithm. We begin with the problem of computing fk⋆(G)
+in the one-round LDP model. For this model, we introduce a
+simple algorithm using the Laplacian mechanism, and prove
+that this algorithm can achieve order optimal expected l2 loss
+among all one-round LDP algorithms.
+Data: Graph G represented as neighbor lists a1,...,an
+∈{0,1}n, privacy budget ε ∈R≥0, ˜dmax ∈Z≥0.
+Result: Private estimate of fk⋆(G).
+1 ∆←
+  ˜dmax
+k−1
+
+;
+2 for i = 1 to n do
+3
+ai ←GraphProjection(ai, ˜dmax);
+/* di is a degree of user vi.
+*/
+4
+di ←∑n
+j=1 ai,j;
+5
+ri ←
+ di
+k
+
+;
+6
+ˆri ←ri +Lap
+  ∆
+ε
+
+;
+7
+release(ˆri);
+8 end
+9 return ∑n
+i=1 ˆri
+Algorithm 1: LocalLapk⋆
+Algorithm 1 shows the one-round algorithm for k-stars.
+It takes as input a graph G (represented as neighbor lists
+a1,...,an ∈{0,1}n), the privacy budget ε, and a non-negative
+integer ˜dmax ∈Z≥0.
+The parameter ˜dmax plays a role as an upper-bound on
+the maximum degree dmax of G. Speciﬁcally, let di ∈Z≥0
+be the degree of user vi; i.e., the number of “1”s in her
+neighbor list ai. In line 3, user vi uses a function (de-
+noted by GraphProjection) that performs graph projec-
+tion [16, 36, 48] for ai as follows. If di exceeds ˜dmax, it ran-
+domly selects ˜dmax neighbors out of di neighbors; otherwise,
+it uses ai as it is. This guarantees that each user’s degree never
+exceeds ˜dmax; i.e., di ≤˜dmax after line 4.
+After the graph projection, user vi counts the number of
+k-stars ri ∈Z≥0 of which she is a center (line 5), and adds the
+Laplacian noise to ri (line 6). Here, since adding one edge
+results in the increase of at most
+  ˜dmax
+k−1
+
+k-stars, the sensitivity
+of k-star counts for user vi is at most
+  ˜dmax
+k−1
+
+(after graph pro-
+jection). Therefore, we add Lap( ∆
+ε ) to ri, where ∆=
+  ˜dmax
+k−1
+
+and for b ∈R≥0 Lap(b) is a random variable that represents
+the Laplacian noise with mean 0 and scale b. The ﬁnal answer
+of Algorithm 1 is simply the sum of all the noisy k-star counts.
+We denote this algorithm by LocalLapk⋆.
+The value of ˜dmax greatly affects the utility. If ˜dmax is too
+large, a large amount of the Laplacian noise would be added.
+If ˜dmax is too small, a great number of neighbors would be
+reduced by graph projection. When we have some prior knowl-
+edge about the maximum degree dmax, we can set ˜dmax to an
+appropriate value. For example, the maximum number of con-
+nections allowed on Facebook is 5000 [3]. In this case, we
+can set ˜dmax = 5000, and then graph projection does nothing.
+Given that the number of Facebook monthly active users is
+over 2.7 billion [6], ˜dmax = 5000 is much smaller than n. For
+another example, if we know that the degree is smaller than
+1000 for most users, then we can set ˜dmax = 1000 and perform
+graph projection for users whose degrees exceed ˜dmax.
+In some applications, the data collector may not have such
+prior knowledge about ˜dmax. In this case, we can privately
+estimate dmax by allowing an additional round between each
+user and the data collector, and use the private estimate of
+dmax as ˜dmax. We describe how to privately estimate dmax with
+edge LDP at the end of Section 4.1.
+Theoretical properties. LocalLapk⋆has the following guar-
+antees:
+Theorem 1. LocalLapk⋆provides ε-edge LDP.
+Theorem 2. Let ˆfk⋆(G,ε, ˜dmax) be the output of LocalLapk⋆.
+Then, for all k ∈N,ε ∈R≥0, ˜dmax ∈Z≥0, and G ∈G such
+that the maximum degree dmax of G is at most
+˜dmax,
+E[l2
+2( ˆfk⋆(G,ε, ˜dmax), fk⋆(G))] = O
+
+n ˜d2k−2
+max
+ε2
+
+.
+The factor of n in the expected l2 loss of LocalLapk⋆
+comes from the fact that we are adding the Laplacian noise
+n times. In the centralized model, this factor of n is not
+there, because the central data collector sees all k-stars; i.e.,
+the data collector knows fk⋆(G). The sensitivity of fk⋆is
+at most 2
+  ˜dmax
+k−1
+
+(after graph projection) under edge central-
+ized DP. Therefore, we can consider an algorithm that sim-
+ply adds the Laplacian noise Lap(2
+  ˜dmax
+k−1
+
+/ε) to fk⋆(G), and
+outputs fk⋆(G) + Lap(2
+  ˜dmax
+k−1
+
+/ε). We denote this algorithm
+by CentralLapk⋆. Since the bias of the Laplacian noise is
+988    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 8
+0, CentralLapk⋆attains the expected l2 loss (= variance) of
+O
+ ˜d2k−2
+max
+ε2
+
+.
+It seems impossible to avoid this factor of n in the one-
+round LDP model, as the data collector will be dealing with n
+independent answers to queries. Indeed, this is the case—we
+prove that the expected l2 error of LocalLapk⋆is order optimal
+among all one-round LDP algorithms, and the one-round LDP
+model cannot improve the factor of n.
+Corollary 1. Let ˆfk⋆(G, ˜dmax,ε) be any one-round LDP
+algorithm that computes fk⋆(G) satisfying ε-edge LDP.
+Then, for all k,n, ˜dmax ∈N and ε ∈R≥0 such that n
+is even, there exists a set of graphs A ⊆G
+on n
+nodes such that the maximum degree of each G ∈A is
+at most ˜dmax, and
+1
+|A| ∑G∈A E[l2
+2( ˆfk⋆(G, ˜dmax,ε), fk⋆(G))] ≥
+Ω
+
+e2ε
+(e2ε+1)2 ˜d2k−2
+max n
+
+.
+This is a corollary of a more general result of Section 4.4.
+Thus, any algorithm computing k-stars cannot avoid the fac-
+tor of n in its l2
+2 loss. k-stars is an example where the non-
+interactive graph LDP model is strictly weaker than the cen-
+tralized DP model.
+Nevertheless, we note that LocalLapk⋆can accurately cal-
+culate fk⋆(G) for a large number of users n. Speciﬁcally, the
+relative error decreases with increase in n because LocalLapk⋆
+has a factor of n (not n2) in the expected l2 error, i.e.,
+E[( ˆfk⋆(G,ε, ˜dmax) −fk⋆(G))2] = O(n) and fk⋆(G)2 ≥Ω(n2)
+(when we ignore ˜dmax and ε). In our experiments, we show
+that the relative error of LocalLapk⋆is small when n is large.
+Private calculation of dmax. By allowing an additional round
+between each user and the data collector, we can privately
+estimate dmax and use the private estimate of dmax as ˜dmax.
+Speciﬁcally, we divide the privacy budget ε into ε0 ∈R≥0
+and ε1 ∈R≥0; i.e., ε = ε0 +ε1. We ﬁrst estimate dmax with ε0-
+edge LDP and then run LocalLapk⋆with the remaining privacy
+budget ε1. Note that LocalLapk⋆with the private calculation
+of dmax results in a two-rounds LDP algorithm.
+We consider the following simple algorithm. At the ﬁrst
+round, each user vi adds the Laplacian noise Lap( 1
+ε0 ) to her
+degree di. Let ˆdi ∈R be the noisy degree of vi; i.e., ˆdi =
+di +Lap( 1
+ε0 ). Then user vi sends ˆdi to the data collector. Let
+ˆdmax ∈R be the maximum value of the noisy degree; i.e.,
+ˆdmax = max{ ˆd1,..., ˆdn}. We call ˆdmax the noisy max degree.
+The data collector calculates the noisy max degree ˆdmax as
+an estimate of dmax, and sends ˆdmax back to all users. At the
+second round, we run LocalLapk⋆with input G, ε, and ⌊ˆdmax⌋.
+At the ﬁrst round, the calculation of ˆdmax provides ε0-edge
+LDP because each user’s degree has the sensitivity 1 under
+edge LDP. At the second round, Theorem 1 guarantees that
+LocalLapk⋆provides ε1-edge LDP. Then by the composition
+theorem [23], this two-rounds algorithm provides ε-edge LDP
+in total (ε = ε0 +ε1).
+	
+
+		
+		
+		
+	
+
+
+
+
+
+′
+Figure 2: Four types of subgraphs with three nodes.
+In our experiments, we show that this algorithm provides
+the utility close to LocalLapk⋆with the true max degree dmax.
+4.2
+One-Round Algorithms for Triangles.
+Algorithm. Now, we focus our attention on the more chal-
+lenging f△query. This query is more challenging in the graph
+LDP model because no user is aware of any triangle; i.e., user
+vi is not aware of any triangle formed by (vi,vj,vk), because
+vi cannot see any edge (vj,vk) ∈E in graph G.
+One way to count f△(G) with edge LDP is to apply the
+RR (Randomized Response) to a neighbor list. For example,
+user vi applies the RR to ai,1,...,ai,i−1 (which corresponds
+to users v1,...,vi−1 with smaller user IDs) in her neighbor
+list ai; i.e., we apply the RR to the lower triangular part of
+adjacency matrix A, as described in Section 3.2. Then the
+data collector constructs a noisy graph G′ = (V,E′) ∈G from
+the lower triangular part of the noisy adjacency matrix, and
+estimates the number of triangles from G′. However, simply
+counting the triangles in G′ can introduce a signiﬁcant bias
+because G′ is denser than G especially when ε is small.
+Through clever post-processing known as empirical estima-
+tion [32,40,57], we are able to obtain an unbiased estimate
+of f△(G) from G′. Speciﬁcally, a subgraph with three nodes
+can be divided into four types depending on the number of
+edges. Three nodes with three edges form a triangle. We refer
+to three nodes with two edges, one edge, and no edges as
+2-edges, 1-edge, and no-edges, respectively. Figure 2 shows
+their shapes. f△(G) can be expressed using m3, m2, m1, and
+m0 as follows:
+Proposition 2. Let G′ = (V,E′) be a noisy graph generated
+by applying the RR to the lower triangular part of A. Let
+m3,m2,m1,m0 ∈Z≥0 be respectively the number of triangles,
+2-edges, 1-edge, and no-edges in G′. Then
+E
+h
+e3ε
+(eε−1)3 m3−
+e2ε
+(eε−1)3 m2+
+eε
+(eε−1)3 m1−
+1
+(eε−1)3 m0
+i
+= f△(G).
+(4)
+Therefore, the data collector can count m3, m2, m1, and
+m0 from G′, and calculate an unbiased estimate of f△(G) by
+(4). In Appendix A, we show that the l2 loss is signiﬁcantly
+reduced by this empirical estimation.
+Algorithm 2 shows this algorithm. In line 2, user vi
+applies the RR with privacy budget ε (denoted by RRε)
+to ai,1,...,ai,i−1 in her neighbor list ai, and outputs Ri =
+USENIX Association
+30th USENIX Security Symposium    989
+
+PAGE 9
+Data: Graph G represented as neighbor lists
+a1,...,an ∈{0,1}n, privacy budget ε ∈R≥0.
+Result: Private estimate of f△(G).
+1 for i = 1 to n do
+2
+Ri ←(RRε(ai,1),...,RRε(ai,i−1));
+3
+release(Ri);
+4 end
+5 G′ = (V,E′) ←UndirectedGraph(R1,...,Rn);
+/* Counts m3,m2,m1,m0 in G′.
+*/
+6 (m3,m2,m1,m0) ←Count(G′);
+7 return
+1
+(eε−1)3 (e3εm3 −e2εm2 +eεm1 −m0)
+Algorithm 2: LocalRR△
+(RRε(ai,1),...,RRε(ai,i−1)). In other words, we apply the RR
+to the lower triangular part of A and there is no overlap be-
+tween edges sent by users. In line 5, the data collector uses
+a function (denoted by UndirectedGraph) that converts the
+bits of (R1,...,Rn) into an undirected graph G′ = (V,E′) by
+adding edge (vi,vj) with i > j to E′ if and only if the j-th
+bit of Ri is 1. Note that G′ is biased, as explained above. In
+line 6, the data collector uses a function (denoted by Count)
+that calculates m3, m2, m1, and m0 from G′. Finally, the data
+collector outputs the expression inside the expectation on the
+left-hand side of (4), which is an unbiased estimator for f△(G)
+by Proposition 2. We denote this algorithm by LocalRR△.
+Theoretical properties. LocalRR△provides the following
+guarantee.
+Theorem 3.
+LocalRR△provides ε-edge LDP and ε-
+relationship DP.
+LocalRR△does not have the doubling issue (i.e., it provides
+not 2ε but ε-relationship DP), because we apply the RR to the
+lower triangular part of A, as explained in Section 3.2.
+Unlike the RR and empirical estimation for tabular data
+[32], the expected l2 loss of LocalRR△is complicated. To
+simplify the utility analysis, we assume that G is generated
+from the Erdös-Rényi graph distribution G(n,α) with edge
+existence probability α; i.e., each edge in G with n nodes is
+independently generated with probability α ∈[0,1].
+Theorem 4. Let G(n,α) be the Erdös-Rényi graph distri-
+bution with edge existence probability α ∈[0,1]. Let p =
+1
+eε+1 and β = α(1 −p) + (1 −α)p. Let ˆf△(G,ε) be the
+output of LocalRR△. If G ∼G(n,α), then for all ε ∈R≥0,
+E[l2
+2( ˆf△(G,ε), f△(G))] = O
+
+e6ε
+(eε−1)6 βn4
+.
+Note that we assume the Erdös-Rényi model only for the
+utility analysis of LocalRR△, and do not assume this model
+for the other algorithms. The upper-bound of LocalRR△in
+Theorem 4 is less ideal than the upper-bounds of the other
+algorithms in that it does not consider all possible graphs G ∈
+G. Nevertheless, we also show that the l2 loss of LocalRR△is
+roughly consistent with Theorem 4 in our experiments using
+two real datasets (Section 5) and the Barabási-Albert graphs
+[9], which have power-law degree distribution (Appendix B).
+The parameters α and β are edge existence probabilities
+in the original graph G and noisy graph G′, respectively. Al-
+though α is very small in a sparse graph, β can be large for
+small ε. For example, if α ≈0 and ε = 1, then β ≈
+1
+e+1 = 0.27.
+Theorem 4 states that for large n, the l2 loss of LocalRR△
+(= O(n4)) is much larger than the l2 loss of LocalRRk⋆(=
+O(n)). This follows from the fact that user vi is not aware of
+any triangle formed by (vi,vj,vk), as explained above.
+In contrast, counting f△(G) in the centralized model is
+much easier because the data collector sees all triangles in G;
+i.e., the data collector knows f△(G). The sensitivity of f△is
+at most ˜dmax (after graph projection). Thus, we can consider
+a simple algorithm that outputs f△(G) + Lap( ˜dmax/ε). We
+denote this algorithm by CentralLap△. CentralLap△attains
+the expected l2 loss (= variance) of O
+ ˜d2max
+ε2
+
+.
+The large l2 loss of LocalRR△is caused by the fact that
+each edge is released independently with some probability
+of being ﬂipped. In other words, there are three independent
+random variables that inﬂuence any triangle in G′. The next
+algorithm, using interaction, reduces this inﬂuencing number
+from three to one by using the fact that a user knows the
+existence of two edges for any triangle that involves the user.
+4.3
+Two-Rounds Algorithms for Triangles
+Algorithm. Allowing for two-rounds interaction, we are able
+to compute f△with a signiﬁcantly improved l2 loss, albeit
+with a higher per-user communication overhead. As described
+in Section 4.2, it is impossible for user vi to see edge (vj,vk) ∈
+E in graph G = (V,E) at the ﬁrst round. However, if the data
+collector publishes a noisy graph G′ = (V,E′) calculated by
+LocalRR△at the ﬁrst round, then user vi can see a noisy edge
+(vj,vk) ∈E′ in the noisy graph G′ at the second round. Then
+user vi can count the number of noisy triangles formed by
+(vi,vj,vk) such that (vi,vj) ∈E, (vi,vk) ∈E, and (vj,vk) ∈
+E′, and send the noisy triangle counts with the Laplacian
+noise to the data collector in an analogous way to LocalLapk⋆.
+Since user vi always knows that two edges (vi,v j) and (vi,vk)
+exist in G, there is only one noisy edge in any noisy triangle
+(whereas all edges are noisy in LocalRR△). This is an intuition
+behind our proposed two-rounds algorithm.
+As with the RR in Section 4.2, simply counting the noisy
+triangles can introduce a bias. Therefore, we calculate an
+empirical estimate of f△(G) from the noisy triangle counts.
+Speciﬁcally, the following is the empirical estimate of f△(G):
+Proposition 3. Let G′ = (V,E′) be a noisy graph generated
+by applying the RR with privacy budget ε1 ∈R≥0 to the lower
+triangular part of A. Let p1 =
+1
+eε1+1. Let ti ∈Z≥0 be the
+number of triplets (vi,vj,vk) such that j < k < i, (vi,vj) ∈E,
+(vi,vk) ∈E, and (vj,vk) ∈E′. Let si ∈Z≥0 be the number
+990    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 10
+of triplets (vi,vj,vk) such that j < k < i, (vi,vj) ∈E, and
+(vi,vk) ∈E. Let wi = ti −p1si. Then
+E
+h
+1
+1−2p1 ∑n
+i=1 wi
+i
+= f△(G).
+(5)
+Note that in Proposition 3, we count only triplets (vi,vj,vk)
+with j < k < i to use only the lower triangular part of A. ti is
+the number of noisy triangles user vi can see at the second
+round. si is the number of 2-stars of which user vi is a center.
+Since ti and si can reveal information about an edge in G, user
+vi adds the Laplacian noise to wi (= ti−p1si) in (5), and sends
+it to the data collector. Then the data collector calculates an
+unbiased estimate of f△(G) by (5).
+Data: Graph G represented as neighbor lists
+a1,...,an ∈{0,1}n, two privacy budgets
+ε1,ε2 > 0, ˜dmax ∈Z≥0.
+Result: Private estimate of f△(G).
+1 p1 ←
+1
+eε1+1;
+/* First round.
+*/
+2 for i = 1 to n do
+3
+Ri ←(RRε1(ai,1),...,RRε1(ai,i−1));
+4
+release(Ri);
+5 end
+6 G′ = (V,E′) ←UndirectedGraph(R1,...,Ri−1);
+/* Second round.
+*/
+7 for i = 1 to n do
+8
+ai ←GraphProjection(ai, ˜dmax);
+9
+ti ←|{(vi,vj,vk) : j < k < i,ai,j = ai,k =
+1,(vj,vk) ∈E′}|;
+10
+si ←|{(vi,vj,vk) : j < k < i,ai,j = ai,k = 1}|;
+11
+wi ←ti −p1si;
+12
+ˆwi ←wi +Lap(
+˜dmax
+ε2 );
+13
+release( ˆwi);
+14 end
+15 return
+1
+1−2p1 ∑n
+i=1 ˆwi
+Algorithm 3: Local2Rounds△
+Algorithm 3 contains the formal description of this process.
+It takes as input a graph G, the privacy budgets ε1,ε2 ∈R≥0 at
+the ﬁrst and second rounds, respectively, and a non-negative
+integer ˜dmax ∈Z≥0. At the ﬁrst round, we apply the RR to the
+lower triangular part of A (i.e., there is no overlap between
+edges sent by users) and use the UndirectedGraph function
+to obtain a noisy graph G′ = (V,E′) by the RR in the same
+way as Algorithm 2. Note that G′ is biased. We calculate an
+unbiased estimate of f△(G) from G′ at the second round.
+At the second round, each user vi calculates ˆwi = wi +
+Lap(
+˜dmax
+ε2 ) by adding the Laplacian noise to wi in Proposi-
+tion 3 whose sensitivity is at most ˜dmax (as we will prove
+in Theorem 5). Finally, we output
+1
+1−2p1 ∑n
+i=1 ˆwi, which is an
+unbiased estimate of f△(G) by Proposition 3. We call this
+algorithm Local2Rounds△.
+Theoretical properties. Local2Rounds△has the following
+guarantee.
+Theorem 5. Local2Rounds△provides (ε1 + ε2)-edge LDP
+and (ε1 +ε2)-relationship DP.
+As with LocalRR△, Local2Rounds△does not have the dou-
+bling issue; i.e., it provides ε-relationship DP (not 2ε). This
+follows from the fact that we use only the lower triangular
+part of A; i.e., we assume j < k < i in counting ti and si.
+Theorem 6.
+Let
+ˆf△(G,ε1,ε2, ˜dmax) be the output of
+Local2Rounds△. Then, for all ε1,ε2 ∈R≥0, ˜dmax ∈Z≥0,
+and G ∈G
+such that the maximum degree dmax of
+G is at most
+˜dmax, E[l2
+2( ˆf△(G,ε1,ε2, ˜dmax), f△(G))] ≤
+O
+
+eε1
+(1−eε1)2
+
+˜d3
+maxn+ eε1
+ε2
+2
+˜d2
+maxn
+
+.
+Theorem 6 means that for triangles, the l2 loss is reduced
+from O(n4) to O( ˜d3
+maxn) by introducing an additional round.
+Private calculation of dmax. As with k-stars, we can privately
+calculate dmax by using the method described in Section 4.1.
+Furthermore, the private calculation of dmax does not increase
+the number of rounds; i.e., we can run Local2Rounds△with
+the private calculation of dmax in two rounds.
+Speciﬁcally, let ε0 ∈R≥0 be the privacy budget for the
+private calculation of dmax. At the ﬁrst round, each user vi
+adds Lap( 1
+ε0 ) to her degree di, and sends the noisy degree ˆdi
+(= di +Lap( 1
+ε0 )) to the data collector, along with the outputs
+Ri = (RRε(ai,1),...,RRε(ai,i−1)) of the RR. The data collec-
+tor calculates the noisy max degree ˆdmax (= max{ ˆd1,..., ˆdn})
+as an estimate of dmax, and sends it back to all users. At the
+second round, we run Local2Rounds△with input G (repre-
+sented as a1,...,an), ε1, ε2, and ⌊ˆdmax⌋.
+At the ﬁrst round, the calculation of ˆdmax provides ε0-edge
+LDP. Note that it provides 2ε0-relationship DP (i.e., it has the
+doubling issue) because one edge (vi,vj) ∈E affects both of
+the degrees di and dj by 1. At the second round, LocalLapk⋆
+provides (ε1 +ε2)-edge LDP and (ε1 +ε2)-relationship DP
+(Theorem 5). Then by the composition theorem [23], this
+two-rounds algorithm provides (ε0 +ε1 +ε2)-edge LDP and
+(2ε0 + ε1 + ε2)-relationship DP. Although the total privacy
+budget is larger for relationship DP, the difference (= ε0) can
+be very small. In fact, we set (ε0,ε1,ε2) = (0.1,0.45,0.45) or
+(0.2,0.9,0.9) in our experiments (i.e., the difference is 0.1 or
+0.2), and show that this algorithm provides almost the same
+utility as Local2Rounds△with the true max degree dmax.
+Time complexity. We also note that Local2Rounds△has an
+advantage over LocalRR△in terms of the time complexity.
+Speciﬁcally, LocalRR△is inefﬁcient because the data col-
+lector has to count the number of triangles m3 in the noisy
+graph G′. Since the noisy graph G′ is dense (especially when
+ε is small) and there are
+ n
+3
+
+subgraphs with three nodes in
+USENIX Association
+30th USENIX Security Symposium    991
+
+PAGE 11
+G′, the number of triangles is m3 = O(n3). Then, the time
+complexity of LocalRR△is also O(n3), which is not practical
+for a graph with a large number of users n. In fact, we im-
+plemented LocalRR△(ε = 1) with C/C++ and measured its
+running time using one node of a supercomputer (ABCI: AI
+Bridging Cloud Infrastructure [4]). When n = 5000, 10000,
+20000, and 40000, the running time was 138, 1107, 9345, and
+99561 seconds, respectively; i.e., the running time was almost
+cubic in n. We can also estimate the running time for larger n.
+For example, when n = 1000000, LocalRR△(ε = 1) would
+require about 35 years (= 1107×1003/(3600×24×365)).
+In contrast, the time complexity of Local2Rounds△is
+O(n2 + nd2
+max)1. The factor of n2 comes from the fact that
+the size of the noisy graph G′ is O(n2). This also causes a
+large communication overhead, as explained below.
+Communication overhead. In Local2Rounds△, each user
+need to see the noisy graph G′ of size O(n2) to count ti and si.
+This results in a per-user communication overhead of O(n2).
+Although we do not simulate the communication overhead in
+our experiments that use Local2Rounds△, the O(n2) overhead
+might limit its application in very large graphs. An interesting
+avenue of future work is how to compress the graph size (e.g.,
+via graph projection or random projection) to reduce both the
+time complexity and the communication overhead.
+4.4
+Lower Bounds
+We show a general lower bound on the l2 loss of private
+estimators ˆf of real-valued functions f in the one-round
+LDP model. Treating ε as a constant, we have shown that
+when ˜dmax = dmax, the expected l2 loss of LocalLaplacek⋆is
+O(nd2k−2
+max ) (Theorem 2). However, in the centralized model,
+we can use the Laplace mechanism with sensitivity 2
+ dmax
+k−1
+
+to
+obtain l2
+2 errors of O(d2k−2
+max ) for fk⋆. Thus, we ask if the factor
+of n is necessary in the one-round LDP model.
+We answer this question afﬁrmatively. We show for many
+types of queries f, there is a lower bound on l2
+2(f(G), ˆf(G))
+for any private estimator ˆf of the form
+ˆf(G) = ˜f(R1(a1),...,Rn(an)),
+(6)
+where R1,...,Rn satisfy ε-edge LDP or ε-relationship DP and
+˜f is an aggregate function that takes R1(a1),...,Rn(an) as
+input and outputs ˆf(G). Here we assume that R1,...,Rn are
+independently run, meaning that they are in the one-round
+setting. For our lower bound, we require that input edges to
+f be “independent” in the sense that adding an edge to an
+1When we evaluate Local2Rounds△in our experiments, we can apply
+the RR to only edges that are required at the second round; i.e., (vj,vk) ∈G′
+in line 8 of Algorithm 3. Then the time complexity of Local2Rounds△can
+be reduced to O(nd2
+max) in total. We also conﬁrmed that when n = 1000000,
+the running time of Local2Rounds△was 311 seconds on one node of the
+ABCI. Note, however, that this does not protect individual privacy, because
+it reveals the fact that users vj and vk are friends with ui to the data collector.
+𝑣3
+𝑣4
+𝑣1
+𝑣2
+𝑀
+𝑣3
+𝑣4
+𝑣1
+𝑣2
+𝐺4
+𝑓𝐺4
+= 5
+𝑣3
+𝑣4
+𝑣1
+𝑣2
+𝐺2
+𝑓𝐺2
+= 3
+𝑣3
+𝑣4
+𝑣1
+𝑣2
+𝐺3
+𝑓𝐺3
+= 2
+𝑣3
+𝑣4
+𝑣1
+𝑣2
+𝐺1
+𝑓𝐺1
+= 0
+4,2 -independent cube 𝒜
+Figure 3: (4,2)-independent cube A for f. In this example,
+M = {(v1,v2),(v3,v4)}, G1 = (V,E), A = {(V,E ∪N) : N ⊆
+M}, C(v1,v2) = 2, and C(v3,v4) = 3. Adding (v1,v2) and (v3,v4)
+increase f by 2 and 3, respectively.
+input graph G independently change f by at least D ∈R. The
+speciﬁc structure of input graphs we require is as follows:
+Deﬁnition 5. [(n,D)-independent cube for f] Let D ∈R≥0.
+For κ ∈N, let G = (V,E) ∈G be a graph on n = 2κ nodes, and
+let M = {(vi1,vi2),(vi3,vi4),...,(vi2k−1,vi2κ)} for integers ij ∈
+[n] be a set of edges such that each of i1,...,i2κ is distinct (i.e.,
+perfect matching on the nodes). Suppose that M is disjoint
+from E; i.e., (vi2j−1,vi2 j) /∈E for any j ∈[κ]. Let A = {(V,E ∪
+N) : N ⊆M}. Note that A is a set of 2κ graphs. We say A is
+an (n,D)-independent cube for f if for all G′ = (V,E′) ∈A,
+we have
+f(G′) = f(G)+ ∑
+e∈E′∩M
+Ce,
+where Ce ∈R satisﬁes |Ce| ≥D for any e ∈M.
+Such a set of inputs has an “independence” property be-
+cause, regardless of which edges from M has been added
+before, adding edge e ∈M always changes f by Ce. Figure 3
+shows an example of a (4,2)-independent cube for f.
+We can also construct a independent cube for a k-star func-
+tion as follows. Assume that n is even. It is well known in
+graph theory that if n is even, then for any d ∈[n−1], there
+exists a d-regular graph where every node has degree d [25].
+Therefore, there exists a (dmax −1)-regular graph G = (V,E)
+of size n. Pick an arbitrary perfect matching M on the nodes.
+Now, let G′ = (V,E′) such that E′ = E \ M. Every node in
+G′ has degree between dmax −2 and dmax −1. Adding an
+edge in M to G′ will produce at least 2
+ dmax−2
+k−1
+
+new k-stars.
+Thus, A = {(V,E′ ∪N) : N ⊆M} forms an (n,2
+ dmax−2
+k−1
+
+)-
+independent cube for fk⋆. Note that the maximum degree of
+each graph in A is at most dmax. Figure 4 shows how to con-
+struct an independent cube for a k-star function when n = 6
+992    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 12
+Centralized
+One-round local
+Two-rounds local
+Upper Bound
+Lower Bound
+Upper Bound
+Upper Bound
+fk⋆
+O
+
+d2k−2
+max
+ε2
+
+Ω
+
+e2ε
+(e2ε+1)2 d2k−2
+max n
+
+O
+
+d2k−2
+max
+ε2 n
+
+O
+
+d2k−2
+max
+ε2 n
+
+f△
+O
+
+d2max
+ε2
+
+Ω
+
+e2ε
+(e2ε+1)2 d2
+maxn
+
+O
+
+e6ε
+(eε−1)6 n4
+(when G ∼G(n,α))
+O
+
+eε
+(eε−1)2 (d3
+maxn+ eε
+ε2 d2
+maxn)
+
+Table 2: Bounds on l2 losses for privately estimating fk⋆and f△with ε-edge LDP. For upper-bounds, we assume that ˜dmax = dmax.
+For the centralized model, we use the Laplace mechanism. For the one-round f△algorithm, we apply Theorem 4 with constant
+α. For the two-round protocol f△algorithm, we apply Theorem 6 with ε1 = ε2 = ε
+2.
+𝑣4
+𝑣5
+𝑣2
+𝑣3
+𝐺= (𝑉, 𝐸)
+𝑣6
+𝑣1
+𝑣4
+𝑣5
+𝑣2
+𝑣3
+𝑀
+𝑣6
+𝑣1
+𝑣4
+𝑣5
+𝑣2
+𝑣3
+𝐺′ = (𝑉, 𝐸′)
+𝑣6
+𝑣1
+𝑛, 𝑑𝑚𝑎𝑥−2
+𝑘−1
+-independent cube 𝒜for 𝑓𝑘⋆
+…
+Figure 4: Construction of an independent cube for a k-star
+function (n = 6, dmax = 4). From a 3-regular graph G = (V,E)
+and M = {(v1,v3),(v2,v6),(v4,v5)}, we make a graph G′ =
+(V,E′) such that E′ = E \M. Then A = {(V,E′ ∪N) : N ⊆M}
+forms an (n,2
+ dmax−2
+k−1
+
+)-independent cube for fk⋆.
+and dmax = 4.
+Using the structure that the (n,D)-independent cube im-
+poses on f, we can prove a lower bound:
+Theorem 7. Let ˆf(G) have the form of (6), where R1,...,Rn
+are independently run. Let A be an (n,D)-independent cube
+for f. If (R1,...,Rn) provides ε-relationship DP, then we have
+1
+A ∑
+G∈A
+E[l2
+2(f(G), ˆf(G))] = Ω
+
+eε
+(eε +1)2 nD2
+
+.
+A corollary of Theorem 7 is that if R1,...,Rn satisfy ε-edge
+LDP, then they satisfy 2ε -relationship DP and thus for edge
+LDP we have a lower bound of Ω
+
+e2ε
+(e2ε+1)2 nD2
+.
+Theorem 7, combined with the fact that there exists an
+(n,2
+ dmax−2
+k−1
+
+)-independent cube for a k-star function implies
+Corollary 1. In Appendix C, we also construct an (n, dmax
+2 −
+2) independent cube for f△and establish a lower bound of
+Ω(
+e2ε
+(e2ε+1)2 nd2
+max) for f△.
+The upper and lower bounds on the l2 losses shown in this
+section appear in Table 2.
+5
+Experiments
+Based on our theoretical results in Section 4, we would like
+to pose the following questions:
+• For triangle counts, how much does the two-rounds in-
+teraction help over a single round in practice?
+• What is the privacy-utility trade-off of our LDP algo-
+rithms (i.e., how beneﬁcial are our LDP algorithms)?
+We conducted experiments to answer to these questions.
+5.1
+Experimental Set-up
+We used the following two large-scale datasets:
+IMDB. The Internet Movie Database (denoted by IMDB) [2]
+includes a bipartite graph between 896308 actors and 428440
+movies. We assumed actors as users. From the bipartite graph,
+we extracted a graph G∗with 896308 nodes (actors), where
+an edge between two actors represents that they have played
+in the same movie. There are 57064358 edges in G∗, and the
+average degree in G∗is 63.7 (= 57064358
+896308 ).
+Orkut. The Orkut online social network dataset (denoted
+by Orkut) [37] includes a graph G∗with 3072441 users
+and 117185083 edges. The average degree in G∗is 38.1
+(= 117185083
+3072441 ). Therefore, Orkut is more sparse than IMDB
+(whose average degree in G∗is 63.7).
+For each dataset, we randomly selected n users from the
+whole graph G∗, and extracted a graph G = (V,E) with n users.
+Then we estimated the number of triangles f△(G), the number
+of k-stars fk⋆(G), and the clustering coefﬁcient (= 3f△(G)
+f2⋆(G) )
+using ε-edge LDP (or ε-edge centralized DP) algorithms in
+Section 4. Speciﬁcally, we used the following algorithms:
+Algorithms for triangles.
+For algorithms for estimating
+f△(G), we used the following three algorithms: (1) the RR
+(Randomized Response) with the empirical estimation method
+in the local model (i.e., LocalRR△in Section 4.2), (2) the two-
+rounds algorithm in the local model (i.e., Local2Rounds△in
+Section 4.3), and (3) the Laplacian mechanism in the central-
+ized model (i.e., CentralLap△in Section 4.2).
+Algorithms for k-stars.
+For algorithms for estimating
+fk⋆(G), we used the following two algorithms: (1) the Lapla-
+USENIX Association
+30th USENIX Security Symposium    993
+
+PAGE 13
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+LocalRR∆
+Local2Rounds∆
+CentralLap∆
+
+	
+
+
+
+
+	
+
+
+
+
+
+
+
+ 
+	
+
+
+
+
+
+Local2Rounds∆
+CentralLap∆
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+LocalRR∆
+Local2Rounds∆
+CentralLap∆
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+Local2Rounds∆
+CentralLap∆
+
+
+Figure 5: Relation between the number of users n and the l2
+loss in triangle counts when ε = 1 (ε1 = ε2 = 1
+2, ˜dmax = dmax).
+Here we do not evaluate LocalRR△when n > 10000, because
+it is inefﬁcient (see Section 4.3 “Time complexity”).
+cian mechanism in the local model (i.e., LocalLapk⋆in Sec-
+tion 4.1) and (2) the Laplacian mechanism in the centralized
+model (i.e., CentralLapk⋆in Section 4.1).
+For each algorithm, we evaluated the l2 loss and the relative
+error (as described in Section 3.4), while changing the values
+of n and ε. To stabilize the performance, we attempted γ ∈N
+ways to randomly select n users from G∗, and averaged the
+utility value over all the γ ways to randomly select n users.
+When we changed n from 1000 to 10000, we set γ = 100
+because the variance was large. For other cases, we set γ = 10.
+In Appendix B, we also report experimental results using
+artiﬁcial graphs based on the Barabási-Albert model [9].
+5.2
+Experimental Results
+Relation between n and the l2 loss. We ﬁrst evaluated the
+l2 loss of the estimates of f△(G), f2⋆(G), and f3⋆(G) while
+changing the number of users n. Figures 5 and 6 shows
+the results (ε = 1). Here we did not evaluate LocalRR△
+when n was larger than 10000, because LocalRR△was in-
+efﬁcient (as described in Section 4.3 “Time complexity”).
+In Local2Rounds△, we set ε1 = ε2 = 1
+2. As for ˜dmax, we set
+˜dmax = dmax (i.e., we assumed that dmax is publicly available
+and did not perform graph projection) because we want to ex-
+amine how well our theoretical results hold in our experiments.
+We also evaluate the effectiveness of the private calculation
+of dmax at the end of Section 5.2.
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+	
+
+
+
+
+
+LocalLap⋆
+CentralLap⋆
+LocalLap⋆
+CentralLap⋆
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+LocalLap⋆
+CentralLap⋆
+LocalLap⋆
+CentralLap⋆
+Figure 6: Relation between the number of users n and the l2
+loss in k-star counts when ε = 1 (ε1 = ε2 = 1
+2, ˜dmax = dmax).
+Figure 5 shows that Local2Rounds△signiﬁcantly outper-
+forms LocalRR△. Speciﬁcally, the l2 loss of Local2Rounds△
+is smaller than that of LocalRR△by a factor of about 102. The
+difference between Local2Rounds△and LocalRR△is larger
+in Orkut. This is because Orkut is more sparse, as described
+in Section 5.1. For example, when n = 10000, the maximum
+degree dmax in G was 73.5 and 27.8 on average in IMDB and
+Orkut, respectively. Recall that for a ﬁxed ε, the expected l2
+loss of Local2Rounds△and LocalRR△can be expressed as
+O(nd3
+max) and O(n4), respectively. Thus Local2Rounds△sig-
+niﬁcantly outperforms LocalRR△, especially in sparse graphs.
+Figures 5 and 6 show that the l2 loss is roughly consistent
+with our upper-bounds in terms of n. Speciﬁcally, LocalRR△,
+Local2Rounds△, CentralLap△, LocalLapk⋆, and CentralLapk⋆
+achieve the expected l2 loss of O(n4), O(nd3
+max), O(d2
+max),
+O(nd2k−2
+max ), and O(d2k−2
+max ), respectively. Here note that each
+user’s degree increases roughly in proportion to n (though
+the degree is much smaller than n), as we randomly select n
+users from the whole graph G∗. Assuming that dmax = O(n),
+Figures 5 and 6 are roughly consistent with the upper-bounds.
+The ﬁgures also show the limitations of the local model in
+terms of the utility when compared to the centralized model.
+Relation between ε and the l2 loss. Next we evaluated the l2
+loss when we changed the privacy budget ε in edge LDP. Fig-
+ure 7 shows the results for triangles and 2-stars (n = 10000).
+Here we omit the result of 3-stars because it is similar to that
+of 2-stars. In Local2Rounds△, we set ε1 = ε2 = ε
+2.
+Figure 7 shows that the l2 loss is roughly consistent with
+our upper-bounds in terms of ε. For example, when we de-
+crease ε from 0.4 to 0.1, the l2 loss increases by a factor of
+994    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 14
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+LocalRR∆
+Local2Rounds∆
+CentralLap∆
+LocalLap⋆
+CentralLap⋆
+LocalLap⋆
+CentralLap⋆
+LocalRR∆
+Local2Rounds∆
+CentralLap∆
+Figure 7: Relation between ε in edge LDP and the l2 loss
+when n = 10000 (ε1 = ε2 = ε
+2, ˜dmax = dmax).
+about 5000, 200, and 16 for both the datasets in LocalRR△,
+Local2Rounds△, and CentralLap△, respectively. They are
+roughly consistent with our theoretical results that for small
+ε, the expected l2 loss of LocalRR△, Local2Rounds△, and
+CentralLap△is O(ε−6)2, O(ε−4), and O(ε−2), respectively.
+Figure 7 also shows that Local2Rounds△signiﬁcantly out-
+performs LocalRR△especially when ε is small, which is also
+consistent with our theoretical results. Conversely, the differ-
+ence between LocalRR△and Local2Rounds△is small when
+ε is large. This is because when ε is large, the RR outputs the
+true value with high probability. For example, when ε ≥5,
+the RR outputs the true value with
+eε
+eε+1 > 0.993. However,
+LocalRR△with such a large value of ε does not guarantee
+strong privacy, because it outputs the true value in most cases.
+Local2Rounds△signiﬁcantly outperforms LocalRR△when
+we want to estimate f△(G) or fk⋆(G) with a strong privacy
+guarantee; e.g., ε ≤1 [38].
+Relative error. As the number of users n increases, the num-
+bers of triangles f△(G) and k-stars fk⋆(G) increase. This
+causes the increase of the l2 loss. Therefore, we also evalu-
+ated the relative error, as described in Section 3.4.
+Figure 8 shows the relation between n and the relative
+error (we omit the result of 3-stars because it is similar to
+that of 2-stars). In the local model, we used Local2Rounds△
+and LocalLapk⋆for estimating f△(G) and fk⋆(G), respec-
+tively (we did not use Local2RR△, because it is both inac-
+curate and inefﬁcient). For both algorithms, we set ε = 1 or
+2 (ε1 = ε2 = ε
+2 in Local2Rounds△) and ˜dmax = dmax. Then
+2We used eε ≈ε+1 to derive the upper-bound of LocalRR△for small ε.
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+	
+
+	
+
+
+
+	
+
+	
+
+	
+
+	
+
+
+
+
+
+
+
+ 
+	
+	
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+	
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+	
+
+
+Figure 8: Relation between n and the relative error. In the local
+model, we used Local2Rounds△(ε = 1 or 2) and LocalLapk⋆
+(ε = 1 or 2) for estimating triangle counts f△(G) and k-star
+counts fk⋆(G), respectively ( ˜dmax = dmax).
+we estimated the clustering coefﬁcient as: 3 ˆf△(G,ε1,ε2,dmax)
+ˆfk⋆(G,ε,dmax)
+,
+where ˆf△(G,ε1,ε2,dmax) and ˆfk⋆(G,ε,dmax) are the estimates
+of f△(G) and fk⋆(G), respectively. If the estimate of the clus-
+tering coefﬁcient is smaller than 0 (resp. larger than 1), we set
+the estimate to 0 (resp. 1) because the clustering coefﬁcient is
+always between 0 and 1. In the centralized model, we used
+CentralLap△and CentralLapk⋆(ε = 1 or 2, ˜dmax = dmax) and
+calculated the clustering coefﬁcient in the same way.
+Figure 8 shows that for all cases, the relative error de-
+creases with increase in n. This is because both f△(G) and
+fk⋆(G) signiﬁcantly increase with increase in n. Speciﬁcally,
+let f△,vi(G) ∈Z≥0 the number of triangles that involve user vi,
+and fk⋆,vi(G) ∈Z≥0 be the number of k-stars of which user vi
+is a center. Then f△(G) = 1
+3 ∑n
+i=1 f△,vi(G) and fk⋆,vi(G) =
+∑n
+i=1 fk⋆,vi(G). Since both f△,vi(G) and fk⋆,vi(G) increase
+with increase in n, both f△(G) and fk⋆(G) increase at least in
+proportion to n. Thus f△(G)2 ≥Ω(n2) and fk⋆(G)2 ≥Ω(n2).
+In contrast, Local2Rounds△, LocalLapk⋆, CentralLap△, and
+CentralLapk⋆achieve the expected l2 loss of O(n), O(n), O(1),
+and O(1), respectively (when we ignore dmax and ε), all of
+which are smaller than O(n2). Therefore, the relative error
+USENIX Association
+30th USENIX Security Symposium    995
+
+PAGE 15
+	
+
+
+
+
+
+
+	
+
+
+
+
+
+
+	
+ 
+
+ 
+
+ 
+	
+
+	
+
+
+
+
+
+
+	
+ 
+
+ 
+
+ 
+	
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+	
+ 
+
+ 
+
+ 
+	
+
+	
+
+
+
+
+
+
+	
+ 
+
+ 
+
+ 
+	
+
+
+  
+  
+   
+ 			
+  
+  
+   
+ 			
+Figure 9: Relative error when ˜dmax = n (#users), dmax (max
+degree), or ˆdmax (noisy max degree). We used Local2Rounds△
+(ε = 1 or 2) and LocalLapk⋆(ε = 1 or 2) for estimating triangle
+counts f△(G) and k-star counts fk⋆(G), respectively.
+decreases with increase in n.
+This result demonstrates that we can accurately estimate
+graph statistics for large n in the local model. In particular,
+the relative error is smaller in IMDB because IMDB is denser
+and includes a larger number of triangles and k-stars; i.e.,
+the denominator of the relative error is large. For example,
+when n = 200000 and ε = 1, the relative error is 0.30 and
+0.0028 for triangles and 2-stars, respectively. Note that the
+clustering coefﬁcient requires 2ε because we need to estimate
+both f△(G) and fk⋆(G). Yet, we can still accurately calculate
+the clustering coefﬁcient with a moderate privacy budget; e.g.,
+the relative error of the clustering coefﬁcient is 0.30 when the
+privacy budget is 2 (i.e., ε = 1). If n is larger, then ε would be
+smaller at the same value of the relative error.
+Private calculation of dmax. We have so far assumed that
+˜dmax = dmax (i.e., dmax is publicly available) in our experi-
+ments. We ﬁnally evaluate the methods to privately calculate
+dmax with ε0-edge LDP (described in Sections 4.1 and 4.3).
+Speciﬁcally, we used Local2Rounds△and LocalLapk⋆for
+estimating f△(G) and fk⋆(G), respectively, and evaluated the
+following three methods for setting ˜dmax: (i) ˜dmax = n; (ii)
+˜dmax = dmax; (iii) ˜dmax = ˆdmax, where ˆdmax is the private esti-
+mate of dmax (noisy max degree) in Sections 4.1 and 4.3.
+We set n = 200000 in IMDB and n = 1600000 in Orkut.
+Regarding the total privacy budget ε in edge LDP for es-
+timating f△(G) or fk⋆(G), we set ε = 1 or 2. We used
+ε
+10 for privately calculating dmax (i.e., ε0 =
+ε
+10), and the re-
+maining privacy budget 9ε
+10 as input to Local2Rounds△or
+LocalLapk⋆. In Local2Rounds△, we set ε1 = ε2; i.e., we set
+(ε0,ε1,ε2) = (0.1,0.45,0.45) or (0.2,0.9,0.9). Then we esti-
+mated the clustering coefﬁcient in the same way as Figure 8.
+Figure 9 shows the results. Figure 9 shows that the al-
+gorithms with ˜dmax = ˆdmax (noisy max degree) achieves the
+relative error close to (sometimes almost the same as) the al-
+gorithms with ˜dmax = dmax and signiﬁcantly outperforms the
+algorithms with ˜dmax = n. This means that we can privately
+estimate dmax without a signiﬁcant loss of utility.
+Summary of results. In summary, our experimental results
+showed that the estimation error of triangle counts is signiﬁ-
+cantly reduced by introducing the interaction between users
+and a data collector. The results also showed that we can
+achieve small relative errors (much smaller than 1) for sub-
+graph counts with privacy budget ε = 1 or 2 in edge LDP.
+As described in Section 1, non-private subgraph counts may
+reveal some friendship information, and a central server may
+face data breaches. Our LDP algorithms are highly beneﬁcial
+because they enable us to analyze the connection patterns in a
+graph (i.e., subgraph counts) or to understand how likely two
+friends of an individual will also be a friend (i.e., clustering
+coefﬁcient) while strongly protecting individual privacy.
+6
+Conclusions
+We presented a series of algorithms for counting triangles
+and k-stars under LDP. We showed that an additional round
+can signiﬁcantly reduce the estimation error in triangles, and
+the algorithm based on the Laplacian mechanism provides
+an order optimal error in the non-interactive local model. We
+also showed lower-bounds for general functions including
+triangles and k-stars. We conducted experiments using two
+real datasets, and showed that our algorithms achieve small
+relative errors, especially when the number of users is large.
+As future work, we would like to develop algorithms for
+other subgraph counts such as cliques and k-triangles [34].
+Acknowledgments
+Kamalika Chaudhuri and Jacob Imola would like to thank
+ONR under N00014-20-1-2334 and UC Lab Fees under LFR
+18-548554 for research support. Takao Murakami was sup-
+ported in part by JSPS KAKENHI JP19H04113.
+References
+[1] Tool: LDP graph statistics.
+https://github.com/
+LDPGraphStatistics/LDPGraphStatistics.
+[2] 12th Annual Graph Drawing Contest. http://mozart.
+diei.unipg.it/gdcontest/contest2005/index.
+html, 2005.
+[3] What to Do When Your Facebook Proﬁle is Maxed
+Out on Friends.
+https://authoritypublishing.
+996    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 16
+com/social-media/what-to-do-when-your-
+facebook-profile-is-maxed-out-on-friends/,
+2012.
+[4] AI bridging cloud infrastructure (ABCI).
+https://
+abci.ai/, 2020.
+[5] The
+diaspora*
+project.
+https://
+diasporafoundation.org/, 2020.
+[6] Facebook Reports Third Quarter 2020 Results. https:
+//investor.fb.com/investor-news/press-
+release-details/2020/Facebook-Reports-
+Third-Quarter-2020-Results/default.aspx,
+2020.
+[7] Jayadev Acharya, Clément L. Canonne, Yuhan Liu,
+Ziteng Sun, and Himanshu Tyagi.
+Interactive infer-
+ence under information constraints. CoRR, 2007.10976,
+2020.
+[8] Jayadev Acharya, Ziteng Sun, and Huanyu Zhang.
+Hadamard response: Estimating distributions privately,
+efﬁciently, and with little communication. In Proc. AIS-
+TATS’19, pages 1120–1129, 2019.
+[9] Albert-László Barabási. Network Science. Cambridge
+University Press, 2016.
+[10] Raef Bassily, Kobbi
+Nissim, Uri
+Stemmer, and
+Abhradeep Thakurta. Practical locally private heavy
+hitters. In Proc. NIPS’17, pages 2285—-2293, 2017.
+[11] Raef Bassily and Adam Smith. Local, private, efﬁcient
+protocols for succinct histograms. In Proc. STOC’15,
+pages 127–135, 2015.
+[12] Vincent Bindschaedler and Reza Shokri. Synthesizing
+plausible privacy-preserving location traces. In Proc.
+S&P’16, pages 546–563, 2016.
+[13] Jeremiah Blocki, Avrim Blum, Anupam Datta, and
+Or Sheffet. The johnson-lindenstrauss transform itself
+preserves differential privacy. In Proc. FOCS’12, pages
+410–419, 2012.
+[14] Rui Chen, Gergely Acs, and Claude Castelluccia. Differ-
+entially private sequential data publication via variable-
+length n-grams. In Proc. CCS’12, pages 638–649, 2012.
+[15] Xihui Chen, Sjouke Mauw, and Yunior Ramírez-Cruz.
+Publishing community-preserving attributed social
+graphs with a differential privacy guarantee. Proceed-
+ings on Privacy Enhancing Technologies (PoPETs),
+(4):131–152, 2020.
+[16] Wei-Yen Day, Ninghui Li, and Min Lyu. Publishing
+graph degree distribution with node differential privacy.
+In Proc. SIGMOD’16, pages 123–138, 2016.
+[17] Bolin Ding, Janardhan Kulkarni, and Sergey Yekhanin.
+Collecting telemetry data privately. In Proc. NIPS’17,
+pages 3574–3583, 2017.
+[18] John Duchi and Ryan Rogers. Lower Bounds for Lo-
+cally Private Estimation via Communication Complex-
+ity. arXiv:1902.00582 [math, stat], May 2019. arXiv:
+1902.00582.
+[19] John Duchi, Martin Wainwright, and Michael Jordan.
+Minimax Optimal Procedures for Locally Private Esti-
+mation. arXiv:1604.02390 [cs, math, stat], November
+2017. arXiv: 1604.02390.
+[20] John C. Duchi, Michael I. Jordan, and Martin J. Wain-
+wright. Local privacy and statistical minimax rates. In
+Proc. FOCS’13, pages 429–438, 2013.
+[21] John C. Duchi, Michael I. Jordan, and Martin J. Wain-
+wright. Local privacy, data processing inequalities, and
+minimax rates. CoRR, 1302.3203, 2014.
+[22] Cynthia Dwork.
+Differential privacy.
+In Proc.
+ICALP’06, pages 1–12, 2006.
+[23] Cynthia Dwork and Aaron Roth. The Algorithmic Foun-
+dations of Differential Privacy. Now Publishers, 2014.
+[24] Giulia Fanti, Vasyl Pihur, and Ulfar Erlingsson. Building
+a RAPPOR with the unknown: Privacy-preserving learn-
+ing of associations and data dictionaries. Proceedings on
+Privacy Enhancing Technologies (PoPETs), 2016(3):1–
+21, 2016.
+[25] Ghurumuruhan Ganesan. Existence of connected regular
+and nearly regular graphs. CoRR, 1801.08345, 2018.
+[26] Aric A. Hagberg, Daniel A. Schult, and Pieter J. Swart.
+Exploring network structure, dynamics, and function
+using networkx. In Proceedings of the 7th Python in
+Science Conference (SciPy’08), pages 11–15, 2008.
+[27] Michael Hay, Chao Li, Gerome Miklau, and David
+Jensen. Accurate estimation of the degree distribution
+of private networks. In Proc. ICDM’09, pages 169–178,
+2009.
+[28] Jacob Imola, Takao Murakami, and Kamalika Chaud-
+huri. Locally differentially private analysis of graph
+statistics. CoRR, 2010.08688, 2021.
+[29] Matthew Joseph, Janardhan Kulkarni, Jieming Mao, and
+Zhiwei Steven Wu. Locally Private Gaussian Estima-
+tion. arXiv:1811.08382 [cs, stat], October 2019. arXiv:
+1811.08382.
+[30] Matthew Joseph, Jieming Mao, Seth Neel, and Aaron
+Roth. The Role of Interactivity in Local Differential
+Privacy. arXiv:1904.03564 [cs, stat], November 2019.
+arXiv: 1904.03564.
+USENIX Association
+30th USENIX Security Symposium    997
+
+PAGE 17
+[31] Matthew Joseph, Jieming Mao, and Aaron Roth. Expo-
+nential separations in local differential privacy. In Proc.
+SODA’20, pages 515–527, 2020.
+[32] Peter Kairouz, Keith Bonawitz, and Daniel Ramage. Dis-
+crete distribution estimation under local privacy. In Proc.
+ICML’16, pages 2436–2444, 2016.
+[33] Peter Kairouz, Sewoong Oh, and Pramod Viswanath. Ex-
+tremal mechanisms for local differential privacy. Jour-
+nal of Machine Learning Research, 17(1):492–542,
+2016.
+[34] Vishesh Karwa, Sofya Raskhodnikova, Adam Smith,
+and Grigory Yaroslavtsev. Private analysis of graph
+structure.
+Proceedings of the VLDB Endowment,
+4(11):1146–1157, 2011.
+[35] Shiva Prasad Kasiviswanathan, Homin K. Lee, Kobbi
+Nissim, and Sofya Raskhodnikova. What can we learn
+privately? In Proc. FOCS’08, pages 531–540, 2008.
+[36] Shiva Prasad Kasiviswanathan, Kobbi Nissim, Sofya
+Raskhodnikova, and Adam Smith. Analyzing graphs
+with node differential privacy. In Proc. TCC’13, pages
+457–476, 2013.
+[37] Jure Leskovec and Andrej Krevl. SNAP Datasets: Stan-
+ford large network dataset collection. http://snap.
+stanford.edu/data, 2014.
+[38] Ninghui Li, Min Lyu, and Dong Su. Differential Pri-
+vacy: From Theory to Practice. Morgan & Claypool
+Publishers, 2016.
+[39] Chris Morris.
+Hackers had a banner year in
+2019.
+https://fortune.com/2020/01/28/2019-
+data-breach-increases-hackers/, 2020.
+[40] Takao Murakami and Yusuke Kawamoto.
+Utility-
+optimized local differential privacy mechanisms for dis-
+tribution estimation.
+In Proc. USENIX Security’19,
+pages 1877–1894, 2019.
+[41] M. E. J. Newman.
+Random graphs with clustering.
+Physical Review Letters, 103(5):058701, 2009.
+[42] Kobbi Nissim, Sofya Raskhodnikova, and Adam Smith.
+Smooth sensitivity and sampling in private data analysis.
+In Proc. STOC’07, pages 75–84, 2007.
+[43] Thomas Paul, Antonino Famulari, and Thorsten Strufe.
+A survey on decentralized online social networks. Com-
+puter Networks, 75:437–452, 2014.
+[44] Venkatadheeraj Pichapati, Ananda Theertha Suresh, Fe-
+lix X. Yu, Sashank J. Reddi, and Sanjiv Kumar. AdaCliP:
+Adaptive clipping for private SGD. CoRR, 1908.07643,
+2019.
+[45] Zhan Qin, Yin Yang, Ting Yu, Issa Khalil, Xiaokui Xiao,
+and Kui Ren. Heavy hitter estimation over set-valued
+data with local differential privacy. In Proc. CCS’16,
+pages 192–203, 2016.
+[46] Zhan Qin, Ting Yu, Yin Yang, Issa Khalil, Xiaokui Xiao,
+and Kui Ren. Generating synthetic decentralized social
+graphs with local differential privacy. In Proc. CCS’17,
+pages 425–438, 2017.
+[47] Cyrus Rashtchian, David P. Woodruff, and Hanlin Zhu.
+Vector-matrix-vector queries for solving linear algebra,
+statistics, and graph problems. CoRR, 2006.14015, 2020.
+[48] Sofya Raskhodnikova and Adam Smith.
+Efﬁcient
+lipschitz extensions for high-dimensional graph statis-
+tics and node private degree distributions.
+CoRR,
+1504.07912, 2015.
+[49] Sofya Raskhodnikova and Adam Smith. Differentially
+Private Analysis of Graphs, pages 543–547. Springer,
+2016.
+[50] Andrea De Salve, Paolo Mori, and Laura Ricci. A sur-
+vey on privacy in decentralized online social networks.
+Computer Science Review, 27:154–176, 2018.
+[51] Tara Seals.
+Data breaches increase 40% in 2016.
+https://www.infosecurity-magazine.com/news/
+data-breaches-increase-40-in-2016/, 2017.
+[52] Shuang Song, Susan Little, Sanjay Mehta, Staal Vinter-
+boy, and Kamalika Chaudhuri. Differentially private
+continual release of graph statistics. CoRR, 1809.02575,
+2018.
+[53] Haipei Sun, Xiaokui Xiao, Issa Khalil, Yin Yang, Zhan
+Qui, Hui (Wendy) Wang, and Ting Yu. Analyzing sub-
+graph statistics from extended local views with decen-
+tralized differential privacy. In Proc. CCS’19, pages
+703–717, 2019.
+[54] Om Thakkar, Galen Andrew, and H. Brendan McMahan.
+Differentially private learning with adaptive clipping.
+CoRR, 1905.03871, 2019.
+[55] Abhradeep
+Guha
+Thakurta, Andrew
+H.
+Vyrros,
+Umesh S. Vaishampayan, Gaurav Kapoor, Julien Freudi-
+ger, Vivek Rangarajan Sridhar, and Doug Davidson.
+Learning New Words, US Patent 9,594,741, Mar. 14
+2017.
+[56] Úlfar Erlingsson, Vasyl Pihur, and Aleksandra Korolova.
+RAPPOR: Randomized aggregatable privacy-preserving
+ordinal response. In Proc. CCS’14, pages 1054–1067,
+2014.
+998    30th USENIX Security Symposium
+USENIX Association
+
+PAGE 18
+[57] Tianhao Wang, Jeremiah Blocki, Ninghui Li, and
+Somesh Jha. Locally differentially private protocols
+for frequency estimation. In Proc. USENIX Security’17,
+pages 729–745, 2017.
+[58] Yue Wang and Xintao Wu.
+Preserving differential
+privacy in degree-correlation based graph generation.
+Transactions on Data Privacy, 6(2), 2013.
+[59] Yue Wang, Xintao Wu, and Leting Wu. Differential
+privacy preserving spectral graph analysis.
+In Proc.
+PAKDD’13, pages 329–340, 2013.
+[60] Stanley L. Warner. Randomized response: A survey
+technique for eliminating evasive answer bias. Journal
+of the American Statistical Association, 60(309):63–69,
+1965.
+[61] Xiaokui Xiao, Gabriel Bender, Michael Hay, and Jo-
+hannes Gehrke. ireduct: Differential privacy with re-
+duced relative errors. In Proc. SIGMOD’11, pages 229–
+240, 2011.
+[62] Min Ye and Alexander Barga. Optimal schemes for
+discrete distribution estimation under local differential
+privacy. In Proc. ISIT’17, pages 759—-763, 2017.
+[63] Qingqing Ye, Haibo Hu, Man Ho Au, Xiaofeng Meng,
+and Xiaokui Xiao. Towards locally differentially private
+generic graph metric estimation. In Proc. ICDE’20,
+pages 1922–1925, 2020.
+[64] Qingqing Ye, Haibo Hu, Man Ho Au, Xiaofeng Meng,
+and Xiaokui Xiao. LF-GDPR: A framework for es-
+timating graph metrics with local differential privacy.
+IEEE Transactions on Knowledge and Data Engineer-
+ing (Early Access), pages 1–16, 2021.
+[65] Hailong Zhang, Suﬁan Latif, Raef Bassily, and Atanas
+Rountev. Differentially-private control-ﬂow node cov-
+erage for software usage analysis. In Proc. USENIX
+Security’20, pages 1021–1038, 2020.
+A
+Effectiveness of empirical estimation in
+LocalRR△
+In Section 4.2, we presented LocalRR△, which uses the em-
+pirical estimation method after the RR. Here we show the ef-
+fectiveness of empirical estimation by comparing LocalRR△
+with the RR without empirical estimation [46,63].
+As the RR without empirical estimation, we applied the RR
+to the lower triangular part of the adjacency matrix A; i.e., we
+ran lines 1 to 6 in Algorithm 2. Then we output the number of
+noisy triangles m3. We denote this algorithm by RR w/o emp.
+Figure 10 shows the l2 loss of LocalRR△and RR w/o emp
+when we changed n from 1000 to 10000 or ε in edge LDP
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+	
+
+
+
+RR w/o emp
+LocalRR∆
+
+
+
+
+	
+
+	
+
+
+
+
+
+
+
+
+
+RR w/o emp
+LocalRR∆
+	
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+RR w/o emp
+LocalRR∆
+
+
+
+
+	
+
+	
+
+
+
+
+
+
+
+
+
+RR w/o emp
+LocalRR∆
+
+
+Figure 10: l2 loss of LocalRR△and the RR without empirical
+estimation (RR w/o emp).
+from 0.1 to 2. The experimental set-up is the same as Sec-
+tion 5.1. Figure 10 shows that LocalRR△signiﬁcantly out-
+performs RR w/o emp, which means that the l2 loss is signif-
+icantly reduced by empirical estimation. As shown in Sec-
+tion 5, the l2 loss of LocalRR△is also signiﬁcantly reduced
+by an additional round of interaction.
+B
+Experiments on Barabási-Albert Graphs
+Experimental set-up. In Section 5, we evaluated our algo-
+rithms using two real datasets: IMDB and Orkut. We also eval-
+uated our algorithms using artiﬁcial graphs that have power-
+law degree distributions. We used the BA (Barabási-Albert)
+model [9] to generate such graphs.
+In the BA model, an artiﬁcial graph (referred to as a BA
+graph) is grown by adding new nodes one at a time. Each new
+node is connected to λ ∈N existing nodes with probability
+proportional to the degree of the existing node. In our experi-
+ments, we used NetworkX [26], a Python package for graph
+analysis, to generate BA graphs.
+We generated a BA graph G∗with 1000000 nodes using
+NetworkX. For the attachment parameter λ, we set λ = 10 or
+50. When λ = 10 (resp. 50), the average degree of G∗was
+10.0 (resp. 50.0). For each case, we randomly generated n
+users from the whole graph G∗, and extracted a graph G =
+(V,E) with the n users. Then we estimated the number of tri-
+angles f△(G) and the number of 2-stars f2⋆(G). For triangles,
+we evaluated LocalRR△, Local2Rounds△, and CentralLap△.
+For 2-stars, we evaluated LocalLap2⋆and CentralLap2⋆. In
+Local2Rounds△, we set ε1 = ε2. For ˜dmax, we set ˜dmax = dmax.
+USENIX Association
+30th USENIX Security Symposium    999
+
+PAGE 19
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+LocalRR∆	
+  10
+Local2Rounds∆	
+  10
+CentralLap∆	
+  10
+	
+
+LocalRR∆	
+  50
+Local2Rounds∆	
+  50
+
+
+	
+
+	
+
+
+
+
+
+
+
+
+
+
+
+CentralLap∆	
+  50
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+LocalLap⋆	
+  10
+CentralLap⋆	
+  10
+LocalLap⋆	
+  50
+CentralLap⋆	
+  50
+
+	
+
+	
+
+
+
+
+
+
+
+
+Figure 11: l2 loss in the Barabási-Albert graph datasets (left:
+ε = 1, right: n = 10000). We set the attachment parameter λ
+in the BA model to λ = 10 or 50, and ˜dmax to ˜dmax = dmax.
+We evaluated the l2 loss while changing n and ε. We at-
+tempted γ ∈N ways to randomly select n users from G∗, and
+averaged the l2 loss over all the γ ways to randomly select n
+users. As with Section 5, we set γ = 100 and changed n from
+1000 to 10000 while ﬁxing ε = 1. Then we set γ = 10 and
+changed ε from 0.1 to 2 while ﬁxing n = 10000.
+Experimental results. Figure 11 shows the results. Over-
+all, Figure 11 has a similar tendency to Figures 5, 6, and
+7. For example, Local2Rounds△signiﬁcantly outperforms
+LocalRR△, especially when the graph G is sparse; i.e.,
+λ = 10. In Local2Rounds△, CentralLap△, LocalLap2⋆, and
+CentralLap2⋆, the l2 loss increases with increase in λ. This is
+because the maximum degree dmax (= ˜dmax) increases with
+increase in λ.
+Figure 11 also shows that the l2 loss is roughly consistent
+with our upper-bounds in Section 4. For example, recall that
+LocalRR△, Local2Rounds△, CentralLap△, LocalLap2⋆, and
+CentralLap2⋆achieve the expected l2 loss of O(n4), O(nd3
+max),
+O(d2
+max), O(nd2
+max), and O(d2
+max), respectively. Assuming that
+dmax = O(n), the left panels of Figure 11 are roughly con-
+sistent with these upper-bounds. In addition, the right pan-
+els of Figure 11 show that when we set λ = 10 and de-
+crease ε from 0.4 to 0.1, the l2 loss increases by a factor
+of about 3800, 250, and 16 in LocalRR△, Local2Rounds△,
+and CentralLap△, respectively. They are roughly consistent
+with our upper-bounds – for small ε, the expected l2 loss
+of LocalRR△, Local2Rounds△, and CentralLap△is O(ε−6),
+𝐺= (𝑉, 𝐸)
+𝑀
+Figure 12: Examples of G and M for constructing an inde-
+pendent cube for f△(n = 14, dmax = 8, η1 = 3, η2 = 2).
+O(ε−4), and O(ε−2), respectively.
+In summary, for both the two real datasets and the
+BA graphs, our experimental results showed the follow-
+ing ﬁndings: (1) Local2Rounds△signiﬁcantly outperforms
+LocalRR△, especially when the graph G is sparse; (2) our
+experimental results are roughly consistent with our upper-
+bounds.
+C
+Construction of an (n, dmax
+2 −2) independent
+cube for f△
+Suppose that n is even and dmax is divisible by 4. Since dmax <
+n, it is possible to write n = η1 dmax
+2 +η2 for integers η1,η2
+such that η1 ≥1 and 1 ≤η2 < dmax
+2 . Because η1 dmax
+2
+and
+n are even, we must have η2 is even. Now, we can write
+n = (η1 −1) dmax
+2 +(η2 + dmax
+2 ). Thus, we can deﬁne a graph
+G = (V,E) on n nodes consisting of (η1 −1) cliques of even
+size dmax
+2
+and one ﬁnal clique of an even size η2 + dmax
+2
+∈
+( dmax
+2 ,dmax) with all cliques disjoint.
+Since G = (V,E) consists of even-sized cliques, it contains
+a perfect matching M. Figure 12 shows examples of G and M,
+where n = 14, dmax = 8, η1 = 3, and η2 = 2. Let G′ = (V,E′)
+such that E′ = E \ M. Let A = {(V,E′ ∪N : N ⊆M}. Each
+edge in G is part of at least dmax
+2 −2 triangles. For each pair
+of edges in M, the triangles of G of which they are part are
+disjoint. Thus, for any edge e ∈M, removing e from a graph
+in A will remove at least dmax
+2 −2 triangles. This implies that
+A is an (n, dmax
+2 −2) independent cube for f△.
+1000    30th USENIX Security Symposium
+USENIX Association

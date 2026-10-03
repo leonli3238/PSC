@@ -1,0 +1,66 @@
+{
+  "created_utc": "2026-09-28T16:13:58.212909+00:00",
+  "python": "3.14.6",
+  "mechanism": {
+    "name": "floor_tight",
+    "rounding": "floor",
+    "gs_mode": "tight",
+    "physical_cap": true,
+    "base_bound": "n_minus_one",
+    "description": "Floor projection with the tight sensitivity C(D-1,k-1) of clipped degree counts."
+  },
+  "settings": {
+    "experiment": "pilot",
+    "datasets": [
+      "CU",
+      "Do"
+    ],
+    "tasks": [
+      "degree",
+      "2-star",
+      "3-star",
+      "triangle"
+    ],
+    "runs": {
+      "PSC": 10,
+      "Naive": 10
+    },
+    "seed": 0,
+    "provider": "mock",
+    "node_model": "gpt-4.1-mini",
+    "curator_model": "gpt-4.1",
+    "temperature": 0.0,
+    "stream": false,
+    "parallel_runs": 8
+  },
+  "sha256": {
+    "/data/workspace/PSC/psc/__init__.py": "6f26c74987168b554031ebe22390b7c847f2f5f05d82de1a8a04d268351bbcfe",
+    "/data/workspace/PSC/psc/agents/__init__.py": "0d21c5abfd89aa4377ce6c64cdb0b88e4a66ed49cb55200473056b0fe5ee2495",
+    "/data/workspace/PSC/psc/agents/curator_agent.py": "22781552b0c7c65732698a65d45f5e3164dd73ae724f16ce044c82fa7531eeb0",
+    "/data/workspace/PSC/psc/agents/node_agent.py": "e20f52e1a2dbfb25fdbe83b43176cf9f9fc9107107194df0cff429ada2cb8c3a",
+    "/data/workspace/PSC/psc/agents/privacy_controller.py": "0d705b1d4e2a66b43844877c5830c26f41699f7e74cf38a368744d2ec2fed6df",
+    "/data/workspace/PSC/psc/alignment.py": "7313f4bd3b959ee22c46f08fa0e1927405b04bdf1d422bf64798c71b465889f5",
+    "/data/workspace/PSC/psc/artifacts.py": "a57f9a94e9bcaf01b5055ea19b5e9878b5ca06c0663617f2ee9e324946fbe2c7",
+    "/data/workspace/PSC/psc/baselines.py": "a3b94dc03bce2e33c2a3c0114dfec3ceedca45312cf3fcc403aa2ebda7d066fb",
+    "/data/workspace/PSC/psc/dp.py": "1eab3342567a9331df83552b3c04b3e6a66d27dcf5fa7ce2d2e5be28dc27d50b",
+    "/data/workspace/PSC/psc/events.py": "066ae8290ffe9df1ace0947f776d162d1c594f5f4363a67ae086bd6a1369cf54",
+    "/data/workspace/PSC/psc/experiments.py": "187cc8772aeb859d37676dfa880b7eeccb5320e32664c67e452490e49263fb9d",
+    "/data/workspace/PSC/psc/framework.py": "4761b75b6ca67b8df06d6662ab6c6b70418e7b874ec0915b5959683359437040",
+    "/data/workspace/PSC/psc/graph.py": "b31d9133f913dc9a8be56b401e5687c541984ff16182e6ce0385e22d3cd75c60",
+    "/data/workspace/PSC/psc/ground_truth.py": "129f4f24bc49ae68c258fc12bdea43fe0cea3bba8163595b17fc2f552ceb99f6",
+    "/data/workspace/PSC/psc/library.py": "c88af59779e670c1b26ae8e27c48548eb1583fe6760f7a21382fa50e0f19d227",
+    "/data/workspace/PSC/psc/mechanism.py": "0f4bfa1c69a7c255c955edff0550d28837bd0b169d92a784c89291496034e726",
+    "/data/workspace/PSC/psc/mock_model.py": "813c46840c6e5fac00ae9a45e4bf42eda96636dae13fbe856fba148383c5c45b",
+    "/data/workspace/PSC/psc/models.py": "ccb9f7e83971258e12894148862ca4259095daade8761d05e88e39e4e8d90f2b",
+    "/data/workspace/PSC/psc/progress.py": "787ce0abd78ca3dbc7a7c97fb901d92c1d1f917ccd5b06e8ea1b537ede06a793",
+    "/data/workspace/PSC/psc/prompts.py": "efc9c22a32fbfa9eff880cb1616efb1b476e8e5da9e79cb75dee808339e5b9b9",
+    "/data/workspace/PSC/psc/rules.py": "f0d6cd0dad19f136494084af543eee6c103639b68bc20e70b1ffee89683fa2bb",
+    "/data/workspace/PSC/scripts/align_gt_psc.py": "d674a056b6d9bbac559f0c441cd2be2654a525f10a46ee48635f74a0715558b2",
+    "/data/workspace/PSC/scripts/prepare_datasets.py": "fc07bb61a8f49e741cd212dcc37ec5da8c7ce203cc2395c77bca2f6e9dfb92eb",
+    "/data/workspace/PSC/scripts/run_experiments.py": "90cfe02d74d732ff6e8fc414b659ebddc008d139ca621603d7293db76454737a",
+    "/data/workspace/PSC/scripts/run_ground_truth.py": "6627b914680220f53d48bed80bd4314fcd617a1ce824b8135dfdf2041f388f01",
+    "/data/workspace/PSC/data/CU.json": "6b56eec066e9e24f254e27aeaf5565d18c7804b19bbf00f13bb3efb0c8e47f57",
+    "/data/workspace/PSC/data/Do.json": "cdd80dbcd6ecf774dfd3cbec930cff703e65c08d288ec07852c7561786d545a5"
+  },
+  "trace_note": "runs.jsonl includes local raw-count diagnostics; keep it in trusted storage."
+}

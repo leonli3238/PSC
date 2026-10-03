@@ -1,0 +1,582 @@
+{
+ "runs": 20000,
+ "seed": 1022026,
+ "rows": [
+  {
+   "dataset": "CU",
+   "k": 2,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.14940721808121205,
+   "paper": 0.1062,
+   "alpha": 0.7107868128969985
+  },
+  {
+   "dataset": "CU",
+   "k": 3,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.6905262645473347,
+   "paper": 0.8035,
+   "alpha": 1.2116101424805275
+  },
+  {
+   "dataset": "CU",
+   "k": 2,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.11952888468390196,
+   "paper": 0.1062,
+   "alpha": 0.8884835161212481
+  },
+  {
+   "dataset": "CU",
+   "k": 3,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.5759238492346253,
+   "paper": 0.8035,
+   "alpha": 1.5145126781006593
+  },
+  {
+   "dataset": "CU",
+   "k": 2,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.08159407518657394,
+   "paper": 0.1062,
+   "alpha": 1.3015650922835007
+  },
+  {
+   "dataset": "CU",
+   "k": 3,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.20860995336162522,
+   "paper": 0.8035,
+   "alpha": 4.441942487459073
+  },
+  {
+   "dataset": "CU",
+   "k": 2,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.07460029731343902,
+   "paper": 0.1062,
+   "alpha": 1.423586819685079
+  },
+  {
+   "dataset": "CU",
+   "k": 3,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.22251321327081228,
+   "paper": 0.8035,
+   "alpha": 4.164321081992881
+  },
+  {
+   "dataset": "CU",
+   "k": 2,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.24274953763417678,
+   "paper": 0.1062,
+   "alpha": 0.43665199521351034
+  },
+  {
+   "dataset": "CU",
+   "k": 3,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 1.6710437414691393,
+   "paper": 0.8035,
+   "alpha": 0.39038418324048174
+  },
+  {
+   "dataset": "CU",
+   "k": 2,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.1991258818714207,
+   "paper": 0.1062,
+   "alpha": null
+  },
+  {
+   "dataset": "CU",
+   "k": 3,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.39536913702946397,
+   "paper": 0.8035,
+   "alpha": 3.4239627842185953
+  },
+  {
+   "dataset": "Do",
+   "k": 2,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.09281397711637936,
+   "paper": 0.0585,
+   "alpha": 0.6301526634768349
+  },
+  {
+   "dataset": "Do",
+   "k": 3,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.34181611705548953,
+   "paper": 0.3434,
+   "alpha": 1.0049641110937806
+  },
+  {
+   "dataset": "Do",
+   "k": 2,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.0742575088040452,
+   "paper": 0.0585,
+   "alpha": 0.7876908293460436
+  },
+  {
+   "dataset": "Do",
+   "k": 3,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.27654876917960985,
+   "paper": 0.3434,
+   "alpha": 1.256205138867226
+  },
+  {
+   "dataset": "Do",
+   "k": 2,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.06574290104842898,
+   "paper": 0.0585,
+   "alpha": 0.8898299142124328
+  },
+  {
+   "dataset": "Do",
+   "k": 3,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.1630325031372916,
+   "paper": 0.3434,
+   "alpha": 2.116248779920889
+  },
+  {
+   "dataset": "Do",
+   "k": 2,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.05737562273317437,
+   "paper": 0.0585,
+   "alpha": 1.0195967767017462
+  },
+  {
+   "dataset": "Do",
+   "k": 3,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.15651120301179994,
+   "paper": 0.3434,
+   "alpha": 2.204425812417593
+  },
+  {
+   "dataset": "Do",
+   "k": 2,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.13939916726582668,
+   "paper": 0.0585,
+   "alpha": 0.4196556932879195
+  },
+  {
+   "dataset": "Do",
+   "k": 3,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.7789998227725782,
+   "paper": 0.3434,
+   "alpha": 0.38228841738894825
+  },
+  {
+   "dataset": "Do",
+   "k": 2,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.12382766731168184,
+   "paper": 0.0585,
+   "alpha": null
+  },
+  {
+   "dataset": "Do",
+   "k": 3,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.26144157618564334,
+   "paper": 0.3434,
+   "alpha": 1.552991179503143
+  },
+  {
+   "dataset": "ML",
+   "k": 2,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.0805329034609731,
+   "paper": 0.0444,
+   "alpha": 0.48455856214764165
+  },
+  {
+   "dataset": "ML",
+   "k": 3,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.2527611387642287,
+   "paper": 0.2077,
+   "alpha": 0.7995517826179489
+  },
+  {
+   "dataset": "ML",
+   "k": 2,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.06618733961617088,
+   "paper": 0.0444,
+   "alpha": 0.6056982026845521
+  },
+  {
+   "dataset": "ML",
+   "k": 3,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.20779998712742306,
+   "paper": 0.2077,
+   "alpha": 0.9994397282724362
+  },
+  {
+   "dataset": "ML",
+   "k": 2,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.0770418587989287,
+   "paper": 0.0444,
+   "alpha": 0.5763100824952759
+  },
+  {
+   "dataset": "ML",
+   "k": 3,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.2422781888309106,
+   "paper": 0.2077,
+   "alpha": 0.8571637662068173
+  },
+  {
+   "dataset": "ML",
+   "k": 2,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.0633944438116899,
+   "paper": 0.0444,
+   "alpha": 0.7003768363657865
+  },
+  {
+   "dataset": "ML",
+   "k": 3,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.20525264258414389,
+   "paper": 0.2077,
+   "alpha": 1.0119294462163817
+  },
+  {
+   "dataset": "ML",
+   "k": 2,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.08054179746672736,
+   "paper": 0.0444,
+   "alpha": 0.4547427655969288
+  },
+  {
+   "dataset": "ML",
+   "k": 3,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.2771591923546883,
+   "paper": 0.2077,
+   "alpha": 0.7071791258560777
+  },
+  {
+   "dataset": "ML",
+   "k": 2,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.0809851489719865,
+   "paper": 0.0444,
+   "alpha": 0.4788637184142589
+  },
+  {
+   "dataset": "ML",
+   "k": 3,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.25385663754673027,
+   "paper": 0.2077,
+   "alpha": 0.7948465080244966
+  },
+  {
+   "dataset": "CS",
+   "k": 2,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.2018555537985576,
+   "paper": 0.121,
+   "alpha": 0.5975718463177796
+  },
+  {
+   "dataset": "CS",
+   "k": 3,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.6606558417605025,
+   "paper": 0.541,
+   "alpha": 0.7832447904493615
+  },
+  {
+   "dataset": "CS",
+   "k": 2,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.1616851449619331,
+   "paper": 0.121,
+   "alpha": 0.7469648078972245
+  },
+  {
+   "dataset": "CS",
+   "k": 3,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.5506608489597508,
+   "paper": 0.541,
+   "alpha": 0.9790559880617019
+  },
+  {
+   "dataset": "CS",
+   "k": 2,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.15532076759288815,
+   "paper": 0.121,
+   "alpha": 0.7790329772072305
+  },
+  {
+   "dataset": "CS",
+   "k": 3,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.40947921206473054,
+   "paper": 0.541,
+   "alpha": 1.3659598611260104
+  },
+  {
+   "dataset": "CS",
+   "k": 2,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.13555266989924783,
+   "paper": 0.121,
+   "alpha": 0.8926419530499516
+  },
+  {
+   "dataset": "CS",
+   "k": 3,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.39410412955300916,
+   "paper": 0.541,
+   "alpha": 1.4228748553395945
+  },
+  {
+   "dataset": "CS",
+   "k": 2,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.31530006497867674,
+   "paper": 0.121,
+   "alpha": 0.38108393549298264
+  },
+  {
+   "dataset": "CS",
+   "k": 3,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 1.5037335637778841,
+   "paper": 0.541,
+   "alpha": 0.2712867378007946
+  },
+  {
+   "dataset": "CS",
+   "k": 2,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.20338199006336571,
+   "paper": 0.121,
+   "alpha": 0.3594425341581074
+  },
+  {
+   "dataset": "CS",
+   "k": 3,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.4980014070438511,
+   "paper": 0.541,
+   "alpha": 1.1359880473644381
+  },
+  {
+   "dataset": "EE",
+   "k": 2,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.047448322744803866,
+   "paper": 0.0295,
+   "alpha": 0.5925837417000382
+  },
+  {
+   "dataset": "EE",
+   "k": 3,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.17745322011906928,
+   "paper": 0.1647,
+   "alpha": 0.9235861726316913
+  },
+  {
+   "dataset": "EE",
+   "k": 2,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.03855190243218094,
+   "paper": 0.0295,
+   "alpha": 0.7407296771250478
+  },
+  {
+   "dataset": "EE",
+   "k": 3,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.14421044204286282,
+   "paper": 0.1647,
+   "alpha": 1.1544827157896143
+  },
+  {
+   "dataset": "EE",
+   "k": 2,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.046545349415809074,
+   "paper": 0.0295,
+   "alpha": 0.6337904940075572
+  },
+  {
+   "dataset": "EE",
+   "k": 3,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.1748481665627505,
+   "paper": 0.1647,
+   "alpha": 0.9419601202446213
+  },
+  {
+   "dataset": "EE",
+   "k": 2,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.03814448147246793,
+   "paper": 0.0295,
+   "alpha": 0.7733753051877931
+  },
+  {
+   "dataset": "EE",
+   "k": 3,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.14687245991271042,
+   "paper": 0.1647,
+   "alpha": 1.1213810955293109
+  },
+  {
+   "dataset": "EE",
+   "k": 2,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.046315918408092766,
+   "paper": 0.0295,
+   "alpha": 0.5930454792014774
+  },
+  {
+   "dataset": "EE",
+   "k": 3,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.18821009678936673,
+   "paper": 0.1647,
+   "alpha": 0.86313206041561
+  },
+  {
+   "dataset": "EE",
+   "k": 2,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.047606301463124785,
+   "paper": 0.0295,
+   "alpha": 0.5864952790074304
+  },
+  {
+   "dataset": "EE",
+   "k": 3,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.1777024513121314,
+   "paper": 0.1647,
+   "alpha": 0.9215816579814241
+  },
+  {
+   "dataset": "PM",
+   "k": 2,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.045109110126763254,
+   "paper": 0.0284,
+   "alpha": 0.6193962746478929
+  },
+  {
+   "dataset": "PM",
+   "k": 3,
+   "candidate": "floor_tight (current)",
+   "mean_re": 0.12495604667032216,
+   "paper": 0.129,
+   "alpha": 1.0330584796215814
+  },
+  {
+   "dataset": "PM",
+   "k": 2,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.03629983943846626,
+   "paper": 0.0284,
+   "alpha": 0.7742453433098663
+  },
+  {
+   "dataset": "PM",
+   "k": 3,
+   "candidate": "floor_tight, eps3=2 (eps2 not deducted)",
+   "mean_re": 0.10055553578749042,
+   "paper": 0.129,
+   "alpha": 1.2913230995269764
+  },
+  {
+   "dataset": "PM",
+   "k": 2,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.04471267589372385,
+   "paper": 0.0284,
+   "alpha": 0.6351666374766534
+  },
+  {
+   "dataset": "PM",
+   "k": 3,
+   "candidate": "oracle D=true max, tight, eps3=1.6",
+   "mean_re": 0.12408501440341407,
+   "paper": 0.129,
+   "alpha": 1.0396098241211205
+  },
+  {
+   "dataset": "PM",
+   "k": 2,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.03592170910783917,
+   "paper": 0.0284,
+   "alpha": 0.7906082618380286
+  },
+  {
+   "dataset": "PM",
+   "k": 3,
+   "candidate": "oracle D=true max, C(D,k-1), eps3=2 (upstream NSType=1)",
+   "mean_re": 0.10011284566335024,
+   "paper": 0.129,
+   "alpha": 1.2885459317956922
+  },
+  {
+   "dataset": "PM",
+   "k": 2,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.04175765862743184,
+   "paper": 0.0284,
+   "alpha": 0.6462805262788851
+  },
+  {
+   "dataset": "PM",
+   "k": 3,
+   "candidate": "upstream NSType=2: eps2=eps/10, continuous GS",
+   "mean_re": 0.1164212162350198,
+   "paper": 0.129,
+   "alpha": 1.1170940762535089
+  },
+  {
+   "dataset": "PM",
+   "k": 2,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.045110371356704294,
+   "paper": 0.0284,
+   "alpha": 0.6193822719660487
+  },
+  {
+   "dataset": "PM",
+   "k": 3,
+   "candidate": "central noisy max: true max + one Lap, tight",
+   "mean_re": 0.12495220774683319,
+   "paper": 0.129,
+   "alpha": 1.0331070883822897
+  }
+ ]
+}

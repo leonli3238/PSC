@@ -1,0 +1,131 @@
+{
+  "naive_truth_consistency": [
+    {
+      "dataset": "CU",
+      "k": 2,
+      "local_truth": 421,
+      "approx_truth_from_paper_naive": 422.1966842525054,
+      "relative_difference": 0.0028424804097515466
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "local_truth": 494,
+      "approx_truth_from_paper_naive": 494.6888563704203,
+      "relative_difference": 0.0013944460939681047
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "local_truth": 923,
+      "approx_truth_from_paper_naive": 927.4997497670373,
+      "relative_difference": 0.004875135175555156
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "local_truth": 1861,
+      "approx_truth_from_paper_naive": 1868.8343403079027,
+      "relative_difference": 0.004209747613058923
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "local_truth": 2808,
+      "approx_truth_from_paper_naive": 2814.9758302568234,
+      "relative_difference": 0.002484270034481373
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "local_truth": 15177,
+      "approx_truth_from_paper_naive": 15133.828863035435,
+      "relative_difference": -0.002844510572877712
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "local_truth": 463,
+      "approx_truth_from_paper_naive": 464.478124575122,
+      "relative_difference": 0.003192493682768971
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "local_truth": 866,
+      "approx_truth_from_paper_naive": 867.7452094299138,
+      "relative_difference": 0.002015253383272242
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "local_truth": 7427,
+      "approx_truth_from_paper_naive": 7406.411065243224,
+      "relative_difference": -0.002772173792483734
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "local_truth": 39542,
+      "approx_truth_from_paper_naive": 39574.86868837118,
+      "relative_difference": 0.0008312348482923948
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "local_truth": 79173,
+      "approx_truth_from_paper_naive": 79265.53051027482,
+      "relative_difference": 0.0011687129485409287
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "local_truth": 3352172,
+      "approx_truth_from_paper_naive": 3348446.6108809514,
+      "relative_difference": -0.001111335909687372
+    }
+  ],
+  "psc_b_scale_diagnostics": [
+    {
+      "dataset": "CU",
+      "k": 2,
+      "paper_gt_psc_b": 0.4487,
+      "current_expected_re": 0.4485808652714833,
+      "current_scale": 24.5,
+      "scale_implied_by_paper_point": 24.50716713733584,
+      "implied_to_current_scale_ratio": 1.0002925362177895
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "paper_gt_psc_b": 4.637,
+      "current_expected_re": 5.1717932589471936,
+      "current_scale": 588.0,
+      "scale_implied_by_paper_point": 521.2083072086155,
+      "implied_to_current_scale_ratio": 0.8864086857289378
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "paper_gt_psc_b": 0.258,
+      "current_expected_re": 0.2973239047992848,
+      "current_scale": 31.0,
+      "scale_implied_by_paper_point": 26.86782099938138,
+      "implied_to_current_scale_ratio": 0.866703903205851
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "paper_gt_psc_b": 2.4373,
+      "current_expected_re": 2.7170991895009102,
+      "current_scale": 945.5,
+      "scale_implied_by_paper_point": 830.1025849813132,
+      "implied_to_current_scale_ratio": 0.8779509095518913
+    }
+  ],
+  "notes": [
+    "Naive inversion treats paper finite-run mean RE as signed population overcount. This approximation does not identify the author graph.",
+    "PSC-B scale inversion treats a published finite-run mean as a population value; it is not a measured author noise scale.",
+    "Do not install inferred scales as production coefficients. Different ratios motivate joint checking of tables and finite-sample uncertainty."
+  ]
+}

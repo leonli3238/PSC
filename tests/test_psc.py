@@ -121,6 +121,20 @@ def test_triangle_update_rule_example_from_appendix_e():
     assert rules.update_triangle([2, 4], msgs) == 0.5
 
 
+def test_send_parser_accepts_node_prefixed_ids():
+    from psc.agents.node_agent import _parse_send_payload
+    from psc.prompts import extract_json
+
+    # verbatim shape of a hy3-ioa reply that used to be dropped
+    reply = 'Step 1: ...\n\n```json\n{\n  "Sender_ID": 26,\n  "Sender_Neighbors": ["Node 13", "Node 1", "node 6"]\n}\n```'
+    expected = {"Sender_ID": 26, "Sender_Neighbors": [1, 6, 13]}
+    assert _parse_send_payload(extract_json(reply)) == expected
+    assert _parse_send_payload({"Sender_ID": "Node 26", "Sender_Neighbors": [13, "1", 6.0]}) == expected
+    assert _parse_send_payload({"Sender_ID": 26, "Sender_Neighbors": []}) == {"Sender_ID": 26, "Sender_Neighbors": []}
+    for bad in (["Node A"], ["Node 1, Node 2"], [1.5], [True], "Node 1, Node 2", None):
+        assert _parse_send_payload({"Sender_ID": 26, "Sender_Neighbors": bad}) is None, bad
+
+
 def test_triangle_rules_recover_exact_count_without_noise():
     g = _toy_graph()
     counts = []
@@ -170,7 +184,7 @@ def test_agent_pipeline_matches_ground_truth_distribution():
     fw = PSCFramework(cfg, seed=11)
     agent_re = np.mean([relative_error(_run(fw.run(_record(g, task), eps)).estimate, truth, g.n) for _ in range(runs)])
     rng = np.random.default_rng(12)
-    gt_re = np.mean([relative_error(gt_psc(g, task, eps, rng), truth, g.n) for _ in range(runs)])
+    gt_re = np.mean([relative_error(gt_psc(g, task, eps, rng, mechanism=fw.mechanism), truth, g.n) for _ in range(runs)])
     assert abs(agent_re - gt_re) / max(gt_re, 1e-9) < 0.25, (agent_re, gt_re)
 
 
@@ -297,6 +311,42 @@ def test_validation_counts_llm_mistakes_instead_of_hiding_them():
 
     nv = _run(NaiveFramework(ModelConfig(provider="mock"), seed=0).run(rec, eps=2.0))
     assert abs(nv.extra["validation"]["rule_estimate"] - nv.estimate) < 1e-9
+
+
+def test_parallel_runs_are_reproducible_and_overlap(monkeypatch):
+    from psc.experiments import run_agent_experiment
+    from psc.mock_model import MockChatModel
+
+    data = Path(__file__).resolve().parents[1] / "data"
+    original = MockChatModel.__call__
+    in_flight = peak = 0
+
+    async def slow_call(self, *args, **kwargs):
+        nonlocal in_flight, peak
+        in_flight += 1
+        peak = max(peak, in_flight)
+        await asyncio.sleep(0.01)
+        try:
+            return await original(self, *args, **kwargs)
+        finally:
+            in_flight -= 1
+
+    monkeypatch.setattr(MockChatModel, "__call__", slow_call)
+
+    def run(parallel: int):
+        nonlocal peak
+        peak = 0
+        cfg = ModelConfig(provider="mock", parallel_runs=parallel)
+        _, per_run = asyncio.run(run_agent_experiment(
+            data, cfg, ["CU"], ["degree", "triangle"], [2.0], {"Naive": 3, "PSC": 2}, ("Naive", "PSC"), log=lambda _: None,
+        ))
+        return [(r["method"], r["task"], r["estimate"], r["noisy_edges"]) for r in per_run], peak
+
+    sequential, peak1 = run(1)
+    parallel, peak4 = run(4)
+    assert sequential == parallel  # run i always uses run_rng(seed, i)
+    assert len(sequential) == 10
+    assert peak4 > peak1 and peak4 <= 4 + 8  # runs overlap; node calls stay capped by max_concurrency
 
 
 def test_model_config_from_env_file_and_config_file():

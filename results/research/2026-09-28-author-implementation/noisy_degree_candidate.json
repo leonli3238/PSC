@@ -1,0 +1,217 @@
+{
+  "name": "Laplace-degree polynomial moment correction",
+  "status": "Independent research candidate; not paper reproduction; no novelty claim",
+  "assumptions": [
+    "Per-node single-bit edge LDP as in PSC definition; degree sensitivity 1.",
+    "One noisy degree y=d+Lap(1/epsilon) is released per node.",
+    "Only postprocessing of noisy degrees; do not additionally release raw counts or spend epsilon again.",
+    "Do not clip noisy degrees or per-node corrected estimates; optional final nonnegative clamp.",
+    "Both star estimates can reuse the same release without additional privacy budget.",
+    "Worst-case dependence on high degrees remains; superiority here is dataset-specific."
+  ],
+  "formulas": {
+    "2star": "sum_i [y_i(y_i-1)/2-b^2]",
+    "3star": "sum_i [y_i(y_i-1)(y_i-2)/6-b^2(y_i-1)]",
+    "b": "1/epsilon"
+  },
+  "analytic_checks": [
+    {
+      "k": 2,
+      "degree_range": [
+        0,
+        453
+      ],
+      "analytic_mean_checks": 454
+    },
+    {
+      "k": 3,
+      "degree_range": [
+        0,
+        453
+      ],
+      "analytic_mean_checks": 454
+    }
+  ],
+  "results": [
+    {
+      "dataset": "CU",
+      "k": 2,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.03951336971093538,
+      "se_re": 9.589650044186628e-05,
+      "paper_gt_re": 0.1062,
+      "truth": 421,
+      "unclamped_mean": 421.01943405383287,
+      "unclamped_bias_se_units": 0.2921712217188529,
+      "analytic_unclamped_variance": 442.4375,
+      "empirical_unclamped_variance": 439.723178413969,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.07476080865263997,
+      "se_re": 0.00018721363799238544,
+      "paper_gt_re": 0.8035,
+      "truth": 494,
+      "unclamped_mean": 494.0635166422632,
+      "unclamped_bias_se_units": 0.42622346622686363,
+      "analytic_unclamped_variance": 2220.753472222222,
+      "empirical_unclamped_variance": 2219.290837017929,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.026487998000588965,
+      "se_re": 6.39440493266236e-05,
+      "paper_gt_re": 0.0585,
+      "truth": 923,
+      "unclamped_mean": 922.7545698495138,
+      "unclamped_bias_se_units": -2.5178945679685523,
+      "analytic_unclamped_variance": 950.125,
+      "empirical_unclamped_variance": 946.0113468777621,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.04610090819478875,
+      "se_re": 0.00011384495938362333,
+      "paper_gt_re": 0.3434,
+      "truth": 1861,
+      "unclamped_mean": 1860.16609048049,
+      "unclamped_bias_se_units": -2.4202099943789017,
+      "analytic_unclamped_variance": 11872.215277777781,
+      "empirical_unclamped_variance": 11848.65033578367,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.015037178940632695,
+      "se_re": 3.688881665883206e-05,
+      "paper_gt_re": 0.0444,
+      "truth": 2808,
+      "unclamped_mean": 2807.774201134548,
+      "unclamped_bias_se_units": -1.3394718684044589,
+      "analytic_unclamped_variance": 2841.6875,
+      "empirical_unclamped_variance": 2855.826973076509,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.026262597777097108,
+      "se_re": 7.170558917317987e-05,
+      "paper_gt_re": 0.2077,
+      "truth": 15177,
+      "unclamped_mean": 15176.466816905708,
+      "unclamped_bias_se_units": -0.3213342002019284,
+      "analytic_unclamped_variance": 275320.68402777676,
+      "empirical_unclamped_variance": 277307.66269816767,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.038196894106034995,
+      "se_re": 9.32309998969243e-05,
+      "paper_gt_re": 0.121,
+      "truth": 463,
+      "unclamped_mean": 463.2239754767819,
+      "unclamped_bias_se_units": 3.1655137408297342,
+      "analytic_unclamped_variance": 500.625,
+      "empirical_unclamped_variance": 499.04786553660824,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.06896866706311121,
+      "se_re": 0.00017873156873139597,
+      "paper_gt_re": 0.541,
+      "truth": 866,
+      "unclamped_mean": 866.5681944520674,
+      "unclamped_bias_se_units": 2.3257559309834024,
+      "analytic_unclamped_variance": 5968.506944444448,
+      "empirical_unclamped_variance": 5962.743775439654,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.009293329128037408,
+      "se_re": 2.2387871021998408e-05,
+      "paper_gt_re": 0.0295,
+      "truth": 7427,
+      "unclamped_mean": 7426.854537382562,
+      "unclamped_bias_se_units": -0.5315243600988553,
+      "analytic_unclamped_variance": 7489.5625,
+      "empirical_unclamped_variance": 7528.729782433538,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.01650020206316472,
+      "se_re": 4.236420904809479e-05,
+      "paper_gt_re": 0.1647,
+      "truth": 39542,
+      "unclamped_mean": 39538.14372374384,
+      "unclamped_bias_se_units": -1.4500104102771971,
+      "analytic_unclamped_variance": 707284.3298611171,
+      "empirical_unclamped_variance": 706299.6436693261,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.0027924647947653943,
+      "se_re": 6.93694383226849e-06,
+      "paper_gt_re": 0.0284,
+      "truth": 79173,
+      "unclamped_mean": 79173.28649438945,
+      "unclamped_bias_se_units": 0.32157678013128665,
+      "analytic_unclamped_variance": 79371.1875,
+      "empirical_unclamped_variance": 79044.34174506893,
+      "zero_fraction": 0.0
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "epsilon": 2.0,
+      "runs": 100000,
+      "mean_re": 0.00478655816719021,
+      "se_re": 1.3717999180284602e-05,
+      "paper_gt_re": 0.129,
+      "truth": 3352172,
+      "unclamped_mean": 3352163.9217568217,
+      "unclamped_bias_se_units": -0.11820462877989109,
+      "analytic_unclamped_variance": 467051615.0726968,
+      "empirical_unclamped_variance": 468919163.370264,
+      "zero_fraction": 0.0
+    }
+  ]
+}

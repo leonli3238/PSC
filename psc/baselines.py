@@ -105,7 +105,7 @@ class SingleLLMBaseline:
     def name(self) -> str:
         return self.style.upper()
 
-    async def run(self, record: TaskRecord, eps: float | None = None):
+    async def run(self, record: TaskRecord, eps: float | None = None, rng=None):
         from .framework import RunResult
 
         t0 = time.perf_counter()

@@ -1,0 +1,2971 @@
+{
+  "runs_per_dataset": 50000,
+  "seed": 9282026,
+  "sampling": "default_rng([seed,dataset_index]); chunks of 2048; independent standard Laplace degree/report matrices shared across variants and k",
+  "notes": [
+    "No API calls; no production source, config or existing results changed.",
+    "No-projection and true-max variants are diagnostic counterfactuals, not certified private replacements.",
+    "Tight GS is the single-bit sensitivity C(D-1,k-1) of the ideal function C(min(d,D),k), for fixed public D.",
+    "All budget variants preserve epsilon2+epsilon3=2; epsilon1=0.",
+    "Separate projection/noise magnitudes are not additive relative errors.",
+    "Paper provides point estimates; local standard errors do not give confidence intervals for paper values."
+  ],
+  "source_sha256": {
+    "psc/dp.py": "c26a8fea73112598ca65797fffdb759b936d8632e67a70aa8b0be4e7c1f29044",
+    "psc/ground_truth.py": "abb252e707c389235fae59cf12444cc0ba749c31982247d5f7b2f51d3023b898",
+    "psc/library.py": "9c70f5da7e986852c291551a9911c04b88f1634405bb00f4ee54ba8be76ebe80",
+    "psc/rules.py": "f0d6cd0dad19f136494084af543eee6c103639b68bc20e70b1ffee89683fa2bb",
+    "data/CU.json": "6b56eec066e9e24f254e27aeaf5565d18c7804b19bbf00f13bb3efb0c8e47f57",
+    "data/Do.json": "cdd80dbcd6ecf774dfd3cbec930cff703e65c08d288ec07852c7561786d545a5",
+    "data/ML.json": "5e74f30d1c682bef02cf1d4c87a33d186f92b36ea30a26c9f1aa197726ca58db",
+    "data/CS.json": "944d220dcbd9338da2331daaa08322ae4785ba11db4e8ed58de91b368b3d49c1",
+    "data/EE.json": "9096e3e3f12288a42523b59fa953c9167c6fdf1fa789cce8884ff8c1eb371431",
+    "data/PM.json": "492d3d3bec17dd696e7d7e89bd629913c465bbd861daf55a4b06059d82bd4a7b"
+  },
+  "production_closed_form_checks": [
+    {
+      "dataset": "CU",
+      "k": 2,
+      "checks": 100,
+      "clipped_cases": 0,
+      "max_abs_result_difference": 1.1368683772161603e-13
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "checks": 100,
+      "clipped_cases": 0,
+      "max_abs_result_difference": 4.547473508864641e-13
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "checks": 100,
+      "clipped_cases": 0,
+      "max_abs_result_difference": 2.2737367544323206e-13
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "checks": 100,
+      "clipped_cases": 0,
+      "max_abs_result_difference": 9.094947017729282e-13
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "checks": 100,
+      "clipped_cases": 38,
+      "max_abs_result_difference": 4.547473508864641e-13
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "checks": 100,
+      "clipped_cases": 38,
+      "max_abs_result_difference": 3.637978807091713e-12
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "checks": 100,
+      "clipped_cases": 2,
+      "max_abs_result_difference": 1.1368683772161603e-13
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "checks": 100,
+      "clipped_cases": 2,
+      "max_abs_result_difference": 9.094947017729282e-13
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "checks": 100,
+      "clipped_cases": 35,
+      "max_abs_result_difference": 1.8189894035458565e-12
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "checks": 100,
+      "clipped_cases": 35,
+      "max_abs_result_difference": 7.275957614183426e-12
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "checks": 100,
+      "clipped_cases": 32,
+      "max_abs_result_difference": 1.4551915228366852e-11
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "checks": 100,
+      "clipped_cases": 32,
+      "max_abs_result_difference": 9.313225746154785e-10
+    }
+  ],
+  "degree_diagnostics": [
+    {
+      "dataset": "CU",
+      "n": 49,
+      "m": 107,
+      "true_max_degree": 8,
+      "mean_D": 14.85982,
+      "D_quantiles_5_50_95": [
+        11.0,
+        14.0,
+        21.0
+      ],
+      "fraction_D_below_true_max": 0.0,
+      "fraction_D_above_n_minus_1": 0.0
+    },
+    {
+      "dataset": "Do",
+      "n": 62,
+      "m": 159,
+      "true_max_degree": 12,
+      "mean_D": 17.46274,
+      "D_quantiles_5_50_95": [
+        13.0,
+        17.0,
+        23.0
+      ],
+      "fraction_D_below_true_max": 0.00078,
+      "fraction_D_above_n_minus_1": 0.0
+    },
+    {
+      "dataset": "ML",
+      "n": 77,
+      "m": 254,
+      "true_max_degree": 36,
+      "mean_D": 36.51546,
+      "D_quantiles_5_50_95": [
+        31.0,
+        37.0,
+        42.0
+      ],
+      "fraction_D_below_true_max": 0.33526,
+      "fraction_D_above_n_minus_1": 0.0
+    },
+    {
+      "dataset": "CS",
+      "n": 86,
+      "m": 124,
+      "true_max_degree": 12,
+      "mean_D": 16.30508,
+      "D_quantiles_5_50_95": [
+        12.0,
+        16.0,
+        22.0
+      ],
+      "fraction_D_below_true_max": 0.0119,
+      "fraction_D_above_n_minus_1": 0.0
+    },
+    {
+      "dataset": "EE",
+      "n": 143,
+      "m": 623,
+      "true_max_degree": 42,
+      "mean_D": 42.54062,
+      "D_quantiles_5_50_95": [
+        37.0,
+        43.0,
+        48.0
+      ],
+      "fraction_D_below_true_max": 0.33256,
+      "fraction_D_above_n_minus_1": 0.0
+    },
+    {
+      "dataset": "PM",
+      "n": 453,
+      "m": 2025,
+      "true_max_degree": 237,
+      "mean_D": 237.50178,
+      "D_quantiles_5_50_95": [
+        232.0,
+        238.0,
+        243.0
+      ],
+      "fraction_D_below_true_max": 0.33592,
+      "fraction_D_above_n_minus_1": 0.0
+    }
+  ],
+  "ablation": [
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "current",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.17430934694919611,
+        "se": 0.0006291183661478704
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1743281322288826,
+      "zero_output_fraction": 0.00014,
+      "mean_re_before_nonnegative_clamp": 0.1743281322288826,
+      "mean_report_scale": 9.2873875,
+      "mean_estimate": 421.3782175343894
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "current",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.8820718530285868,
+        "se": 0.0037085971255047647
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 1.0811337871468671,
+      "zero_output_fraction": 0.20188,
+      "mean_re_before_nonnegative_clamp": 1.0811337871468671,
+      "mean_report_scale": 67.6026,
+      "mean_estimate": 595.9831927835004
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "floor",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.16257621376914433,
+        "se": 0.0005919416587410754
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.011733133180051786,
+        "se": 3.9888817585761945e-05
+      },
+      "mean_projection_loss_relative_to_truth": 1.2636579572446556e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.162594471602777,
+      "zero_output_fraction": 8e-05,
+      "mean_re_before_nonnegative_clamp": 0.16258981602082928,
+      "mean_report_scale": 8.6623875,
+      "mean_estimate": 421.3512304445231
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "floor",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.7900459836188894,
+        "se": 0.003352463190158253
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.09202586940969733,
+        "se": 0.0004441700290781315
+      },
+      "mean_projection_loss_relative_to_truth": 3.23076923076923e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.9425664338173753,
+      "zero_output_fraction": 0.17008,
+      "mean_re_before_nonnegative_clamp": 0.9425545309833671,
+      "mean_report_scale": 58.9402125,
+      "mean_estimate": 572.6190358305579
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "tight_gs",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.1625808693510921,
+        "se": 0.0005919223271582189
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.011728477598104046,
+        "se": 3.978242545512367e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.162594471602777,
+      "zero_output_fraction": 8e-05,
+      "mean_re_before_nonnegative_clamp": 0.162594471602777,
+      "mean_report_scale": 8.6623875,
+      "mean_estimate": 421.3565504445231
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "tight_gs",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.7900578864528975,
+        "se": 0.003352414292525302
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.09201396657568925,
+        "se": 0.0004441187620333626
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.9425664338173753,
+      "zero_output_fraction": 0.17008,
+      "mean_re_before_nonnegative_clamp": 0.9425664338173753,
+      "mean_report_scale": 58.9402125,
+      "mean_estimate": 572.634995830558
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "floor_and_tight_gs",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.1508467761763609,
+        "se": 0.0005550675685289874
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.02346257077283521,
+        "se": 7.96236063125319e-05
+      },
+      "mean_projection_loss_relative_to_truth": 1.2636579572446556e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.15086081097667145,
+      "zero_output_fraction": 8e-05,
+      "mean_re_before_nonnegative_clamp": 0.15085645458534613,
+      "mean_report_scale": 8.0373875,
+      "mean_estimate": 421.33009347166893
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "floor_and_tight_gs",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.6999403431605697,
+        "se": 0.0030300182486438522
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.18213150986801716,
+        "se": 0.0008498088628044281
+      },
+      "mean_projection_loss_relative_to_truth": 3.23076923076923e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.8139988196044627,
+      "zero_output_fraction": 0.13848,
+      "mean_re_before_nonnegative_clamp": 0.8139886878193011,
+      "mean_report_scale": 50.902825,
+      "mean_estimate": 553.2883568324332
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "no_projection_diagnostic",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.17430934694919611,
+        "se": 0.0006291183661478704
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1743281322288826,
+      "zero_output_fraction": 0.00014,
+      "mean_re_before_nonnegative_clamp": 0.1743281322288826,
+      "mean_report_scale": 9.2873875,
+      "mean_estimate": 421.3782175343894
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "no_projection_diagnostic",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.8820718530285868,
+        "se": 0.0037085971255047647
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 1.0811337871468671,
+      "zero_output_fraction": 0.20188,
+      "mean_re_before_nonnegative_clamp": 1.0811337871468671,
+      "mean_report_scale": 67.6026,
+      "mean_estimate": 595.9831927835004
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "true_max_diagnostic",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.09386928500884456,
+        "se": 0.00031855046577289965
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.08044006194035155,
+        "se": 0.0003462523309678666
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.09386928500884456,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.09386928500884456,
+      "mean_report_scale": 5.0,
+      "mean_estimate": 421.15588028062126
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "true_max_diagnostic",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.27980175763289367,
+        "se": 0.0009468887786893047
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.6022700953956931,
+        "se": 0.0031557048692750353
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.27999269526423576,
+      "zero_output_fraction": 0.00192,
+      "mean_re_before_nonnegative_clamp": 0.27999269526423576,
+      "mean_report_scale": 17.5,
+      "mean_estimate": 494.6399041720576
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "eps2_0.2",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.25045397755099325,
+        "se": 0.0009212596624160622
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0761446306017971,
+        "se": 0.00030793475996765846
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2510794839245046,
+      "zero_output_fraction": 0.00338,
+      "mean_re_before_nonnegative_clamp": 0.2510794839245045,
+      "mean_report_scale": 13.379066666666665,
+      "mean_estimate": 421.781503743266
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "eps2_0.2",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 1.7588977557523542,
+        "se": 0.010187190680816697
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.8768259027237675,
+        "se": 0.006771089294129901
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 2.6529952980595,
+      "zero_output_fraction": 0.34906,
+      "mean_re_before_nonnegative_clamp": 2.6529952980595,
+      "mean_report_scale": 165.94425555555557,
+      "mean_estimate": 945.3623945205653
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "eps2_0.6",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.16036118380237127,
+        "se": 0.0005683093659338945
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.013948163146824845,
+        "se": 8.651044415171597e-05
+      },
+      "mean_projection_loss_relative_to_truth": 3.32541567695962e-06,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1603671862126074,
+      "zero_output_fraction": 6e-05,
+      "mean_re_before_nonnegative_clamp": 0.160366521129472,
+      "mean_report_scale": 8.542657142857143,
+      "mean_estimate": 421.3348186044091
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "eps2_0.6",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.684745132869253,
+        "se": 0.0025636248236322653
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.19732672015933378,
+        "se": 0.0013750863575405778
+      },
+      "mean_projection_loss_relative_to_truth": 8.502024291497976e-06,
+      "mean_abs_reporting_noise_relative_to_truth": 0.7750585898979053,
+      "zero_output_fraction": 0.13692,
+      "mean_re_before_nonnegative_clamp": 0.7750568894930471,
+      "mean_report_scale": 48.45422857142857,
+      "mean_estimate": 541.001511900629
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "eps2_0.8",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.1664386341190619,
+        "se": 0.0005823439767803433
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.007870712830134184,
+        "se": 0.00011048316200427979
+      },
+      "mean_projection_loss_relative_to_truth": 7.980997624703088e-06,
+      "mean_abs_reporting_noise_relative_to_truth": 0.16643630245917682,
+      "zero_output_fraction": 6e-05,
+      "mean_re_before_nonnegative_clamp": 0.16644100098916395,
+      "mean_report_scale": 8.86715,
+      "mean_estimate": 421.30656940252123
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "eps2_0.8",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.6349840947735381,
+        "se": 0.0022561631028140297
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.2470877582550487,
+        "se": 0.001808180409282614
+      },
+      "mean_projection_loss_relative_to_truth": 2.040485829959514e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.7007212609045596,
+      "zero_output_fraction": 0.1182,
+      "mean_re_before_nonnegative_clamp": 0.7007332735429681,
+      "mean_report_scale": 43.81466666666666,
+      "mean_estimate": 528.2121554260733
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "eps2_1.0",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.1865741147604931,
+        "se": 0.0006473944937980758
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.012264767811296992,
+        "se": 0.00013904563648614877
+      },
+      "mean_projection_loss_relative_to_truth": 2.8598574821852728e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.18656781057829677,
+      "zero_output_fraction": 0.00012,
+      "mean_re_before_nonnegative_clamp": 0.18658296372955024,
+      "mean_report_scale": 9.93934,
+      "mean_estimate": 421.33875715807045
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "eps2_1.0",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.6544855328500994,
+        "se": 0.0022517132968362407
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.22758632017848737,
+        "se": 0.001941323949171966
+      },
+      "mean_projection_loss_relative_to_truth": 7.311740890688258e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.7236322843235188,
+      "zero_output_fraction": 0.12726,
+      "mean_re_before_nonnegative_clamp": 0.7236710260847193,
+      "mean_report_scale": 45.24322,
+      "mean_estimate": 529.9018569976297
+    },
+    {
+      "dataset": "CU",
+      "k": 2,
+      "variant": "eps2_1.2",
+      "truth": 421.0,
+      "paper_gt_re": 0.1062,
+      "relative_error": {
+        "mean": 0.22370311149286704,
+        "se": 0.0007713716100806697
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.04939376454367092,
+        "se": 0.0002251256403780577
+      },
+      "mean_projection_loss_relative_to_truth": 3.923990498812351e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.223736780722126,
+      "zero_output_fraction": 0.00034,
+      "mean_re_before_nonnegative_clamp": 0.22374370199890978,
+      "mean_report_scale": 11.917525,
+      "mean_estimate": 421.3981010276495
+    },
+    {
+      "dataset": "CU",
+      "k": 3,
+      "variant": "eps2_1.2",
+      "truth": 494.0,
+      "paper_gt_re": 0.8035,
+      "relative_error": {
+        "mean": 0.7281940684187332,
+        "se": 0.002462661556203147
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.15387778460985355,
+        "se": 0.0019050388857101298
+      },
+      "mean_projection_loss_relative_to_truth": 0.0001003238866396761,
+      "mean_abs_reporting_noise_relative_to_truth": 0.8248785938505703,
+      "zero_output_fraction": 0.15906,
+      "mean_re_before_nonnegative_clamp": 0.8248962893416188,
+      "mean_report_scale": 51.5591,
+      "mean_estimate": 543.5576641821502
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "current",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.10416453148899055,
+        "se": 0.00037043471908178327
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 9.945828819068255e-06,
+      "mean_abs_reporting_noise_relative_to_truth": 0.10416245952487578,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.10416453148899055,
+      "mean_report_scale": 10.9142125,
+      "mean_estimate": 922.9912356594589
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "current",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.42305689569281346,
+        "se": 0.0016026841131607337
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 2.4502955400322407e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.4399484474189477,
+      "zero_output_fraction": 0.04166,
+      "mean_re_before_nonnegative_clamp": 0.43995352928580234,
+      "mean_report_scale": 93.0038,
+      "mean_estimate": 1893.6193326363677
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "floor",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.09820154943096222,
+        "se": 0.0003510768800038874
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0059629820580283125,
+        "se": 2.143873105206193e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0001645720476706392,
+      "mean_abs_reporting_noise_relative_to_truth": 0.09819537405313651,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.09820154943096222,
+      "mean_report_scale": 10.2892125,
+      "mean_estimate": 922.8528664825412
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "floor",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.37935875530082835,
+        "se": 0.00147804258120575
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.04369814039198514,
+        "se": 0.00015728873593601192
+      },
+      "mean_projection_loss_relative_to_truth": 0.0004013433637829124,
+      "mean_abs_reporting_noise_relative_to_truth": 0.391246496719837,
+      "zero_output_fraction": 0.03078,
+      "mean_re_before_nonnegative_clamp": 0.3912600137912274,
+      "mean_report_scale": 82.7145875,
+      "mean_estimate": 1883.6168730879072
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "tight_gs",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.09819751561491571,
+        "se": 0.0003510279656124122
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.005967015874074804,
+        "se": 2.0315133407952045e-05
+      },
+      "mean_projection_loss_relative_to_truth": 9.945828819068255e-06,
+      "mean_abs_reporting_noise_relative_to_truth": 0.09819537405313651,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.09819751561491571,
+      "mean_report_scale": 10.2892125,
+      "mean_estimate": 922.9955864825413
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "tight_gs",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.3793506442975166,
+        "se": 0.001477992538375843
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.04370625139529694,
+        "se": 0.00015638540024943525
+      },
+      "mean_projection_loss_relative_to_truth": 2.4502955400322407e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.391246496719837,
+      "zero_output_fraction": 0.03078,
+      "mean_re_before_nonnegative_clamp": 0.3912519027879156,
+      "mean_report_scale": 82.7145875,
+      "mean_estimate": 1884.318173087907
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "floor_and_tight_gs",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.09223603480150043,
+        "se": 0.00033177630247033853
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.011928496687490096,
+        "se": 4.122267169777513e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0001645720476706392,
+      "mean_abs_reporting_noise_relative_to_truth": 0.09222828858139721,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.09223603480150043,
+      "mean_report_scale": 9.6642125,
+      "mean_estimate": 922.8572173056234
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "floor_and_tight_gs",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.33724239407676376,
+        "se": 0.0013558978835610746
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.08581450161604974,
+        "se": 0.00030348834156218005
+      },
+      "mean_projection_loss_relative_to_truth": 0.0004013433637829124,
+      "mean_abs_reporting_noise_relative_to_truth": 0.34550404085705916,
+      "zero_output_fraction": 0.02158,
+      "mean_re_before_nonnegative_clamp": 0.34552587478440566,
+      "mean_report_scale": 73.050375,
+      "mean_estimate": 1876.8750713285726
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "no_projection_diagnostic",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.10416245952487578,
+        "se": 0.00037043936390252765
+      },
+      "paired_re_change_vs_current": {
+        "mean": -2.071964114733924e-06,
+        "se": 1.5124248951838205e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.10416245952487578,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.10416245952487578,
+      "mean_report_scale": 10.9142125,
+      "mean_estimate": 923.0004156594589
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "no_projection_diagnostic",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.4230518138259588,
+        "se": 0.001602701075476471
+      },
+      "paired_re_change_vs_current": {
+        "mean": -5.081866854633142e-06,
+        "se": 3.7336511880748382e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.4399484474189477,
+      "zero_output_fraction": 0.04166,
+      "mean_re_before_nonnegative_clamp": 0.4399484474189477,
+      "mean_report_scale": 93.0038,
+      "mean_estimate": 1893.6649326363677
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "true_max_diagnostic",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.07160502566087143,
+        "se": 0.0002437766945399396
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.03255950582811908,
+        "se": 0.00015389677485437887
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07160502566087143,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.07160502566087143,
+      "mean_report_scale": 7.5,
+      "mean_estimate": 922.9477901230129
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "true_max_diagnostic",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.1953239794971495,
+        "se": 0.0006649151404742908
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.22773291619566396,
+        "se": 0.0011088701184911061
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.19532665919796552,
+      "zero_output_fraction": 6e-05,
+      "mean_re_before_nonnegative_clamp": 0.19532665919796552,
+      "mean_report_scale": 41.25,
+      "mean_estimate": 1860.7178325997884
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "eps2_0.2",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.14097033779615278,
+        "se": 0.000515087551107861
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.03680580630716226,
+        "se": 0.00016031282180137523
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.14097046806056615,
+      "zero_output_fraction": 4e-05,
+      "mean_re_before_nonnegative_clamp": 0.14097046806056612,
+      "mean_report_scale": 14.787,
+      "mean_estimate": 923.0254160647773
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "eps2_0.2",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.7913718327067019,
+        "se": 0.0033452786511683026
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.3683149370138883,
+        "se": 0.0020425257754679836
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.9475046869512243,
+      "zero_output_fraction": 0.17282,
+      "mean_re_before_nonnegative_clamp": 0.9475046869512243,
+      "mean_report_scale": 200.74662222222224,
+      "mean_estimate": 2155.1442315410245
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "eps2_0.6",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.10155246728319436,
+        "se": 0.0003554136505926746
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0026120642057961625,
+        "se": 4.41021947127778e-05
+      },
+      "mean_projection_loss_relative_to_truth": 7.440953412784399e-05,
+      "mean_abs_reporting_noise_relative_to_truth": 0.10155066791072259,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.10155246728319436,
+      "mean_report_scale": 10.637957142857143,
+      "mean_estimate": 922.9574965055873
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "eps2_0.6",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.3514325225031623,
+        "se": 0.0012883864974702255
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.07162437318965115,
+        "se": 0.0004580435993117224
+      },
+      "mean_projection_loss_relative_to_truth": 0.00018404083825900052,
+      "mean_abs_reporting_noise_relative_to_truth": 0.3572455323323743,
+      "zero_output_fraction": 0.01942,
+      "mean_re_before_nonnegative_clamp": 0.3572505411904429,
+      "mean_report_scale": 75.4718857142857,
+      "mean_estimate": 1872.6879796688945
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "eps2_0.8",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.11021124894443976,
+        "se": 0.0003820622927577688
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.006046717455449222,
+        "se": 6.634858427636935e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0001696208017334778,
+      "mean_abs_reporting_noise_relative_to_truth": 0.11020401062191355,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.11021124894443976,
+      "mean_report_scale": 11.542816666666667,
+      "mean_estimate": 922.8725676452493
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "eps2_0.8",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.35157899662482145,
+        "se": 0.0012496003667654657
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.07147789906799208,
+        "se": 0.0005936903038096015
+      },
+      "mean_projection_loss_relative_to_truth": 0.0004198280494357872,
+      "mean_abs_reporting_noise_relative_to_truth": 0.35605110443905547,
+      "zero_output_fraction": 0.01728,
+      "mean_re_before_nonnegative_clamp": 0.3560688931862121,
+      "mean_report_scale": 75.19251666666668,
+      "mean_estimate": 1869.6524496188658
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "eps2_1.0",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.1274133948409323,
+        "se": 0.0004393634960664272
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.023248863351941762,
+        "se": 0.00010948441758672136
+      },
+      "mean_projection_loss_relative_to_truth": 0.00022587215601300108,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1274010815961837,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.1274133948409323,
+      "mean_report_scale": 13.34346,
+      "mean_estimate": 922.7995721131537
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "eps2_1.0",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.38744261220318005,
+        "se": 0.0013389365540141997
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.03561428348963344,
+        "se": 0.0006407591780211711
+      },
+      "mean_projection_loss_relative_to_truth": 0.0005593229446534121,
+      "mean_abs_reporting_noise_relative_to_truth": 0.3937118622769209,
+      "zero_output_fraction": 0.02472,
+      "mean_re_before_nonnegative_clamp": 0.3937422360676327,
+      "mean_report_scale": 83.13818,
+      "mean_estimate": 1872.508341376571
+    },
+    {
+      "dataset": "Do",
+      "k": 2,
+      "variant": "eps2_1.2",
+      "truth": 923.0,
+      "paper_gt_re": 0.0585,
+      "relative_error": {
+        "mean": 0.15591783351871694,
+        "se": 0.0005357357896477225
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.05175330202972644,
+        "se": 0.00019487479087777008
+      },
+      "mean_projection_loss_relative_to_truth": 0.00024251354279523294,
+      "mean_abs_reporting_noise_relative_to_truth": 0.15590181265148706,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.15591783351871694,
+      "mean_report_scale": 16.32975,
+      "mean_estimate": 922.7566427313438
+    },
+    {
+      "dataset": "Do",
+      "k": 3,
+      "variant": "eps2_1.2",
+      "truth": 1861.0,
+      "paper_gt_re": 0.3434,
+      "relative_error": {
+        "mean": 0.45632672035895316,
+        "se": 0.0015285332782616356
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0332698246661397,
+        "se": 0.0006820874079744951
+      },
+      "mean_projection_loss_relative_to_truth": 0.0006010746910263299,
+      "mean_abs_reporting_noise_relative_to_truth": 0.46968662840930964,
+      "zero_output_fraction": 0.04632,
+      "mean_re_before_nonnegative_clamp": 0.46972635774959226,
+      "mean_report_scale": 99.1942,
+      "mean_estimate": 1885.3782285619002
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "current",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.08346015967704411,
+        "se": 0.0002833146800842981
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.01175391737891738,
+      "mean_abs_reporting_noise_relative_to_truth": 0.08051013821519906,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.08346015967704411,
+      "mean_report_scale": 22.8221625,
+      "mean_estimate": 2775.951384388429
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "current",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.275799856664603,
+        "se": 0.0009511003302169997
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.035061627462607894,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2671027574707218,
+      "zero_output_fraction": 0.00344,
+      "mean_re_before_nonnegative_clamp": 0.2763258825650919,
+      "mean_report_scale": 409.06675,
+      "mean_estimate": 14670.518243194141
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "floor",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.0827152561312858,
+        "se": 0.00027943002816732595
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0007449035457583142,
+        "se": 3.8488427916543936e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.017626346153846152,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07830604617197146,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.0827152561312858,
+      "mean_report_scale": 22.1971625,
+      "mean_estimate": 2759.4367672812764
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "floor",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.2659800042663648,
+        "se": 0.0009104081769750133
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.009819852398238202,
+        "se": 0.00012861107241800613
+      },
+      "mean_projection_loss_relative_to_truth": 0.052534187257033675,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2526148232511201,
+      "zero_output_fraction": 0.00244,
+      "mean_re_before_nonnegative_clamp": 0.26635330916916455,
+      "mean_report_scale": 386.8695875,
+      "mean_estimate": 14402.087809330935
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "tight_gs",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.08134119895129231,
+        "se": 0.0002760180722028672
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0021189607257518124,
+        "se": 7.970006680139482e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.01175391737891738,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07830604617197146,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.08134119895129231,
+      "mean_report_scale": 22.1971625,
+      "mean_estimate": 2775.9265472812767
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "tight_gs",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.2619763636347105,
+        "se": 0.0009044257698386456
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.013823493029892456,
+        "se": 5.174681637402887e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.035061627462607894,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2526148232511201,
+      "zero_output_fraction": 0.00234,
+      "mean_re_before_nonnegative_clamp": 0.2623436262137162,
+      "mean_report_scale": 386.8695875,
+      "mean_estimate": 14667.177144982712
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "floor_and_tight_gs",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.08063733354955288,
+        "se": 0.00027223813185833876
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.002822826127491238,
+        "se": 4.2222902179963883e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.017626346153846152,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07610195412874385,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.08063733354955288,
+      "mean_report_scale": 21.5721625,
+      "mean_estimate": 2759.4119301741243
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "floor_and_tight_gs",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.25277360012457545,
+        "se": 0.0008648607184146827
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.023026256540027563,
+        "se": 0.0001627460051082038
+      },
+      "mean_projection_loss_relative_to_truth": 0.052534187257033675,
+      "mean_abs_reporting_noise_relative_to_truth": 0.23853468309209572,
+      "zero_output_fraction": 0.00168,
+      "mean_re_before_nonnegative_clamp": 0.2530348701114251,
+      "mean_report_scale": 365.297425,
+      "mean_estimate": 14399.480745237437
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "no_projection_diagnostic",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.08051013821519906,
+        "se": 0.0002775227452549646
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0029500214618450537,
+        "se": 9.922566182851945e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.08051013821519906,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.08051013821519906,
+      "mean_report_scale": 22.8221625,
+      "mean_estimate": 2808.956384388429
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "no_projection_diagnostic",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.26657923339986433,
+        "se": 0.0009461722983908739
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.009220623264738662,
+        "se": 0.0002881523190013722
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2671027574707218,
+      "zero_output_fraction": 0.00336,
+      "mean_re_before_nonnegative_clamp": 0.2671027574707218,
+      "mean_report_scale": 409.06675,
+      "mean_estimate": 15202.610592925825
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "true_max_diagnostic",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.07934731355619373,
+        "se": 0.0002699112485414798
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.00411284612085039,
+        "se": 0.00010395907738981964
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07934731355619373,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.07934731355619373,
+      "mean_report_scale": 22.5,
+      "mean_estimate": 2808.894135857481
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "true_max_diagnostic",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.25682494509833387,
+        "se": 0.0008723057779631999
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.01897491156626914,
+        "se": 0.00038183643882919513
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2569102581637583,
+      "zero_output_fraction": 0.001,
+      "mean_re_before_nonnegative_clamp": 0.2569102581637583,
+      "mean_report_scale": 393.75,
+      "mean_estimate": 15193.942173899872
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "eps2_0.2",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.07960711509635221,
+        "se": 0.0002720787791534997
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0038530445806919038,
+        "se": 8.947194678579557e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.014910733618233616,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07479532469194503,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.07960711509635221,
+      "mean_report_scale": 21.199377777777777,
+      "mean_estimate": 2766.790716229223
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "eps2_0.2",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.2775843955726979,
+        "se": 0.0010070236313622014
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0017845389080948547,
+        "se": 0.000360037247761997
+      },
+      "mean_projection_loss_relative_to_truth": 0.043754311128681556,
+      "mean_abs_reporting_noise_relative_to_truth": 0.26434727779139766,
+      "zero_output_fraction": 0.0064,
+      "mean_re_before_nonnegative_clamp": 0.2792783214771163,
+      "mean_report_scale": 404.6814111111111,
+      "mean_estimate": 14547.582440323262
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "eps2_0.6",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.09309662524290499,
+        "se": 0.00031747541769604513
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.009636465565860862,
+        "se": 6.162115044826509e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0073584330484330485,
+      "mean_abs_reporting_noise_relative_to_truth": 0.09193004815486984,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.09309662524290499,
+      "mean_report_scale": 26.063342857142864,
+      "mean_estimate": 2788.402623735386
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "eps2_0.6",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.3060013023811285,
+        "se": 0.0010472420932453404
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.030201445716525496,
+        "se": 0.00019632137666419138
+      },
+      "mean_projection_loss_relative_to_truth": 0.022368043750411806,
+      "mean_abs_reporting_noise_relative_to_truth": 0.30318763163246903,
+      "zero_output_fraction": 0.00618,
+      "mean_re_before_nonnegative_clamp": 0.30687111567875797,
+      "mean_report_scale": 464.4841428571429,
+      "mean_estimate": 14869.979766956181
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "eps2_0.8",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.10779032893018634,
+        "se": 0.0003676027215738843
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.02433016925314222,
+        "se": 0.0001157685457245974
+      },
+      "mean_projection_loss_relative_to_truth": 0.005008860398860398,
+      "mean_abs_reporting_noise_relative_to_truth": 0.10725663632862495,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.10779032893018634,
+      "mean_report_scale": 30.409366666666664,
+      "mean_estimate": 2795.1771458264375
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "eps2_0.8",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.3524652042001679,
+        "se": 0.0011903395745122968
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0766653475355649,
+        "se": 0.0003621975032144899
+      },
+      "mean_projection_loss_relative_to_truth": 0.015394218883837386,
+      "mean_abs_reporting_noise_relative_to_truth": 0.3530897494552482,
+      "zero_output_fraction": 0.01378,
+      "mean_re_before_nonnegative_clamp": 0.3547712445304506,
+      "mean_report_scale": 540.9709666666668,
+      "mean_estimate": 15000.917732386193
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "eps2_1.0",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.12896572803743858,
+        "se": 0.00043961897911552056
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.04550556836039446,
+        "se": 0.00018710659142101726
+      },
+      "mean_projection_loss_relative_to_truth": 0.0035963461538461535,
+      "mean_abs_reporting_noise_relative_to_truth": 0.12870521913486932,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.12896572803743858,
+      "mean_report_scale": 36.49318,
+      "mean_estimate": 2799.370453471628
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "eps2_1.0",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.4172845126865131,
+        "se": 0.0013799948483456765
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.14148465602191013,
+        "se": 0.0005697132522108621
+      },
+      "mean_projection_loss_relative_to_truth": 0.011125692824668906,
+      "mean_abs_reporting_noise_relative_to_truth": 0.4233179074800295,
+      "zero_output_fraction": 0.03168,
+      "mean_re_before_nonnegative_clamp": 0.4241389493724106,
+      "mean_report_scale": 648.6731,
+      "mean_estimate": 15138.491455482412
+    },
+    {
+      "dataset": "ML",
+      "k": 2,
+      "variant": "eps2_1.2",
+      "truth": 2808.0,
+      "paper_gt_re": 0.0444,
+      "relative_error": {
+        "mean": 0.16103102300416244,
+        "se": 0.0005487163705518694
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.07757086332711834,
+        "se": 0.00029363405001586995
+      },
+      "mean_projection_loss_relative_to_truth": 0.002671745014245015,
+      "mean_abs_reporting_noise_relative_to_truth": 0.16088361520478317,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.16103102300416244,
+      "mean_report_scale": 45.617075,
+      "mean_estimate": 2802.344782395058
+    },
+    {
+      "dataset": "ML",
+      "k": 3,
+      "variant": "eps2_1.2",
+      "truth": 15177.0,
+      "paper_gt_re": 0.2077,
+      "relative_error": {
+        "mean": 0.5092868292441409,
+        "se": 0.0016385002004950999
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.23348697257953802,
+        "se": 0.0008563093134487156
+      },
+      "mean_projection_loss_relative_to_truth": 0.008299876128352111,
+      "mean_abs_reporting_noise_relative_to_truth": 0.5289115164718058,
+      "zero_output_fraction": 0.06804,
+      "mean_re_before_nonnegative_clamp": 0.5293755313566552,
+      "mean_report_scale": 810.482475,
+      "mean_estimate": 15389.238461027184
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "current",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.23075665787905222,
+        "se": 0.0008189514771652879
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0003497624190064795,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2309203568964774,
+      "zero_output_fraction": 0.00126,
+      "mean_re_before_nonnegative_clamp": 0.23094283807827873,
+      "mean_report_scale": 10.190675,
+      "mean_estimate": 462.5450215994818
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "current",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.8181057022030884,
+        "se": 0.0031830731607233754
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0009142494226327944,
+      "mean_abs_reporting_noise_relative_to_truth": 0.9820694342807464,
+      "zero_output_fraction": 0.18784,
+      "mean_re_before_nonnegative_clamp": 0.9821255584693712,
+      "mean_report_scale": 81.0400125,
+      "mean_estimate": 1003.6833943477951
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "floor",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.21685110502081573,
+        "se": 0.0007745638076368872
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.013905552858236485,
+        "se": 5.809717147088782e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0020507127429805617,
+      "mean_abs_reporting_noise_relative_to_truth": 0.21675871086027923,
+      "zero_output_fraction": 0.00096,
+      "mean_re_before_nonnegative_clamp": 0.2169801751580538,
+      "mean_report_scale": 9.565675,
+      "mean_estimate": 461.749444605463
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "floor",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.7402904384328987,
+        "se": 0.0028997796847273125
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.07781526377018974,
+        "se": 0.0003726257759756416
+      },
+      "mean_projection_loss_relative_to_truth": 0.0052817090069284065,
+      "mean_abs_reporting_noise_relative_to_truth": 0.8661811165806202,
+      "zero_output_fraction": 0.1592,
+      "mean_re_before_nonnegative_clamp": 0.8667485030420926,
+      "mean_report_scale": 71.4743375,
+      "mean_estimate": 967.7334976408343
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "tight_gs",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.21665585927875877,
+        "se": 0.0007743634183230364
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.014100798600293445,
+        "se": 4.7749093163311395e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0003497624190064795,
+      "mean_abs_reporting_noise_relative_to_truth": 0.21675871086027923,
+      "zero_output_fraction": 0.00096,
+      "mean_re_before_nonnegative_clamp": 0.2167849294159968,
+      "mean_report_scale": 9.565675,
+      "mean_estimate": 462.536984605463
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "tight_gs",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.7399407719397475,
+        "se": 0.0029006083055897066
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.07816493026334091,
+        "se": 0.00036112374715749926
+      },
+      "mean_projection_loss_relative_to_truth": 0.0009142494226327944,
+      "mean_abs_reporting_noise_relative_to_truth": 0.8661811165806202,
+      "zero_output_fraction": 0.15858,
+      "mean_re_before_nonnegative_clamp": 0.8662582724217439,
+      "mean_report_scale": 71.4743375,
+      "mean_estimate": 971.3939891066814
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "floor_and_tight_gs",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.20276556463224713,
+        "se": 0.0007300680571453654
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.027991093246805095,
+        "se": 0.00010152348794910092
+      },
+      "mean_projection_loss_relative_to_truth": 0.0020507127429805617,
+      "mean_abs_reporting_noise_relative_to_truth": 0.20259706482408102,
+      "zero_output_fraction": 0.00076,
+      "mean_re_before_nonnegative_clamp": 0.20284887264878407,
+      "mean_report_scale": 8.940675,
+      "mean_estimate": 461.7466617082604
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "floor_and_tight_gs",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.6636243206367456,
+        "se": 0.0026417641055501793
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.154481381566343,
+        "se": 0.0007010191818027239
+      },
+      "mean_projection_loss_relative_to_truth": 0.0052817090069284065,
+      "mean_abs_reporting_noise_relative_to_truth": 0.7578642100984615,
+      "zero_output_fraction": 0.13124,
+      "mean_re_before_nonnegative_clamp": 0.758592558337753,
+      "mean_report_scale": 62.5336625,
+      "mean_estimate": 940.8057374417413
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "no_projection_diagnostic",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.23073417669725088,
+        "se": 0.000818873228010068
+      },
+      "paired_re_change_vs_current": {
+        "mean": -2.248118180135294e-05,
+        "se": 1.6206110155579967e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2309203568964774,
+      "zero_output_fraction": 0.00126,
+      "mean_re_before_nonnegative_clamp": 0.2309203568964774,
+      "mean_report_scale": 10.190675,
+      "mean_estimate": 462.70696159948176
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "no_projection_diagnostic",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.8180672310372363,
+        "se": 0.0031831015540888666
+      },
+      "paired_re_change_vs_current": {
+        "mean": -3.847116585196996e-05,
+        "se": 4.06193638178697e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.9820694342807464,
+      "zero_output_fraction": 0.18778,
+      "mean_re_before_nonnegative_clamp": 0.9820694342807464,
+      "mean_report_scale": 81.0400125,
+      "mean_estimate": 1004.4598468300738
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "true_max_diagnostic",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.16993975243437834,
+        "se": 0.0005768286267304602
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.060816905444673865,
+        "se": 0.00032069046145645014
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.16993975243437834,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.16993975243437834,
+      "mean_report_scale": 7.5,
+      "mean_estimate": 462.77914042381644
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "true_max_diagnostic",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.48440711032236633,
+        "se": 0.0015539020485186136
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.3336985918807221,
+        "se": 0.0022408842765197124
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.4997131403858481,
+      "zero_output_fraction": 0.05676,
+      "mean_re_before_nonnegative_clamp": 0.4997131403858482,
+      "mean_report_scale": 41.25,
+      "mean_estimate": 878.040294365966
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "eps2_0.2",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.32258012823929,
+        "se": 0.0011516618474514857
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.09182347036023777,
+        "se": 0.000393856950297909
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.3253370391078003,
+      "zero_output_fraction": 0.01212,
+      "mean_re_before_nonnegative_clamp": 0.3253370391078003,
+      "mean_report_scale": 14.361477777777775,
+      "mean_estimate": 463.8514680411682
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "eps2_0.2",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 1.5602256647226547,
+        "se": 0.008287814341910088
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.7421199625195665,
+        "se": 0.005571916005254973
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 2.2985011723643307,
+      "zero_output_fraction": 0.3355,
+      "mean_re_before_nonnegative_clamp": 2.2985011723643307,
+      "mean_report_scale": 189.71685555555555,
+      "mean_estimate": 1499.717863186717
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "eps2_0.6",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.22826259467596755,
+        "se": 0.0007947266343223599
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0024940632030846645,
+        "se": 0.00012613782259008355
+      },
+      "mean_projection_loss_relative_to_truth": 0.0012330453563714904,
+      "mean_abs_reporting_noise_relative_to_truth": 0.22829977031894244,
+      "zero_output_fraction": 0.00078,
+      "mean_re_before_nonnegative_clamp": 0.22836893771967592,
+      "mean_report_scale": 10.077257142857142,
+      "mean_estimate": 462.1112442404839
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "eps2_0.6",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.7165171825180224,
+        "se": 0.002507803195292057
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.10158851968506606,
+        "se": 0.001060743254889876
+      },
+      "mean_projection_loss_relative_to_truth": 0.003238775981524249,
+      "mean_abs_reporting_noise_relative_to_truth": 0.8178806075484032,
+      "zero_output_fraction": 0.1554,
+      "mean_re_before_nonnegative_clamp": 0.8180670364165827,
+      "mean_report_scale": 67.53564285714286,
+      "mean_estimate": 948.227399672182
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "eps2_0.8",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.2525130687879633,
+        "se": 0.0008687583283874136
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.021756410908911093,
+        "se": 0.0001847391482992101
+      },
+      "mean_projection_loss_relative_to_truth": 0.0015106695464362852,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2526122385842162,
+      "zero_output_fraction": 0.00152,
+      "mean_re_before_nonnegative_clamp": 0.2526886259556615,
+      "mean_report_scale": 11.151283333333335,
+      "mean_estimate": 462.0276111461115
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "eps2_0.8",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.7406157315059908,
+        "se": 0.0024876959891184927
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.07748997069709762,
+        "se": 0.0013121683516654455
+      },
+      "mean_projection_loss_relative_to_truth": 0.003989699769053118,
+      "mean_abs_reporting_noise_relative_to_truth": 0.8476624543188184,
+      "zero_output_fraction": 0.16744,
+      "mean_re_before_nonnegative_clamp": 0.8478683091648233,
+      "mean_report_scale": 70.00815000000001,
+      "mean_estimate": 953.0813263137134
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "eps2_1.0",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.29511098009348674,
+        "se": 0.0010051213909521542
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.06435432221443452,
+        "se": 0.00028627191756597643
+      },
+      "mean_projection_loss_relative_to_truth": 0.001434427645788337,
+      "mean_abs_reporting_noise_relative_to_truth": 0.29571834299507394,
+      "zero_output_fraction": 0.00454,
+      "mean_re_before_nonnegative_clamp": 0.29574999192544704,
+      "mean_report_scale": 13.05524,
+      "mean_estimate": 462.24740637719157
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "eps2_1.0",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.8177675634805474,
+        "se": 0.002724104787108063
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0003381387225410364,
+        "se": 0.0013765503338400071
+      },
+      "mean_projection_loss_relative_to_truth": 0.0038064434180138575,
+      "mean_abs_reporting_noise_relative_to_truth": 0.961942386255629,
+      "zero_output_fraction": 0.19974,
+      "mean_re_before_nonnegative_clamp": 0.9620277204486053,
+      "mean_report_scale": 79.45966,
+      "mean_estimate": 985.3640365383485
+    },
+    {
+      "dataset": "CS",
+      "k": 2,
+      "variant": "eps2_1.2",
+      "truth": 463.0,
+      "paper_gt_re": 0.121,
+      "relative_error": {
+        "mean": 0.36169047951817745,
+        "se": 0.0012103854404606378
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.13093382163912526,
+        "se": 0.00047352659301219674
+      },
+      "mean_projection_loss_relative_to_truth": 0.001295075593952484,
+      "mean_abs_reporting_noise_relative_to_truth": 0.3644857029083009,
+      "zero_output_fraction": 0.0159,
+      "mean_re_before_nonnegative_clamp": 0.36450206648952793,
+      "mean_report_scale": 16.09095,
+      "mean_estimate": 463.2123564338693
+    },
+    {
+      "dataset": "CS",
+      "k": 3,
+      "variant": "eps2_1.2",
+      "truth": 866.0,
+      "paper_gt_re": 0.541,
+      "relative_error": {
+        "mean": 0.9448090733600584,
+        "se": 0.003215330251928563
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.12670337115696992,
+        "se": 0.0015270856017359665
+      },
+      "mean_projection_loss_relative_to_truth": 0.003439930715935335,
+      "mean_abs_reporting_noise_relative_to_truth": 1.1647702673086902,
+      "zero_output_fraction": 0.24294,
+      "mean_re_before_nonnegative_clamp": 1.1648162754217937,
+      "mean_report_scale": 96.212425,
+      "mean_estimate": 1050.5345250645498
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "current",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.04921040146077059,
+        "se": 0.0001672619242600394
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.005156709303891208,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04823170792840452,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04921040146077059,
+      "mean_report_scale": 26.5878875,
+      "mean_estimate": 7386.370165085764
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "current",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.19306693073971248,
+        "se": 0.0006685430879318398
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.01853202923473775,
+      "mean_abs_reporting_noise_relative_to_truth": 0.18943889263818825,
+      "zero_output_fraction": 0.00018,
+      "mean_re_before_nonnegative_clamp": 0.19309638033161705,
+      "mean_report_scale": 555.959025,
+      "mean_estimate": 38769.28066807953
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "floor",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.04858585591127572,
+        "se": 0.000164808054957324
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0006245455494948694,
+        "se": 1.734975005943884e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.007784494412279521,
+      "mean_abs_reporting_noise_relative_to_truth": 0.047097954858657864,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04858585591127572,
+      "mean_report_scale": 25.9628875,
+      "mean_estimate": 7366.916108317062
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "floor",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.18612759014321364,
+        "se": 0.0006419519563827789
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.006939340596498862,
+        "se": 7.031953196759511e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.027947014819685402,
+      "mean_abs_reporting_noise_relative_to_truth": 0.18059269085944032,
+      "zero_output_fraction": 0.00014,
+      "mean_re_before_nonnegative_clamp": 0.1861493366229262,
+      "mean_report_scale": 529.9961375,
+      "mean_estimate": 38398.95716330018
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "tight_gs",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.0480998348610489,
+        "se": 0.00016348085303510943
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.00111056659972169,
+        "se": 3.983054939344564e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.005156709303891208,
+      "mean_abs_reporting_noise_relative_to_truth": 0.047097954858657864,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.0480998348610489,
+      "mean_report_scale": 25.9628875,
+      "mean_estimate": 7386.432668317062
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "tight_gs",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.18440491463396982,
+        "se": 0.0006387514624271192
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.008662016105742664,
+        "se": 3.123036433920522e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.01853202923473775,
+      "mean_abs_reporting_noise_relative_to_truth": 0.18059269085944032,
+      "zero_output_fraction": 0.00014,
+      "mean_re_before_nonnegative_clamp": 0.1844266611136824,
+      "mean_report_scale": 529.9961375,
+      "mean_estimate": 38771.24452330018
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "floor_and_tight_gs",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.04748822208181038,
+        "se": 0.00016105309699485914
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0017221793789602199,
+        "se": 1.9172508429615434e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.007784494412279521,
+      "mean_abs_reporting_noise_relative_to_truth": 0.045964201788911196,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04748822208181038,
+      "mean_report_scale": 25.3378875,
+      "mean_estimate": 7366.9786115483585
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "floor_and_tight_gs",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.17777211913394814,
+        "se": 0.0006129467389225896
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.015294811605764371,
+        "se": 9.122040003076792e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.027947014819685402,
+      "mean_abs_reporting_noise_relative_to_truth": 0.17195943693484766,
+      "zero_output_fraction": 0.0001,
+      "mean_re_before_nonnegative_clamp": 0.17778839371260308,
+      "mean_report_scale": 504.65825,
+      "mean_estimate": 38400.9467418402
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "no_projection_diagnostic",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.04823170792840452,
+        "se": 0.00016522923728183196
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0009786935323660723,
+        "se": 4.526679247497004e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04823170792840452,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04823170792840452,
+      "mean_report_scale": 26.5878875,
+      "mean_estimate": 7424.669045085764
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "no_projection_diagnostic",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.1894094430462837,
+        "se": 0.0006655604747187075
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0036574876934287602,
+        "se": 0.00015902474800338158
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.18943889263818825,
+      "zero_output_fraction": 0.00018,
+      "mean_re_before_nonnegative_clamp": 0.18943889263818825,
+      "mean_report_scale": 555.959025,
+      "mean_estimate": 39502.07416807953
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "true_max_diagnostic",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.04761762892935967,
+        "se": 0.00016175273766426293
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0015927725314109258,
+        "se": 4.9019789155143874e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04761762892935967,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04761762892935967,
+      "mean_report_scale": 26.25,
+      "mean_estimate": 7424.374864285522
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "true_max_diagnostic",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.18334810242770377,
+        "se": 0.0006228167630359075
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.009718828312008725,
+        "se": 0.0002286136880140346
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.18334810242770377,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.18334810242770377,
+      "mean_report_scale": 538.125,
+      "mean_estimate": 39488.184717853204
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "eps2_0.2",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.046242930892131225,
+        "se": 0.00015808347024174468
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0029674705686393655,
+        "se": 4.279765587539992e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.006444653292042548,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04458849800611941,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.046242930892131225,
+      "mean_report_scale": 24.57967777777778,
+      "mean_estimate": 7377.3515519087705
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "eps2_0.2",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.19073293699652247,
+        "se": 0.0006937523272935045
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0023339937431899774,
+        "se": 0.00021878435285156632
+      },
+      "mean_projection_loss_relative_to_truth": 0.022831010571038386,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1847058859207381,
+      "zero_output_fraction": 0.00064,
+      "mean_re_before_nonnegative_clamp": 0.19085962546197435,
+      "mean_report_scale": 542.0709222222223,
+      "mean_estimate": 38623.0804025861
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "eps2_0.6",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.05547623173107432,
+        "se": 0.0001886401098911984
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.006265830270303727,
+        "se": 3.175196146739435e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0032219442574390736,
+      "mean_abs_reporting_noise_relative_to_truth": 0.055071790747812294,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.05547623173107432,
+      "mean_report_scale": 30.35862857142857,
+      "mean_estimate": 7400.25418812795
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "eps2_0.6",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.2168070594603993,
+        "se": 0.0007442158505688044
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.02374012872068681,
+        "se": 0.00012369722525384664
+      },
+      "mean_projection_loss_relative_to_truth": 0.011762737342572455,
+      "mean_abs_reporting_noise_relative_to_truth": 0.21532372835094937,
+      "zero_output_fraction": 0.0003,
+      "mean_re_before_nonnegative_clamp": 0.21684509543245928,
+      "mean_report_scale": 631.9451714285715,
+      "mean_estimate": 39024.99820735605
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "eps2_0.8",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.06443088046219358,
+        "se": 0.00021914399826185508
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.015220479001422987,
+        "se": 6.35365427778443e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0021840366231318164,
+      "mean_abs_reporting_noise_relative_to_truth": 0.06424648387483801,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.06443088046219358,
+      "mean_report_scale": 35.41793333333334,
+      "mean_estimate": 7407.433437654161
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "eps2_0.8",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.2514111455232388,
+        "se": 0.0008583560950543222
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0583442147835263,
+        "se": 0.00024429012603360996
+      },
+      "mean_projection_loss_relative_to_truth": 0.0080457341560872,
+      "mean_abs_reporting_noise_relative_to_truth": 0.25084599658236284,
+      "zero_output_fraction": 0.00118,
+      "mean_re_before_nonnegative_clamp": 0.2515434216981204,
+      "mean_report_scale": 736.26995,
+      "mean_estimate": 39164.10999586442
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "eps2_1.0",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.07718509364862398,
+        "se": 0.0002624791875817126
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0279746921878534,
+        "se": 0.00010650992179656952
+      },
+      "mean_projection_loss_relative_to_truth": 0.001570539921906557,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07709650966529911,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.07718509364862398,
+      "mean_report_scale": 42.49912,
+      "mean_estimate": 7411.2672690041545
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "eps2_1.0",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.3005418173656945,
+        "se": 0.001018462420852172
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.107474886625982,
+        "se": 0.0004054955520748945
+      },
+      "mean_projection_loss_relative_to_truth": 0.005817178190278691,
+      "mean_abs_reporting_noise_relative_to_truth": 0.30083263112373365,
+      "zero_output_fraction": 0.00468,
+      "mean_re_before_nonnegative_clamp": 0.30116898443031676,
+      "mean_report_scale": 882.87282,
+      "mean_estimate": 39256.49968385279
+    },
+    {
+      "dataset": "EE",
+      "k": 2,
+      "variant": "eps2_1.2",
+      "truth": 7427.0,
+      "paper_gt_re": 0.0295,
+      "relative_error": {
+        "mean": 0.09641363205350106,
+        "se": 0.0003278139664132817
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.04720323059273047,
+        "se": 0.00017087907970364538
+      },
+      "mean_projection_loss_relative_to_truth": 0.0011654099905749294,
+      "mean_abs_reporting_noise_relative_to_truth": 0.09636957771086015,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.09641363205350106,
+      "mean_report_scale": 53.1238,
+      "mean_estimate": 7413.2177247543095
+    },
+    {
+      "dataset": "EE",
+      "k": 3,
+      "variant": "eps2_1.2",
+      "truth": 39542.0,
+      "paper_gt_re": 0.1647,
+      "relative_error": {
+        "mean": 0.37281534880300227,
+        "se": 0.0012416701835891233
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.17974841806328987,
+        "se": 0.0006322849099907465
+      },
+      "mean_projection_loss_relative_to_truth": 0.004333048404228415,
+      "mean_abs_reporting_noise_relative_to_truth": 0.3759021278937071,
+      "zero_output_fraction": 0.01826,
+      "mean_re_before_nonnegative_clamp": 0.37607093233044986,
+      "mean_report_scale": 1103.20695,
+      "mean_estimate": 39397.20193169718
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "current",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.045140225984937006,
+        "se": 0.00015281834786414272
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.0030047930481350966,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04484029460081038,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.045140225984937006,
+      "mean_report_scale": 148.4386125,
+      "mean_estimate": 78949.58562224598
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "current",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.12608243790049772,
+        "se": 0.0004268077186461086
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.0,
+        "se": 0.0
+      },
+      "mean_projection_loss_relative_to_truth": 0.00826777995281865,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1252490853295384,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.12608243790049772,
+      "mean_report_scale": 17556.9408375,
+      "mean_estimate": 3326171.593218286
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "floor",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.04510227972977484,
+        "se": 0.00015268602355991402
+      },
+      "paired_re_change_vs_current": {
+        "mean": -3.7946255162164366e-05,
+        "se": 9.325100629267253e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.004479615272883433,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04465147450339853,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04510227972977484,
+      "mean_report_scale": 147.8136125,
+      "mean_estimate": 78832.75859527876
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "floor",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.12544675495695734,
+        "se": 0.00042456222335549357
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0006356829435403677,
+        "se": 2.602443284318222e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.01232562862526147,
+      "mean_abs_reporting_noise_relative_to_truth": 0.12419448813379258,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.12544675495695734,
+      "mean_report_scale": 17409.127225,
+      "mean_estimate": 3312554.5633430076
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "tight_gs",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.04495279038803181,
+        "se": 0.00015218387852127685
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0001874355969051986,
+        "se": 6.468283363445663e-07
+      },
+      "mean_projection_loss_relative_to_truth": 0.0030047930481350966,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04465147450339853,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04495279038803181,
+      "mean_report_scale": 147.8136125,
+      "mean_estimate": 78949.52469527876
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "tight_gs",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.1250354136060313,
+        "se": 0.0004232626761821616
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.001047024294466419,
+        "se": 3.611620043873353e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.00826777995281865,
+      "mean_abs_reporting_noise_relative_to_truth": 0.12419448813379258,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.1250354136060313,
+      "mean_report_scale": 17409.127225,
+      "mean_estimate": 3326157.170043008
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "floor_and_tight_gs",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.044915579668622446,
+        "se": 0.00015205330957734743
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.00022464631631455547,
+        "se": 9.452813653779964e-06
+      },
+      "mean_projection_loss_relative_to_truth": 0.004479615272883433,
+      "mean_abs_reporting_noise_relative_to_truth": 0.044462654405986686,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.044915579668622446,
+      "mean_report_scale": 147.1886125,
+      "mean_estimate": 78832.69766831154
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "floor_and_tight_gs",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.1244083775889243,
+        "se": 0.0004210408165300493
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0016740603115734177,
+        "se": 2.708939557078614e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.01232562862526147,
+      "mean_abs_reporting_noise_relative_to_truth": 0.12314435057006223,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.1244083775889243,
+      "mean_report_scale": 17261.9386125,
+      "mean_estimate": 3312540.201094696
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "no_projection_diagnostic",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.04484029460081038,
+        "se": 0.0001516804717815757
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0002999313841266282,
+        "se": 2.8199371681331257e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.04484029460081038,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04484029460081038,
+      "mean_report_scale": 148.4386125,
+      "mean_estimate": 79187.48410224597
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "no_projection_diagnostic",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.1252490853295384,
+        "se": 0.0004239295235651501
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0008333525709593196,
+        "se": 7.715987664555405e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.1252490853295384,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.1252490853295384,
+      "mean_report_scale": 17556.9408375,
+      "mean_estimate": 3353886.6136782863
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "true_max_diagnostic",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.044750363086608506,
+        "se": 0.00015137913815527996
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0003898628983285076,
+        "se": 2.835181030069729e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.044750363086608506,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.044750363086608506,
+      "mean_report_scale": 148.125,
+      "mean_estimate": 79187.43969123212
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "true_max_diagnostic",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.12471806894318505,
+        "se": 0.00042188962249246816
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.0013643689573126787,
+        "se": 7.943792589762245e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0,
+      "mean_abs_reporting_noise_relative_to_truth": 0.12471806894318505,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.12471806894318505,
+      "mean_report_scale": 17478.75,
+      "mean_estimate": 3353875.8835653896
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "eps2_0.2",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.04132069368931472,
+        "se": 0.00013995547726816144
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.00381953229562229,
+        "se": 3.710707297383384e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.006598912002829247,
+      "mean_abs_reporting_noise_relative_to_truth": 0.03985432624822076,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.04132069368931472,
+      "mean_report_scale": 131.94715555555555,
+      "mean_estimate": 78663.41370492616
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "eps2_0.2",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.11543905446293545,
+        "se": 0.00038985997956841244
+      },
+      "paired_re_change_vs_current": {
+        "mean": -0.01064338343756227,
+        "se": 0.00010074830140942526
+      },
+      "mean_projection_loss_relative_to_truth": 0.017970024342426342,
+      "mean_abs_reporting_noise_relative_to_truth": 0.11138636731817231,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.11543905446293545,
+      "mean_report_scale": 15617.024322222223,
+      "mean_estimate": 3293456.34803242
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "eps2_0.6",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.051349991756222124,
+        "se": 0.0001737892683433035
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.006209765771285114,
+        "se": 2.5328771038840524e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0018013696588483447,
+      "mean_abs_reporting_noise_relative_to_truth": 0.05124813944322021,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.051349991756222124,
+      "mean_report_scale": 169.6453285714286,
+      "mean_estimate": 79046.94773653308
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "eps2_0.6",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.14341864651143393,
+        "se": 0.0004854037252066023
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.01733620861093622,
+        "se": 7.05009364633074e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.004973565318247393,
+      "mean_abs_reporting_noise_relative_to_truth": 0.14313573363592164,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.14341864651143393,
+      "mean_report_scale": 20062.87358571429,
+      "mean_estimate": 3337462.6610668255
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "eps2_0.8",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.059833060803098095,
+        "se": 0.00020246087212687496
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.014692834818161086,
+        "se": 5.433470696934722e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0012128058807926946,
+      "mean_abs_reporting_noise_relative_to_truth": 0.059789989144980384,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.059833060803098095,
+      "mean_report_scale": 197.91678333333337,
+      "mean_estimate": 79096.2598151489
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "eps2_0.8",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.1671067794076608,
+        "se": 0.0005654667000172056
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.04102434150716308,
+        "se": 0.0001515072864956084
+      },
+      "mean_projection_loss_relative_to_truth": 0.00335415866488951,
+      "mean_abs_reporting_noise_relative_to_truth": 0.16698720091134808,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.1671067794076608,
+      "mean_report_scale": 23405.015583333334,
+      "mean_estimate": 3343206.842844304
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "eps2_1.0",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.07176996159657459,
+        "se": 0.0002428084092733048
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.02662973561163759,
+        "se": 9.442729849233727e-05
+      },
+      "mean_projection_loss_relative_to_truth": 0.0008680183901077388,
+      "mean_abs_reporting_noise_relative_to_truth": 0.07174888755406854,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.07176996159657459,
+      "mean_report_scale": 237.50116,
+      "mean_estimate": 79127.42219071068
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "eps2_1.0",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.20044312366710423,
+        "se": 0.0006781095062906274
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.07436068576660648,
+        "se": 0.00026348795792545876
+      },
+      "mean_projection_loss_relative_to_truth": 0.0024029817384072175,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2003856828385792,
+      "zero_output_fraction": 2e-05,
+      "mean_re_before_nonnegative_clamp": 0.20044423710361786,
+      "mean_report_scale": 28085.7007,
+      "mean_estimate": 3346856.729902676
+    },
+    {
+      "dataset": "PM",
+      "k": 2,
+      "variant": "eps2_1.2",
+      "truth": 79173.0,
+      "paper_gt_re": 0.0284,
+      "relative_error": {
+        "mean": 0.08969733759069888,
+        "se": 0.00030343019216625295
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.044557111605761875,
+        "se": 0.00015462590140693643
+      },
+      "mean_projection_loss_relative_to_truth": 0.0006379255554292499,
+      "mean_abs_reporting_noise_relative_to_truth": 0.08968743296162753,
+      "zero_output_fraction": 0.0,
+      "mean_re_before_nonnegative_clamp": 0.08969733759069888,
+      "mean_report_scale": 296.878375,
+      "mean_estimate": 79151.51179155329
+    },
+    {
+      "dataset": "PM",
+      "k": 3,
+      "variant": "eps2_1.2",
+      "truth": 3352172.0,
+      "paper_gt_re": 0.129,
+      "relative_error": {
+        "mean": 0.250455657598084,
+        "se": 0.0008463039606071076
+      },
+      "paired_re_change_vs_current": {
+        "mean": 0.12437321969758625,
+        "se": 0.00043066714209496863
+      },
+      "mean_projection_loss_relative_to_truth": 0.0017671379153575651,
+      "mean_abs_reporting_noise_relative_to_truth": 0.2504867457956513,
+      "zero_output_fraction": 0.0007,
+      "mean_re_before_nonnegative_clamp": 0.2505142566579767,
+      "mean_report_scale": 35107.19655,
+      "mean_estimate": 3349885.5255939504
+    }
+  ]
+}

@@ -19,6 +19,7 @@ from .dp import BudgetSplit
 from .graph import Graph, TaskRecord, task_prompt
 from .library import AlgorithmSpec
 from .models import ModelConfig, create_formatter, create_model
+from .mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
 from .progress import note_phase
 
 logger = logging.getLogger(__name__)
@@ -62,8 +63,14 @@ class _AgentFactory:
     def curator(self) -> CuratorAgent:
         return CuratorAgent(self.curator_model, self.formatter)
 
-    def controller(self, r1: float, r2: float) -> PrivacyController:
-        return PrivacyController(self.curator_model, self.formatter, self.rng, r1=r1, r2=r2)
+    def controller(
+        self, r1: float, r2: float, rng: np.random.Generator | None = None,
+        mechanism: str | MechanismProfile = DEFAULT_MECHANISM,
+    ) -> PrivacyController:
+        return PrivacyController(
+            self.curator_model, self.formatter, rng if rng is not None else self.rng,
+            r1=r1, r2=r2, mechanism=mechanism,
+        )
 
 
 class PSCFramework:
@@ -77,6 +84,7 @@ class PSCFramework:
         r1: float = 0.5,
         r2: float = 0.2,
         dp: bool = True,
+        mechanism: str | MechanismProfile = DEFAULT_MECHANISM,
     ) -> None:
         """
         Args:
@@ -93,6 +101,7 @@ class PSCFramework:
         self.gs_optimization = gs_optimization
         self.r1, self.r2 = r1, r2
         self.dp = dp
+        self.mechanism = get_mechanism(mechanism)
 
     @property
     def name(self) -> str:
@@ -100,7 +109,9 @@ class PSCFramework:
             return "PSC-noDP"
         return "PSC" if self.gs_optimization else "PSC-B"
 
-    async def run(self, record: TaskRecord, eps: float) -> RunResult:
+    async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
+        """``rng`` drives all DP noise of this run; ``None`` continues the
+        framework's own stream (runs then depend on their order)."""
         t0 = time.perf_counter()
         graph = record.graph()
         n = graph.n
@@ -109,7 +120,7 @@ class PSCFramework:
         # Lines 1-3: initialise node agents with N_G(v_i) and count 0
         nodes = self.factory.nodes(graph)
         curator = self.factory.curator()
-        controller = self.factory.controller(self.r1, self.r2)
+        controller = self.factory.controller(self.r1, self.r2, rng, self.mechanism)
 
         # Line 4: DP framework selection, budget split and sensitivity
         note_phase("select")
@@ -133,7 +144,7 @@ class PSCFramework:
         if split.eps2 > 0:
             sensitivity, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
         else:
-            sensitivity = spec.sensitivity(n, None)
+            sensitivity = spec.sensitivity(n, None, self.mechanism)
 
         # Line 9: curator designs the distributed algorithm
         note_phase("design")
@@ -188,7 +199,20 @@ class PSCFramework:
             llm_calls=sum(x.llm_calls for x in nodes) + curator.llm_calls + controller.llm_calls,
             parse_failures=sum(x.parse_failures for x in nodes) + curator.parse_failures + controller.parse_failures,
             elapsed=time.perf_counter() - t0,
-            extra={"raw_count_sum": sum(x.count for x in nodes), "validation": validation},
+            extra={
+                "raw_count_sum": sum(x.count for x in nodes), "validation": validation,
+                "mechanism": self.mechanism.name,
+                "mechanism_trace": {
+                    **controller.degree_trace,
+                    "d_hat_max": d_hat_max,
+                    "sensitivity": sensitivity if self.dp else None,
+                    "laplace_scale": sensitivity / split.eps3 if self.dp else 0.0,
+                    "raw_counts": [node.count for node in nodes],
+                    "noisy_counts": reports,
+                    "report_noise": [r - node.count for r, node in zip(reports, nodes)],
+                    "report_sum_before_clamp": float(sum(reports)),
+                },
+            },
         )
 
 
@@ -210,14 +234,14 @@ class NaiveFramework:
     def name(self) -> str:
         return "Naive" if self.prompt_style == "raw" else "Naive+REFINED"
 
-    async def run(self, record: TaskRecord, eps: float) -> RunResult:
+    async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
         t0 = time.perf_counter()
         graph = record.graph()
         input_prompt = record.input_prompt
 
         nodes = self.factory.nodes(graph)
         curator = self.factory.curator()
-        controller = self.factory.controller(0.5, 0.2)
+        controller = self.factory.controller(0.5, 0.2, rng)
 
         note_phase("select")
         spec = await controller.select_framework(input_prompt)

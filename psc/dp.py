@@ -20,6 +20,7 @@ from typing import Iterable, Sequence
 import numpy as np
 
 from .graph import Graph
+from .mechanism import DegreeBound, MechanismProfile, get_mechanism
 
 
 # ---------------------------------------------------------------------------
@@ -89,8 +90,10 @@ def build_noisy_graph(graph: Graph, eps: float, rng: np.random.Generator) -> Gra
 
 def laplace_noise(sensitivity: float, eps: float, rng: np.random.Generator) -> float:
     """Sample ``Lap(GS_f / eps)``."""
-    if eps <= 0:
+    if not math.isfinite(eps) or eps <= 0:
         raise ValueError("privacy budget must be positive for Laplace mechanism")
+    if not math.isfinite(sensitivity) or sensitivity < 0:
+        raise ValueError("sensitivity must be finite and nonnegative")
     return float(rng.laplace(0.0, sensitivity / eps))
 
 
@@ -113,6 +116,15 @@ def noisy_max_degree(degrees: Sequence[int], eps2: float, rng: np.random.Generat
     noisy = [d + laplace_noise(1.0, eps2, rng) for d in degrees]
     d_hat_max = max(1, int(math.ceil(max(noisy))))
     return noisy, d_hat_max
+
+
+def estimate_degree_bound(
+    degrees: Sequence[int], eps2: float, rng: np.random.Generator,
+    task: str, mechanism: str | MechanismProfile,
+) -> tuple[list[float], DegreeBound]:
+    """Sample once; preserve both continuous maximum and projection threshold."""
+    reports = [d + laplace_noise(1.0, eps2, rng) for d in degrees]
+    return reports, get_mechanism(mechanism).degree_bound(reports, task)
 
 
 def graph_projection(noisy_graph: Graph, d_max: int, rng: np.random.Generator) -> Graph:
@@ -182,6 +194,14 @@ def split_budget(
     not required get budget 0 while the proportional allocation of the
     remaining steps is maintained.
     """
+    if not math.isfinite(eps) or eps <= 0:
+        raise ValueError("epsilon must be finite and positive")
+    if not (0 <= r1 < 1 and 0 <= r2 < 1):
+        raise ValueError("budget ratios must be in [0, 1)")
+    if need_gs_optimization and r2 == 0:
+        raise ValueError("GS optimization requires a positive r2")
+    if need_noisy_graph and r1 == 0:
+        raise ValueError("noisy graph construction requires a positive r1")
     eps1 = r1 * eps if need_noisy_graph else 0.0
     rest = eps - eps1
     eps2 = r2 * rest if need_gs_optimization else 0.0

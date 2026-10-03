@@ -1,0 +1,4 @@
+{"time": "2026-09-28T12:19:55.980", "kind": "empty_reply", "dataset": "CU", "task": "triangle", "method": "Naive", "run": 2, "model": "hy3-ioa", "attempt": 1, "elapsed": 798.86, "message": "no text in reply (content blocks: ['thinking'])"}
+{"time": "2026-09-28T12:31:46.114", "kind": "api_error", "dataset": "Do", "task": "2-star", "method": "PSC", "run": 1, "model": "hy3-ioa", "attempt": 1, "elapsed": 5.0, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-09-28T12:39:00.210", "kind": "empty_reply", "dataset": "Do", "task": "2-star", "method": "Naive", "run": 2, "model": "hy3-ioa", "attempt": 1, "elapsed": 801.43, "message": "no text in reply (content blocks: ['thinking'])"}
+{"time": "2026-09-28T12:49:27.613", "kind": "empty_reply", "dataset": "Do", "task": "triangle", "method": "Naive", "run": 2, "model": "hy3-ioa", "attempt": 1, "elapsed": 553.31, "message": "no text in reply (content blocks: ['thinking'])"}

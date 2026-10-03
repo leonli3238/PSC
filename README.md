@@ -5,12 +5,58 @@
 的代码复现，包含 Naive 基线、PSC 框架（Algorithm 1–3）、纯 Python 的
 GT-Naive / GT-PSC / GT-PSC-B，以及论文 Exp1–Exp4 的实验脚本。
 
+## 当前运行方式：CU / Do，每项 10 次
+
+实验入口现在默认使用 `--mechanism floor_tight`：k-star 最大度先限制到 `[0,n−1]`，
+投影阈值取 `floor`，报告灵敏度为 `C(D−1,k−1)`；无优化 PSC-B 为 `C(n−2,k−1)`。
+degree 和 triangle 的机制保持原有行为。此配置是按论文公开描述与数学紧界选出的实现解释，
+并非已确认的作者代码；2-star 仍存在未消除的数值差距。
+
+```bash
+# 预览：不会调用模型，不创建实验目录
+.venv/bin/python scripts/run_experiments.py --exp pilot --provider openai --datasets CU,Do --runs 10 --mechanism floor_tight --dry-run
+
+# 正式运行：沿用 config.toml 的 hy3-ioa 与 .env 中的连接配置
+.venv/bin/python scripts/run_experiments.py --exp pilot --provider openai --datasets CU,Do --runs 10 --mechanism floor_tight --tag hy3-ioa_cudo_r10_floor_tight --verbose
+
+# 纯 Python 的三种 GT 方法，每个数据集/任务/方法各 10 次
+.venv/bin/python scripts/run_ground_truth.py --datasets CU,Do --runs 10 --mechanism floor_tight --trace --tag cudo_gt_r10_floor_tight
+```
+
+pilot 中 PSC、Naive 都跟随 `--runs 10`，四任务共 160 次运行，预计 5950 次逻辑模型调用
+（不含重试）。`--naive-runs` 只在有意单独覆盖 Naive 次数时使用。已有 `--tag` 会被拒绝，
+避免覆盖历史结果；省略 tag 则自动追加时间戳。每完成一次运行立即写入 `runs.jsonl`，
+全部完成后写 `summary.json`、`runs.json` 和 `table.md`。此改动不包含断点续跑。
+
+结果新增 `mechanism`、`se_relative_error`、`median_relative_error`、`p95_relative_error`、
+`paper_relative_gap`。`manifest.json` 保存非敏感配置和源码/数据哈希。Agent 的
+`extra.mechanism_trace` 保存带噪最大度、投影阈值、实际 GS/scale、原始计数和逐节点噪声，
+用于本地审计；它不属于可公开的隐私输出。
+
+可选机制为 `legacy`、`floor_bound`、`continuous_bound`、`floor_tight`、`adaptive_2star`。
+`adaptive_2star` 在 floor_tight 基础上只改 2-star：节点 i 用自己已发布的带噪度数 y_i 得到
+阈值 `D_i = min(D, floor(y_i + 2/ε2))`，并按 `C(D_i−1,1)` 加噪；预算仍为 ε2+ε3=ε。
+余量 2 是为接近论文 Table 2 选出的参数，不是作者实现（见 `results/audit/2026-10-02/`）。
+`legacy` 恢复旧计算路径。低层 `gt_psc()` 函数及不传 profile 的库敏感度查询保留 legacy
+默认以兼容历史研究脚本；GT CLI/实验运行器与 Agent 会显式传入所选机制，默认 floor_tight。
+
+```bash
+# 六图候选比较 + 独立随机流确认；不会自动改默认配置
+.venv/bin/python scripts/align_gt_psc.py --runs 5000 --confirm-runs 1000
+```
+
+本次比较结果见 `results/alignment/profiles_20260929/`；运行说明和限制见
+`docs/RUN_CUDO_10.md`。下面旧结果表均为 `legacy` 历史结果，不代表当前默认配置。
+
 ## 目录结构
 
 ```
 psc/
   graph.py              图结构、任务定义（degree / 2-star / 3-star / triangle）、附录 A 统一数据格式
   dp.py                 DP 原语：RR 噪声图(Alg.1)、Laplace 机制、噪声最大度 + 图投影(Alg.2)、预算分配
+  mechanism.py          GT / Agent 共享的取整与灵敏度配置，legacy 和三个对齐候选
+  alignment.py          k-star 候选机制的配对比较与论文逐格评分
+  artifacts.py          防覆盖目录、逐次落盘与非敏感实验清单
   library.py            算法库（send/update/aggregate 规则文本，附录 E）与 DP 框架库
   rules.py              规则的代码语义（GT 算法与 Mock 模型共用）
   ground_truth.py       GT-Naive / GT-PSC / GT-PSC-B 纯 Python 实现 + 相对误差指标
@@ -27,8 +73,9 @@ psc/
 scripts/
   prepare_datasets.py   下载并预处理 6 个真实数据集 -> data/*.json
   run_ground_truth.py   GT 实验（默认 1000 次）
+  align_gt_psc.py       纯代码候选比较及独立随机流确认
   run_experiments.py    智能体实验 exp1–exp4（默认每算法 10 次）
-tests/                  11 个单元/集成测试（含本地 OpenAI 协议桩服务器测试）
+tests/                  单元/集成测试（含机制差分、同噪声回放和本地协议桩服务器）
 data/                   预处理后的数据集（附录 A 格式）
 results/                实验输出：<实验>/<标签>/{summary.json, runs.json, table.md}
 ```
@@ -57,7 +104,7 @@ python scripts/run_experiments.py --exp exp6 --runs 10                 # 附录 
 | 文件 | 内容 |
 |---|---|
 | `.env` | `OPENAI_API_KEY`、`OPENAI_BASE_URL`（留空即官方 API）、`DASHSCOPE_API_KEY`、`OLLAMA_HOST` |
-| `config.toml` | 默认 `provider`、`temperature`、`max_concurrency`、`stream`，以及每个 provider 的 `node_model` / `curator_model`（隐私控制器复用 curator 模型）；只接受流式请求的网关需设 `stream = true` |
+| `config.toml` | 默认 `provider`、`temperature`、`max_concurrency`、`parallel_runs`、`stream`、`max_retries`、`retry_backoff`，以及每个 provider 的 `node_model` / `curator_model`（隐私控制器复用 curator 模型）；只接受流式请求的网关需设 `stream = true` |
 
 优先级：命令行参数 > 环境变量（`PSC_PROVIDER`、`OLLAMA_MODEL`；已设置的环境变量也优先于 `.env`）> `config.toml` > 内置默认值。
 `--config path/to/other.toml`（或 `PSC_CONFIG`）可切换配置文件。
@@ -79,9 +126,31 @@ n 为节点数；PM（453 节点）triangle 的 Naive 提示词约 15 万 token�
 （`ModelConfig.structured_input` 可强制开关）。节点 send 回复无法解析时不再用规则结果兜底，
 而是不发送消息并计入 `parse_failures`。
 
+### 并发运行
+
+`parallel_runs`（或 `--parallel-runs`）控制同时执行的运行数，跨所有数据集 / 任务 / 方法调度；
+节点调用仍共用 `max_concurrency` 的上限，curator 调用（含 Naive 的回答）不受其限制。
+第 i 次运行的全部 DP 噪声来自 `np.random.default_rng([seed, i])`，结果与并发度、完成顺序无关。
+
+### 错误日志与重试
+
+每次模型调用遇到 429 / 5xx / 连接或超时错误、或返回空文本时，会按 `retry_backoff × 2^k` 秒
+（服务端给了 `Retry-After` 则取较大者）重试，最多 `max_retries` 次；openai 客户端自身的重试已关闭，
+保证每次限流都被记录。全部重试失败时该调用返回空文本并按解析失败处理，实验不中断；
+400 / 鉴权等不可重试的错误仍直接抛出。
+
+所有问题写入 `results/<实验>/<标签>/` 下：
+
+| 文件 | 内容 |
+|---|---|
+| `errors.jsonl` | 每条错误一行，**运行中实时追加**（实验中途崩溃也保留）：`kind`（`api_error` / `empty_reply` / `call_failed` / `parse_failure`）、数据集 / 任务 / 方法 / 第几次运行、agent 与阶段、耗时、HTTP 状态码、模型原始回复（最长 20000 字符，保留首尾） |
+| `run.log` | 全部 warning 日志，回复最长显示 4000 字符 |
+| `runs.json` | 每次运行的 `extra.errors` 为该次的错误记录 |
+| `summary.json` / `table.md` | `api_retries`（重试次数）、`failed_calls`（重试耗尽的调用数） |
+
 ### 真实 API 初期验证（pilot）
 
-`--exp pilot` 在 CU、Do 的 4 个任务上跑 PSC ×1、Naive ×3（ε = 2），共 627 次 LLM 调用，
+`--exp pilot` 在 CU、Do 的 4 个任务上跑 PSC ×10、Naive ×10（ε = 2），共 5950 次 LLM 调用，
 启动时会打印预计调用数。每次运行都会在同一份输入、同一份 Laplace 噪声上用代码重算各步骤，
 记录在 `RunResult.extra["validation"]`，汇总列含义：
 
@@ -94,8 +163,8 @@ n 为节点数；PM（453 节点）triangle 的 Naive 提示词约 15 万 token�
 | `rule_relative_error` / `delta` | 同噪声下完美流水线的相对误差，及 \|RE_LLM − RE_rule\|（论文 Table 6 的 Δ） |
 
 ```bash
-python scripts/run_experiments.py --exp pilot --provider mock --tag mock_dryrun   # 先离线确认 -> results/pilot/mock_dryrun/
-python scripts/run_experiments.py --exp pilot --provider openai --verbose         # -> results/pilot/openai_<模型名>/
+python scripts/run_experiments.py --exp pilot --provider mock --runs 10   # 自动生成新标签
+python scripts/run_experiments.py --exp pilot --provider openai --runs 10 --verbose
 ```
 
 ## 与论文的对应关系
@@ -107,7 +176,7 @@ python scripts/run_experiments.py --exp pilot --provider openai --verbose       
 | Algorithm 3 PSC | `PSCFramework.run`：select DP framework → split ε → noisy graph → GS opt → design algorithm → send（`fanout_pipeline` + `observe` 定向投递）→ update → Lap(GS/ε3) → aggregate |
 | Naive（2.4 节） | `NaiveFramework.run`：ε 全部用于 RR，噪声边表拼入 prompt 由 curator 直接作答 |
 | 预算分配（4.1 节） | `split_budget`：ε1=0.5ε，ε2=0.2(ε−ε1)，ε3=其余；不需要的步骤置 0 并按比例保留 |
-| 灵敏度 | degree 1；k-star C(d̂max,k−1)（无优化时 C(n,k−1)，Challenge 3）；triangle **d̂max−1**（附录 E 库条目 `Sensitivity: degree-1`；无优化时 n−2） |
+| 灵敏度 | degree 1；k-star 依机制配置：默认 floor_tight 为 C(D−1,k−1)，legacy 为 C(D,k−1)；triangle **d̂max−1**（无优化时 n−2） |
 | 附录 E 规则/库 | `library.py`；三角形 send/update/aggregate 规则与附录 E 示例逐字对应（含 0.5 计数与 /3、截断负数） |
 | 附录 A 数据格式 / 提示词 | `graph.task_prompt`：2-star 提示词与附录 A 逐字一致；Naive 按 RAW 格式把边表插在 `Q: The nodes are numbered from 0 to n−1.` 之后 |
 | 附录 B RAW / REFINED / 无 DP 的 PSC | `baselines.py`（含 10 节点 few-shot 示例生成）、`PSCFramework(dp=False)`、`NaiveFramework(prompt_style="refined")` → `exp5` / `exp6` |
@@ -117,7 +186,7 @@ python scripts/run_experiments.py --exp pilot --provider openai --verbose       
 
 | 细节 | 本实现的选择 |
 |---|---|
-| d̂max 取整 | 对噪声最大度取 `ceil`（保守，保证投影阈值为整数） |
+| d̂max 取整 | 默认 k-star 用 `floor`；legacy 和 triangle 用原有 `ceil`；连续最大值和实际阈值分别记录 |
 | k-star 任务的投影对象 | 没有噪声图，故对每个节点**本地真实邻居表**投影到 d̂max 个（与 Imola et al. 2021 的 k-star 算法一致） |
 | 图投影的对称性 | 删边时对称删除，保证 G′ 仍是无向简单图，且满足 `degree-1` 灵敏度的推导 |
 | 隐私控制器使用的 LLM | 复用 curator 模型（论文未指定），且只用于“选 DP 框架”这一步 |
@@ -129,7 +198,7 @@ LLM 只负责算法设计、节点级推理与聚合（对应论文的 Challenge
 
 ## 复现结果（ε = 2）
 
-### GT 列（纯 Python，1000 次）vs 论文 Table 2
+### 历史 legacy GT 列（纯 Python，1000 次）vs 论文 Table 2
 
 | Task | Method | CU | Do | ML | CS | EE | PM | Avg. |
 |---|---|---|---|---|---|---|---|---|
@@ -152,8 +221,8 @@ LLM 只负责算法设计、节点级推理与聚合（对应论文的 Challenge
 
 GT-Naive 24 个单元格与论文偏差均 < 1%，GT-PSC 的 degree / triangle 与论文基本一致
 （triangle 采用附录 E 的 `degree-1` 灵敏度后 Avg 0.8833 vs 论文 0.8737）；
-k-star 的 GT-PSC 略高于论文（论文未给出 d̂max 取整与 k-star 投影细节，本实现取 ceil 且严格按 C(d̂max,k−1) 校准噪声，
-更保守）。GT-PSC-B、Exp2、Exp3、Exp4 的完整结果见 `results/`。
+k-star 的历史 GT-PSC 存在持续差距，特别是 2-star；仅用 ceil 更保守不能解释全部差距。
+当前候选比较和确认结果保存在 `results/alignment/`。历史 GT-PSC-B、Exp2、Exp3、Exp4 见 `results/`。
 
 ### 智能体版（AgentScope，mock 模型，10 次）
 
