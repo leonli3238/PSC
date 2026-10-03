@@ -27,7 +27,7 @@ from psc.experiments import (  # noqa: E402
     save_results,
     table2_markdown,
 )
-from psc.graph import TASKS  # noqa: E402
+from psc.graph import DEFAULT_TASKS, TASKS  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.artifacts import append_run, new_run_directory, write_manifest  # noqa: E402
 
@@ -37,7 +37,7 @@ def main() -> None:
     ap.add_argument("--data", default="data")
     ap.add_argument("--out", default="results", help="results go to <out>/ground_truth/<tag>/")
     ap.add_argument("--datasets", default=",".join(DATASETS))
-    ap.add_argument("--tasks", default=",".join(TASKS))
+    ap.add_argument("--tasks", default=",".join(DEFAULT_TASKS), help=f"comma separated, from {','.join(TASKS)}")
     ap.add_argument("--eps", default="2.0", help="comma separated privacy budgets")
     ap.add_argument("--runs", type=int, default=1000)
     ap.add_argument("--mechanism", choices=MECHANISMS, default=DEFAULT_MECHANISM)

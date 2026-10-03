@@ -44,7 +44,7 @@ from psc.experiments import (  # noqa: E402
     table2_markdown,
 )
 from psc.events import set_error_sink  # noqa: E402
-from psc.graph import TASKS, load_dataset  # noqa: E402
+from psc.graph import DEFAULT_TASKS, TASKS, load_dataset  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.artifacts import append_run, new_run_directory, write_manifest  # noqa: E402
@@ -80,7 +80,7 @@ def _cfg(args) -> ModelConfig:
 
 def exp1(args, cfg):
     datasets = args.datasets.split(",") if args.datasets else list(DATASETS)
-    tasks = args.tasks.split(",") if args.tasks else list(TASKS)
+    tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), ("Naive", "PSC"), args.seed, verbose=args.verbose),
     )
@@ -90,7 +90,7 @@ def exp1(args, cfg):
 
 def exp2(args, cfg):
     datasets = args.datasets.split(",") if args.datasets else ["CU", "Do"]
-    tasks = args.tasks.split(",") if args.tasks else list(TASKS)
+    tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
     eps_values = [1.0, 1.5, 2.0, 2.5, 3.0]
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, eps_values, _runs(args, 10), ("Naive", "PSC"), args.seed, verbose=args.verbose),
@@ -101,7 +101,7 @@ def exp2(args, cfg):
 
 def exp3(args, cfg):
     datasets = args.datasets.split(",") if args.datasets else ["CU", "Do"]
-    tasks = args.tasks.split(",") if args.tasks else ["triangle", "2-star", "3-star"]
+    tasks = args.tasks.split(",") if args.tasks else ["triangle", "3-star"]
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), ("PSC", "PSC-B"), args.seed, verbose=args.verbose),
     )
@@ -155,7 +155,7 @@ def exp4(args, cfg):
 def exp5(args, cfg):
     """Appendix B, Table 4: RAW / REFINED single LLM vs PSC without DP."""
     datasets = args.datasets.split(",") if args.datasets else list(DATASETS)
-    tasks = args.tasks.split(",") if args.tasks else list(TASKS)
+    tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
     methods = ("RAW", "REFINED", "PSC-noDP")
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, [0.0], _runs(args, 10), methods, args.seed, verbose=args.verbose),
@@ -167,7 +167,7 @@ def exp5(args, cfg):
 def exp6(args, cfg):
     """Appendix B, Table 5: Naive + RAW vs Naive + REFINED on the noisy graph."""
     datasets = args.datasets.split(",") if args.datasets else list(DATASETS)
-    tasks = args.tasks.split(",") if args.tasks else list(TASKS)
+    tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
     methods = ("Naive", "Naive+REFINED")
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), methods, args.seed, verbose=args.verbose),
@@ -196,7 +196,7 @@ def pilot(args, cfg):
     error is averaged over the runs like Naive's.
     """
     datasets = args.datasets.split(",") if args.datasets else ["CU", "Do"]
-    tasks = args.tasks.split(",") if args.tasks else list(TASKS)
+    tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
     runs = pilot_runs(args)
     plan = [(m, r) for m, r in runs.items()] + ([("PSC-noDP", 1)] if args.with_nodp else [])
 
@@ -253,7 +253,7 @@ def main() -> None:
     if (args.runs is not None and args.runs < 1) or (args.naive_runs is not None and args.naive_runs < 1):
         ap.error("run counts must be positive")
     datasets = args.datasets.split(",") if args.datasets else (["CU", "Do"] if args.exp in ("pilot", "exp2", "exp3") else ["CU", "ML"] if args.exp == "exp4" else list(DATASETS))
-    tasks = args.tasks.split(",") if args.tasks else (["triangle", "2-star", "3-star"] if args.exp == "exp3" else ["triangle"] if args.exp == "exp4" else list(TASKS))
+    tasks = args.tasks.split(",") if args.tasks else (["triangle", "3-star"] if args.exp == "exp3" else ["triangle"] if args.exp == "exp4" else list(DEFAULT_TASKS))
     if set(datasets) - set(DATASETS) or set(tasks) - set(TASKS):
         ap.error("unknown dataset or task")
 

@@ -23,7 +23,9 @@ degree 和 triangle 的机制保持原有行为。此配置是按论文公开描
 .venv/bin/python scripts/run_ground_truth.py --datasets CU,Do --runs 10 --mechanism floor_tight --trace --tag cudo_gt_r10_floor_tight
 ```
 
-pilot 中 PSC、Naive 都跟随 `--runs 10`，四任务共 160 次运行，预计 5950 次逻辑模型调用
+实验脚本默认任务为 degree、triangle、3-star（`psc.graph.DEFAULT_TASKS`）。2-star 的 GT-PSC
+机制尚未与论文对齐，默认不跑，需要时用 `--tasks degree,2-star,3-star,triangle` 显式加回。
+pilot 中 PSC、Naive 都跟随 `--runs 10`，三任务共 120 次运行，预计 4740 次逻辑模型调用
 （不含重试）。`--naive-runs` 只在有意单独覆盖 Naive 次数时使用。已有 `--tag` 会被拒绝，
 避免覆盖历史结果；省略 tag 则自动追加时间戳。每完成一次运行立即写入 `runs.jsonl`，
 全部完成后写 `summary.json`、`runs.json` 和 `table.md`。此改动不包含断点续跑。
@@ -150,7 +152,7 @@ n 为节点数；PM（453 节点）triangle 的 Naive 提示词约 15 万 token�
 
 ### 真实 API 初期验证（pilot）
 
-`--exp pilot` 在 CU、Do 的 4 个任务上跑 PSC ×10、Naive ×10（ε = 2），共 5950 次 LLM 调用，
+`--exp pilot` 在 CU、Do 的 3 个默认任务上跑 PSC ×10、Naive ×10（ε = 2），共 4740 次 LLM 调用，
 启动时会打印预计调用数。每次运行都会在同一份输入、同一份 Laplace 噪声上用代码重算各步骤，
 记录在 `RunResult.extra["validation"]`，汇总列含义：
 

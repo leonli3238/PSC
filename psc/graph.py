@@ -28,6 +28,9 @@ import numpy as np
 # ---------------------------------------------------------------------------
 
 TASKS: tuple[str, ...] = ("degree", "2-star", "3-star", "triangle")
+# Default for experiment scripts. 2-star stays runnable via --tasks, but its
+# GT-PSC mechanism is not aligned with the paper (see docs/KSTAR_DIAGNOSIS_2026-09-28.md).
+DEFAULT_TASKS: tuple[str, ...] = ("degree", "triangle", "3-star")
 
 # Natural-language task descriptions (Section 2.2 / Appendix A).  Every task
 # prompt ends with "Q: The nodes are numbered from 0 to n-1. <question>" so

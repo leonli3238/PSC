@@ -13,8 +13,8 @@ cd /data/workspace/PSC
 .venv/bin/python scripts/run_experiments.py --exp pilot --provider openai --datasets CU,Do --runs 10 --mechanism floor_tight --tag hy3-ioa_cudo_r10_floor_tight --verbose
 ```
 
-这是四项任务（degree、2-star、3-star、triangle），PSC 和 Naive 每格各 10 次：
-2 数据集 × 4 任务 × 2 方法 × 10 次 = 160 次完整实验，预计 5950 次模型调用，不含重试。
+默认是三项任务（degree、triangle、3-star），PSC 和 Naive 每格各 10 次：
+2 数据集 × 3 任务 × 2 方法 × 10 次 = 120 次完整实验，预计 4740 次模型调用，不含重试。
 默认并发继续来自 config.toml。命令启动时会打印真实解析出的模型和机制。
 
 结果在 `results/pilot/hy3-ioa_cudo_r10_floor_tight/`。若目录已存在，使用另一个 tag；也可以
@@ -28,13 +28,13 @@ cd /data/workspace/PSC
 | manifest.json | 机制配置、数据/源码哈希、实际模型和运行设置 |
 | errors.jsonl / run.log | API 重试和解析失败等日志 |
 
-如只跑两个 k-star 任务，在正式命令加：
+2-star 默认不跑（其 GT-PSC 机制未与论文对齐）。如需加回四项任务，在正式命令加：
 
 ```bash
---tasks 2-star,3-star
+--tasks degree,2-star,3-star,triangle
 ```
 
-此时是 80 次实验，预计 2420 次调用。若同时保留两种范围的结果，使用不同 tag。
+此时是 160 次实验，预计 5950 次调用。若同时保留两种范围的结果，使用不同 tag。
 
 纯 Python GT 的十次平均也可单独执行：
 
