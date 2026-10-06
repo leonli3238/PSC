@@ -1,0 +1,23 @@
+# Local vLLM: Qwen3-8B for node agents, Qwen3-32B for the curator agent /
+# privacy controller (which also gives the Naive answer).
+# Server URLs go in .env (VLLM_NODE_BASE_URL / VLLM_CURATOR_BASE_URL).
+# Usage: python scripts/run_experiments.py --config config.vllm.toml ...
+# The model names must match the --served-model-name of the vLLM servers.
+
+provider = "vllm"
+temperature = 0.0     # paper: 0
+max_concurrency = 64  # node calls in flight across all runs; the GPUs, not the API, are the limit now
+parallel_runs = 16
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-8B"
+curator_model = "Qwen3-32B"
+
+[vllm.extra]
+# Qwen3 thinks by default; the paper's Exp7 runs it in non-thinking mode
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+# Replies are a short JSON/number; caps runaway repetition under greedy decoding
+max_tokens = 4096

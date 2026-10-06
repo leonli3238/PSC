@@ -4,6 +4,8 @@ Supported providers::
 
     openai     OpenAIChatModel   (also any OpenAI-compatible endpoint via
                                   OPENAI_BASE_URL, e.g. DeepSeek, vLLM ...)
+    vllm       OpenAIChatModel   (self-hosted vLLM servers, one per role:
+                                  VLLM_NODE_BASE_URL / VLLM_CURATOR_BASE_URL)
     dashscope  DashScopeChatModel (Qwen family)
     ollama     OllamaChatModel   (local models)
     mock       MockChatModel     (offline, rule-following reasoner)
@@ -36,7 +38,7 @@ from .mock_model import MockChatModel
 from .progress import note_llm_call
 from .prompts import strip_structured
 
-PROVIDERS = ("openai", "dashscope", "ollama", "mock")
+PROVIDERS = ("openai", "vllm", "dashscope", "ollama", "mock")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = PROJECT_ROOT / "config.toml"
 DEFAULT_ENV = PROJECT_ROOT / ".env"
@@ -49,6 +51,9 @@ class ModelConfig:
     curator_model: str = "gpt-4.1"
     api_key: str | None = None
     base_url: str | None = None
+    # Per-role endpoints (e.g. two vLLM servers); None -> base_url
+    node_base_url: str | None = None
+    curator_base_url: str | None = None
     temperature: float = 0.0
     max_concurrency: int = 8
     # Runs (of all dataset / task / method cells) executed concurrently
@@ -69,6 +74,11 @@ class ModelConfig:
         if self.structured_input is None:
             return self.provider == "mock"
         return self.structured_input
+
+    def endpoint(self, role: str) -> str | None:
+        """Base URL used by ``role in {"node", "curator"}``."""
+        url = self.node_base_url if role == "node" else self.curator_base_url
+        return url or self.base_url
 
     @classmethod
     def from_env(
@@ -96,6 +106,12 @@ class ModelConfig:
         if provider == "openai":
             cfg.api_key = os.getenv("OPENAI_API_KEY") or None
             cfg.base_url = os.getenv("OPENAI_BASE_URL") or None
+        elif provider == "vllm":
+            # vLLM ignores the key unless the server was started with --api-key
+            cfg.api_key = os.getenv("VLLM_API_KEY") or "EMPTY"
+            cfg.base_url = os.getenv("VLLM_BASE_URL") or None
+            cfg.node_base_url = os.getenv("VLLM_NODE_BASE_URL") or None
+            cfg.curator_base_url = os.getenv("VLLM_CURATOR_BASE_URL") or None
         elif provider == "dashscope":
             cfg.api_key = os.getenv("DASHSCOPE_API_KEY") or None
             cfg.node_model, cfg.curator_model = "qwen3-8b", "qwen-plus"
@@ -122,6 +138,9 @@ _CONFIG_KEYS = frozenset(
         "max_retries", "retry_backoff", "parallel_runs",
     },
 )
+# Only allowed inside a provider section: extra request parameters merged into
+# every chat call, e.g. [openai.extra] extra_body = {...}
+_SECTION_ONLY_KEYS = frozenset({"extra"})
 
 
 def load_config_file(path: str | Path) -> dict:
@@ -137,11 +156,13 @@ def load_config_file(path: str | Path) -> dict:
         if isinstance(value, dict):
             if key not in PROVIDERS:
                 raise ValueError(f"{path}: unknown provider section [{key}]; choose from {PROVIDERS}")
-            bad = set(value) - _CONFIG_KEYS
+            bad = set(value) - _CONFIG_KEYS - _SECTION_ONLY_KEYS
+            if "extra" in value and not isinstance(value["extra"], dict):
+                raise ValueError(f"{path}: [{key}.extra] must be a table")
         else:
             bad = {key} - _CONFIG_KEYS
         if bad:
-            raise ValueError(f"{path}: unknown key(s) {sorted(bad)}; allowed: {sorted(_CONFIG_KEYS)}")
+            raise ValueError(f"{path}: unknown key(s) {sorted(bad)}; allowed: {sorted(_CONFIG_KEYS | _SECTION_ONLY_KEYS)}")
     return data
 
 
@@ -158,13 +179,16 @@ def _create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
     name = cfg.node_model if role == "node" else cfg.curator_model
     if cfg.provider == "mock":
         return MockChatModel(error_rate=cfg.mock_error_rate if role == "node" else 0.0)
-    if cfg.provider == "openai":
+    if cfg.provider in ("openai", "vllm"):
         from agentscope.model import OpenAIChatModel
 
         if not cfg.api_key:
             raise RuntimeError(f"OPENAI_API_KEY is not set (fill it in {DEFAULT_ENV})")
+        url = cfg.endpoint(role)
+        if cfg.provider == "vllm" and not url:
+            raise RuntimeError(f"VLLM_{role.upper()}_BASE_URL (or VLLM_BASE_URL) is not set (fill it in {DEFAULT_ENV})")
         # retries are done (and recorded) by ``chat``, not silently by the client
-        client_kwargs = {"max_retries": 0, **({"base_url": cfg.base_url} if cfg.base_url else {})}
+        client_kwargs = {"max_retries": 0, **({"base_url": url} if url else {})}
         return OpenAIChatModel(
             model_name=name,
             api_key=cfg.api_key,

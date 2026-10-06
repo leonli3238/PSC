@@ -19,8 +19,10 @@ retry_backoff = 5.0   # seconds; waits 5, 10, 20, 40 s (or the server's Retry-Af
 #                  and the privacy controller (DP framework selection)
 
 [openai]              # paper setting (also used for OpenAI-compatible endpoints)
-node_model = "hy4-preview-ioa"
-curator_model = "hy4-preview-ioa"
+# node_model = "hy4-preview-ioa"
+# curator_model = "hy4-preview-ioa"
+node_model = "hy3-ioa"
+curator_model = "hy3-ioa"
 stream = true         # the gateway in .env rejects non-stream requests; false for the official API
 
 [dashscope]           # paper Exp7

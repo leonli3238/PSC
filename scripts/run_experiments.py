@@ -283,6 +283,7 @@ def main() -> None:
         "temperature": cfg.temperature, "stream": cfg.stream, "parallel_runs": cfg.parallel_runs,
         "max_concurrency": cfg.max_concurrency, "max_retries": cfg.max_retries,
         "retry_backoff": cfg.retry_backoff, "structured_input": cfg.use_structured_input,
+        "node_base_url": cfg.endpoint("node"), "curator_base_url": cfg.endpoint("curator"), "extra": cfg.extra,
         "with_nodp": args.with_nodp,
         "rng_recipe": "default_rng([seed, run-1]); DP draws consumed sequentially within each run",
     })
@@ -293,7 +294,11 @@ def main() -> None:
     logging.getLogger().addHandler(file_log)
     set_error_sink(out_dir / "errors.jsonl")
 
-    endpoint = f" base_url={cfg.base_url or 'default'} api_key={'set' if cfg.api_key else 'MISSING'}" if cfg.provider in ("openai", "dashscope") else ""
+    if cfg.endpoint("node") == cfg.endpoint("curator"):
+        urls = f" base_url={cfg.base_url or 'default'}"
+    else:
+        urls = f" node_base_url={cfg.endpoint('node') or 'default'} curator_base_url={cfg.endpoint('curator') or 'default'}"
+    endpoint = f"{urls} api_key={'set' if cfg.api_key else 'MISSING'}" if cfg.provider in ("openai", "vllm", "dashscope") else ""
     print(f"provider={cfg.provider} node_model={cfg.node_model} curator_model={cfg.curator_model}{endpoint} "
           f"concurrency={cfg.max_concurrency} parallel_runs={cfg.parallel_runs} stream={cfg.stream} runs={args.runs if args.runs is not None else 'default'} "
           f"structured_input={cfg.use_structured_input} max_retries={cfg.max_retries} retry_backoff={cfg.retry_backoff}s mechanism={args.mechanism}")
