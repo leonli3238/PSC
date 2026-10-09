@@ -68,6 +68,26 @@ def node_noisy_lower_row(
     return np.flatnonzero(noisy).tolist()
 
 
+def node_noisy_upper_row(
+    node_id: int,
+    neighbors: Iterable[int],
+    n: int,
+    eps: float,
+    rng: np.random.Generator,
+) -> list[int]:
+    """RR on the entries ``a_{i,j}`` with ``j > i`` (TriTR's first round), run
+    locally by node ``node_id`` on its (projected) neighbor list."""
+    width = n - node_id - 1
+    if width <= 0:
+        return []
+    bits = np.zeros(width, dtype=np.int8)
+    for j in neighbors:
+        if j > node_id:
+            bits[j - node_id - 1] = 1
+    noisy = randomized_response_row(bits, eps, rng)
+    return (np.flatnonzero(noisy) + node_id + 1).tolist()
+
+
 def build_noisy_graph(graph: Graph, eps: float, rng: np.random.Generator) -> Graph:
     """Algorithm 1 (``BuildNoisyGraph``) run by the curator over all nodes.
 

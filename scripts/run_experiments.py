@@ -10,6 +10,10 @@ exp5  Appendix B: RAW / REFINED single LLM vs PSC without DP (Table 4)
 exp6  Appendix B: Naive + RAW vs Naive + REFINED on the noisy graph (Table 5)
 pilot Real-LLM validation: PSC x10 + Naive x10 on CU, Do; node-level LLM-vs-rule accuracy
 
+--with-tritr adds the agent-based TriTR (NAM-DPRD's DP framework, same curator and
+node rules as PSC) to exp1 / exp2 / exp3; --gt-runs N appends pure-Python GT-PSC
+(and GT-PSC-B for exp3, GT-TriTR with --with-tritr) over N runs to the same table.
+
 Model providers
 ---------------
 mock       offline, rule-following reasoner (default; no API key needed)
@@ -22,6 +26,7 @@ Examples::
     python scripts/run_experiments.py --exp exp1 --runs 10
     python scripts/run_experiments.py --exp exp1 --provider openai --datasets CU,Do --runs 3
     python scripts/run_experiments.py --exp exp3 --runs 10
+    python scripts/run_experiments.py --exp exp1 --datasets CU,Do --with-tritr --gt-runs 1000
 """
 
 from __future__ import annotations
@@ -40,6 +45,7 @@ from psc.experiments import (  # noqa: E402
     generic_markdown,
     run_agent_experiment,
     run_async,
+    run_ground_truth,
     save_results,
     table2_markdown,
 )
@@ -54,10 +60,37 @@ def _runs(args, default: int) -> int:
     return args.runs if args.runs is not None else default
 
 
+TRITR_EXPERIMENTS = ("exp1", "exp2", "exp3")
+# agent methods that --methods may select per experiment
+METHOD_CHOICES = {"exp1": ("Naive", "PSC", "TriTR"), "exp2": ("Naive", "PSC", "TriTR"), "exp3": ("PSC", "PSC-B", "TriTR")}
+
+
 def _run_experiment(args, *pos, **kwargs):
     return run_agent_experiment(
         *pos, **kwargs, mechanism=args.mechanism,
         on_result=getattr(args, "on_result", None),
+        tritr_alpha=args.tritr_alpha,
+    )
+
+
+def _with_tritr(args, methods: tuple[str, ...]) -> tuple[str, ...]:
+    return methods + ("TriTR",) if args.with_tritr and "TriTR" not in methods else methods
+
+
+def _methods(args, default: tuple[str, ...]) -> tuple[str, ...]:
+    """Agent methods of exp1-3: ``--methods`` if given, else the default (plus TriTR)."""
+    return _with_tritr(args, tuple(args.methods.split(",")) if args.methods else default)
+
+
+def _gt_reference(args, datasets, tasks, eps_values, base: tuple[str, ...], agent_methods: tuple[str, ...]) -> list[dict]:
+    """Pure-Python GT rows over ``--gt-runs`` runs (none when 0): GT of ``base``,
+    plus GT-TriTR when TriTR is among the agent methods."""
+    if not args.gt_runs:
+        return []
+    methods = base + (("TriTR",) if "TriTR" in agent_methods else ())
+    return run_ground_truth(
+        args.data, datasets, tasks, eps_values, args.gt_runs, args.seed, ["GT-" + m for m in methods],
+        mechanism=args.mechanism, tritr_alpha=args.tritr_alpha,
     )
 
 
@@ -81,20 +114,24 @@ def _cfg(args) -> ModelConfig:
 def exp1(args, cfg):
     datasets = args.datasets.split(",") if args.datasets else list(DATASETS)
     tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
+    methods = _methods(args, ("Naive", "PSC"))
     summary, per_run = run_async(
-        _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), ("Naive", "PSC"), args.seed, verbose=args.verbose),
+        _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), methods, args.seed, verbose=args.verbose),
     )
-    md = table2_markdown(summary, datasets, ("Naive", "PSC"))
-    return summary, per_run, md
+    gt = _gt_reference(args, datasets, tasks, [2.0], ("PSC",), methods)
+    md = table2_markdown(summary + gt, datasets, methods + tuple(dict.fromkeys(r["method"] for r in gt)))
+    return summary + gt, per_run, md
 
 
 def exp2(args, cfg):
     datasets = args.datasets.split(",") if args.datasets else ["CU", "Do"]
     tasks = args.tasks.split(",") if args.tasks else list(DEFAULT_TASKS)
     eps_values = [1.0, 1.5, 2.0, 2.5, 3.0]
+    methods = _methods(args, ("Naive", "PSC"))
     summary, per_run = run_async(
-        _run_experiment(args, args.data, cfg, datasets, tasks, eps_values, _runs(args, 10), ("Naive", "PSC"), args.seed, verbose=args.verbose),
+        _run_experiment(args, args.data, cfg, datasets, tasks, eps_values, _runs(args, 10), methods, args.seed, verbose=args.verbose),
     )
+    summary += _gt_reference(args, datasets, tasks, eps_values, ("PSC",), methods)
     md = generic_markdown(summary, ["dataset", "task", "eps", "method", "avg_relative_error", "mean_estimate", "truth"])
     return summary, per_run, md
 
@@ -102,9 +139,12 @@ def exp2(args, cfg):
 def exp3(args, cfg):
     datasets = args.datasets.split(",") if args.datasets else ["CU", "Do"]
     tasks = args.tasks.split(",") if args.tasks else ["triangle", "3-star"]
+    methods = _methods(args, ("PSC", "PSC-B"))
     summary, per_run = run_async(
-        _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), ("PSC", "PSC-B"), args.seed, verbose=args.verbose),
+        _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), methods, args.seed, verbose=args.verbose),
     )
+    summary += _gt_reference(args, datasets, tasks, [2.0], ("PSC", "PSC-B"), methods)
+    measured = list(dict.fromkeys(r["method"] for r in summary))
     idx = {(r["method"], r["dataset"], r["task"]): r["avg_relative_error"] for r in summary}
     rows = []
     for task in tasks:
@@ -114,15 +154,14 @@ def exp3(args, cfg):
                 {
                     "task": task,
                     "dataset": ds,
-                    "PSC": idx.get(("PSC", ds, task)),
-                    "PSC-B": idx.get(("PSC-B", ds, task)),
+                    **{m: idx.get((m, ds, task)) for m in measured},
                     "paper PSC": paper[1] if paper else None,
                     "paper PSC-B": paper[3] if paper else None,
                     "paper GT-PSC": paper[0] if paper else None,
                     "paper GT-PSC-B": paper[2] if paper else None,
                 },
             )
-    md = generic_markdown(rows, ["task", "dataset", "PSC", "PSC-B", "paper PSC", "paper PSC-B", "paper GT-PSC", "paper GT-PSC-B"])
+    md = generic_markdown(rows, ["task", "dataset", *measured, "paper PSC", "paper PSC-B", "paper GT-PSC", "paper GT-PSC-B"])
     return summary, per_run, md
 
 
@@ -237,6 +276,10 @@ def main() -> None:
     ap.add_argument("--mechanism", choices=MECHANISMS, default=DEFAULT_MECHANISM, help="shared GT/agent mechanism; legacy reproduces the old implementation")
     ap.add_argument("--dry-run", action="store_true", help="preview pilot/exp1 calls and settings without calling a model")
     ap.add_argument("--with-nodp", action="store_true", help="pilot only: also run PSC-noDP once per setting")
+    ap.add_argument("--with-tritr", action="store_true", help=f"{'/'.join(TRITR_EXPERIMENTS)}: also run the agent-based TriTR")
+    ap.add_argument("--tritr-alpha", type=float, default=0.0, help="TriTR: margin added to every noisy degree (NAM-DPRD uses 150)")
+    ap.add_argument("--methods", default=None, help="exp1/exp2: subset of Naive,PSC,TriTR; exp3: of PSC,PSC-B,TriTR (default: the experiment's methods)")
+    ap.add_argument("--gt-runs", type=int, default=0, help=f"{'/'.join(TRITR_EXPERIMENTS)}: append pure-Python GT rows over this many runs (0: none)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--config", default=None, help="model config file (default: $PSC_CONFIG or config.toml)")
     ap.add_argument("--provider", default=None, choices=PROVIDERS, help="default: $PSC_PROVIDER, then config file")
@@ -252,6 +295,17 @@ def main() -> None:
 
     if (args.runs is not None and args.runs < 1) or (args.naive_runs is not None and args.naive_runs < 1):
         ap.error("run counts must be positive")
+    if (args.with_tritr or args.gt_runs) and args.exp not in TRITR_EXPERIMENTS:
+        ap.error(f"--with-tritr / --gt-runs apply to {', '.join(TRITR_EXPERIMENTS)}")
+    if args.tritr_alpha < 0 or args.gt_runs < 0:
+        ap.error("--tritr-alpha and --gt-runs must be nonnegative")
+    if args.methods is not None:
+        chosen = args.methods.split(",")
+        allowed = METHOD_CHOICES.get(args.exp)
+        if allowed is None:
+            ap.error(f"--methods applies to {', '.join(METHOD_CHOICES)}")
+        if not args.methods or set(chosen) - set(allowed) or len(set(chosen)) != len(chosen):
+            ap.error(f"--methods for {args.exp}: distinct names from {','.join(allowed)}")
     datasets = args.datasets.split(",") if args.datasets else (["CU", "Do"] if args.exp in ("pilot", "exp2", "exp3") else ["CU", "ML"] if args.exp == "exp4" else list(DATASETS))
     tasks = args.tasks.split(",") if args.tasks else (["triangle", "3-star"] if args.exp == "exp3" else ["triangle"] if args.exp == "exp4" else list(DEFAULT_TASKS))
     if set(datasets) - set(DATASETS) or set(tasks) - set(TASKS):
@@ -261,7 +315,7 @@ def main() -> None:
     if args.dry_run:
         if args.exp not in ("pilot", "exp1"):
             ap.error("--dry-run currently supports pilot and exp1")
-        counts = pilot_runs(args) if args.exp == "pilot" else {"Naive": _runs(args, 10), "PSC": _runs(args, 10)}
+        counts = pilot_runs(args) if args.exp == "pilot" else {m: _runs(args, 10) for m in _methods(args, ("Naive", "PSC"))}
         if args.exp == "pilot" and args.with_nodp:
             counts["PSC-noDP"] = 1
         total = sum(
@@ -285,6 +339,10 @@ def main() -> None:
         "retry_backoff": cfg.retry_backoff, "structured_input": cfg.use_structured_input,
         "node_base_url": cfg.endpoint("node"), "curator_base_url": cfg.endpoint("curator"), "extra": cfg.extra, "node_extra": cfg.node_extra, "curator_extra": cfg.curator_extra,
         "with_nodp": args.with_nodp,
+        **({"methods": list(_methods(args, ()))} if args.methods else {}),
+        **({"with_tritr": True} if args.with_tritr else {}),
+        **({"tritr_alpha": args.tritr_alpha} if "TriTR" in _methods(args, ()) else {}),
+        **({"gt_runs": args.gt_runs} if args.gt_runs else {}),
         "rng_recipe": "default_rng([seed, run-1]); DP draws consumed sequentially within each run",
     })
     level = getattr(logging, args.log_level.upper(), logging.WARNING)
@@ -301,7 +359,10 @@ def main() -> None:
     endpoint = f"{urls} api_key={'set' if cfg.api_key else 'MISSING'}" if cfg.provider in ("openai", "vllm", "dashscope") else ""
     print(f"provider={cfg.provider} node_model={cfg.node_model} curator_model={cfg.curator_model}{endpoint} "
           f"concurrency={cfg.max_concurrency} parallel_runs={cfg.parallel_runs} stream={cfg.stream} runs={args.runs if args.runs is not None else 'default'} "
-          f"structured_input={cfg.use_structured_input} max_retries={cfg.max_retries} retry_backoff={cfg.retry_backoff}s mechanism={args.mechanism}")
+          f"structured_input={cfg.use_structured_input} max_retries={cfg.max_retries} retry_backoff={cfg.retry_backoff}s mechanism={args.mechanism}"
+          + (f" methods={args.methods}" if args.methods else "")
+          + (f" tritr_alpha={args.tritr_alpha:g}" if "TriTR" in _methods(args, ()) else "")
+          + (f" gt_runs={args.gt_runs}" if args.gt_runs else ""))
     print(f"errors are logged to {out_dir}/errors.jsonl and {out_dir}/run.log while running")
 
     summary, per_run, md = EXPERIMENTS[args.exp](args, cfg)

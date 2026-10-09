@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import re
 from typing import Iterable
 
@@ -26,7 +27,7 @@ from agentscope.message import Msg
 from agentscope.model import ChatModelBase
 
 from .. import rules
-from ..dp import laplace_mechanism, node_noisy_lower_row, project_neighbor_list
+from ..dp import laplace_mechanism, node_noisy_lower_row, node_noisy_upper_row, project_neighbor_list
 from ..events import record_error
 from ..models import chat
 from ..prompts import NODE_SYSTEM, extract_json, extract_number, node_send_prompt, node_update_prompt
@@ -61,6 +62,11 @@ class NodeAgent(AgentBase):
         self._update_neighbors: list[int] = list(self._real_neighbors)
         # noisy edge memory (set by the privacy controller)
         self.noisy_neighbors: list[int] = []
+        # TriTR: messages are the public noisy rows of the update neighbors
+        self.reads_public_rows = False
+        # the protected report is report_scale * count + report_offset
+        self.report_scale = 1.0
+        self.report_offset = 0.0
 
         # algorithm state
         self.count: float = 0.0
@@ -83,6 +89,10 @@ class NodeAgent(AgentBase):
         noisy_lower = node_noisy_lower_row(self.node_id, self._real_neighbors, eps1, rng)
         return [(self.node_id, j) for j in noisy_lower]
 
+    def release_upper_noisy_edges(self, n: int, eps1: float, rng: np.random.Generator) -> list[tuple[int, int]]:
+        """TriTR first round: RR on the projected entries ``a_{i,j}, j > i``."""
+        return [(self.node_id, j) for j in node_noisy_upper_row(self.node_id, self._update_neighbors, n, eps1, rng)]
+
     def report_noisy_degree(self, eps2: float, rng: np.random.Generator) -> float:
         """Algorithm 2, line 2: ``deg + Lap(1/eps2)``."""
         return laplace_mechanism(self.degree, 1.0, eps2, rng)
@@ -95,9 +105,22 @@ class NodeAgent(AgentBase):
         neighbors (tasks without a noisy graph, see ``GSOptimize``)."""
         self._update_neighbors = project_neighbor_list(self._real_neighbors, d_max, rng)
 
+    def use_unbiased_triangle_report(self, scale: float, pair_weight: float) -> None:
+        """TriTR: with ``m`` noisy edges among the ``d'`` update neighbors, report
+        ``scale * m - pair_weight * C(d', 2)``, i.e. half the sum of the unbiased
+        matrix over the neighbor pairs (computed on the local server)."""
+        self.reads_public_rows = True
+        self.report_scale = scale
+        self.report_offset = -pair_weight * math.comb(len(self._update_neighbors), 2)
+
+    @property
+    def message_sources(self) -> list[int]:
+        """Senders whose messages the update step should receive."""
+        return self._update_neighbors if self.reads_public_rows else self.noisy_neighbors
+
     def protected_count(self, sensitivity: float, eps3: float, rng: np.random.Generator) -> float:
-        """Algorithm 3, line 13: ``count + Lap(GS_f / eps3)``."""
-        return laplace_mechanism(self.count, sensitivity, eps3, rng)
+        """Algorithm 3, line 13: ``count + Lap(GS_f / eps3)`` (TriTR: on the unbiased report)."""
+        return laplace_mechanism(self.report_scale * self.count + self.report_offset, sensitivity, eps3, rng)
 
     def reference_count(self, task: str, messages: list[dict]) -> float:
         """The update rule executed in code on ``messages`` (validation only;
@@ -121,6 +144,12 @@ class NodeAgent(AgentBase):
             if meta.get("kind") == "node_message":
                 self.inbox.append(meta["payload"])
             await self.memory.add(m)
+
+    async def observe_public(self, msgs: list[Msg]) -> None:
+        """TriTR: the noisy rows are public; the local server keeps those of its
+        update neighbors (the LLM's sender check then passes every message)."""
+        sources = set(self.message_sources)
+        await self.observe([m for m in msgs if m.metadata.get("payload") and m.metadata["sender"] in sources])
 
     async def reply(self, msg: Msg | None = None, **kwargs) -> Msg:  # type: ignore[override]
         """Execute the phase requested by the curator (``send`` or ``update``)."""

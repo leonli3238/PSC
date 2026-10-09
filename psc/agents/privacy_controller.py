@@ -13,6 +13,7 @@ following instructions (Challenge 1 in the paper):
 
 from __future__ import annotations
 
+import math
 from typing import Sequence
 
 import numpy as np
@@ -24,7 +25,7 @@ from agentscope.model import ChatModelBase
 
 from ..dp import BudgetSplit, graph_projection, naive_budget, split_budget
 from ..events import record_error
-from ..graph import TASKS, Graph, infer_task_from_prompt
+from ..graph import TASKS, Graph, infer_task_from_prompt, kstar_k
 from ..library import DPFrameworkSpec, dp_library_summary, get_dp_framework
 from ..models import chat
 from ..mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
@@ -128,6 +129,49 @@ class PrivacyController(AgentBase):
                 self.node_sensitivities = [spec.sensitivity(len(nodes), D, self.mechanism) for D in limits]
                 self.degree_trace.update(node_projection_degrees=limits, node_sensitivities=self.node_sensitivities)
         return spec.sensitivity(len(nodes), d_hat_max, self.mechanism, bound.sensitivity_degree), d_hat_max, noisy_graph
+
+    # ------------------------------------------------------------------
+    # TriTR (NAM-DPRD) in place of Algorithms 1-2
+    # ------------------------------------------------------------------
+    def tritr_prepare(self, nodes: Sequence[NodeAgent], spec: DPFrameworkSpec, split: BudgetSplit, alpha: float) -> Graph | None:
+        """Per-node projection, RR and sensitivities of :func:`psc.ground_truth.gt_tritr`.
+
+        Each node publishes ``d~_i = max(deg + Lap(1/eps2), 0) + alpha`` and keeps
+        at most ``floor(d~_i)`` neighbors. Triangle: RR(eps1) on the projected
+        entries ``j > i`` gives the public noisy graph, and each node reports the
+        unbiased value with sensitivity ``kappa d~_i``. k-star: sensitivity
+        ``C(floor(d~_i) - 1, k - 1)``. Degree is left to the PSC path.
+        Returns the noisy graph (triangle only).
+        """
+        if split.eps2 <= 0:
+            return None
+        n = len(nodes)
+        reports = [node.report_noisy_degree(split.eps2, self.rng) for node in nodes]
+        noisy_degrees = [max(y, 0.0) + alpha for y in reports]
+        limits = [math.floor(x) for x in noisy_degrees]
+        for node, limit in zip(nodes, limits):
+            node.bound_degree(limit, self.rng)
+        noisy = None
+        if spec.task == "triangle":
+            released: list[tuple[int, int]] = []
+            for node in nodes:
+                released.extend(node.release_upper_noisy_edges(n, split.eps1, self.rng))
+            noisy = Graph.from_edges(n, released)
+            inv = -1.0 / math.expm1(-split.eps1) - 1.0  # 1 / (e^eps1 - 1)
+            for node in nodes:
+                node.set_noisy_neighbors(noisy.adj[node.node_id])
+                node.use_unbiased_triangle_report(1.0 + 2.0 * inv, inv)
+            self.node_sensitivities = [(1.0 + inv) * x for x in noisy_degrees]
+        else:
+            k = kstar_k(spec.task)
+            self.node_sensitivities = [float(math.comb(D - 1, k - 1)) if D >= 1 else 0.0 for D in limits]
+        self.degree_trace = {
+            "noisy_degree_reports": reports,
+            "node_projection_degrees": limits,
+            "node_sensitivities": self.node_sensitivities,
+            "tritr_alpha": alpha,
+        }
+        return noisy
 
     # ------------------------------------------------------------------
     # Algorithm 3, line 13: protected reports

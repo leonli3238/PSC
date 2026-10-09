@@ -85,6 +85,7 @@ class PSCFramework:
         r2: float = 0.2,
         dp: bool = True,
         mechanism: str | MechanismProfile = DEFAULT_MECHANISM,
+        tritr_alpha: float | None = None,
     ) -> None:
         """
         Args:
@@ -95,19 +96,31 @@ class PSCFramework:
                 randomized response, no projection and no Laplace noise; the
                 node agents work on the true neighbor lists and the curator
                 receives the standard (non-LDP) prompt.
+            tritr_alpha: replace Algorithms 1-2 by NAM-DPRD's TriTR with this
+                projection margin (``PrivacyController.tritr_prepare``); the
+                curator and node agents run the same rules as PSC.
         """
+        if tritr_alpha is not None and (tritr_alpha < 0 or not gs_optimization or not dp):
+            raise ValueError("TriTR needs a nonnegative alpha, DP and degree projection")
         self.cfg = model_cfg or ModelConfig()
         self.factory = _AgentFactory(self.cfg, seed)
         self.gs_optimization = gs_optimization
         self.r1, self.r2 = r1, r2
         self.dp = dp
         self.mechanism = get_mechanism(mechanism)
+        self.tritr_alpha = tritr_alpha
 
     @property
     def name(self) -> str:
         if not self.dp:
             return "PSC-noDP"
+        if self.tritr_alpha is not None:
+            return "TriTR"
         return "PSC" if self.gs_optimization else "PSC-B"
+
+    @property
+    def mechanism_label(self) -> str:
+        return self.mechanism.name if self.tritr_alpha is None else f"tritr_alpha{self.tritr_alpha:g}"
 
     async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
         """``rng`` drives all DP noise of this run; ``None`` continues the
@@ -130,21 +143,27 @@ class PSCFramework:
         else:
             split = BudgetSplit(0.0, 0.0, 0.0)
 
-        # Lines 5-6: noisy graph
         noisy_graph: Graph | None = None
-        if split.eps1 > 0:
-            noisy_graph = controller.build_noisy_graph(nodes, split.eps1)
-        elif not self.dp:
-            # Non-DP version: the "noisy" edge memory is the true graph
-            for node in nodes:
-                node.set_noisy_neighbors(graph.adj[node.node_id])
-
-        # Lines 7-8: global sensitivity optimisation
         d_hat_max: int | None = None
-        if split.eps2 > 0:
-            sensitivity, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
+        if self.tritr_alpha is not None:
+            # TriTR: per-node projection, then RR on the projected lists
+            noisy_graph = controller.tritr_prepare(nodes, spec, split, self.tritr_alpha)
+            node_sens = controller.node_sensitivities
+            sensitivity = max(node_sens) if node_sens else spec.sensitivity(n, None, self.mechanism)
         else:
-            sensitivity = spec.sensitivity(n, None, self.mechanism)
+            # Lines 5-6: noisy graph
+            if split.eps1 > 0:
+                noisy_graph = controller.build_noisy_graph(nodes, split.eps1)
+            elif not self.dp:
+                # Non-DP version: the "noisy" edge memory is the true graph
+                for node in nodes:
+                    node.set_noisy_neighbors(graph.adj[node.node_id])
+
+            # Lines 7-8: global sensitivity optimisation
+            if split.eps2 > 0:
+                sensitivity, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
+            else:
+                sensitivity = spec.sensitivity(n, None, self.mechanism)
 
         # Line 9: curator designs the distributed algorithm
         note_phase("design")
@@ -157,9 +176,13 @@ class PSCFramework:
             note_phase("send")
             send_instr = Msg(curator.name, algo.send, "assistant", metadata={"phase": "send", "task": algo.task})
             outgoing = await fanout_pipeline(nodes, send_instr, enable_gather=True)
-            for msg in outgoing:
-                for j in msg.metadata["recipients"]:
-                    await nodes[j].observe(msg)
+            if self.tritr_alpha is not None:
+                for node in nodes:
+                    await node.observe_public(outgoing)
+            else:
+                for msg in outgoing:
+                    for j in msg.metadata["recipients"]:
+                        await nodes[j].observe(msg)
 
         # Lines 11-12: update local counts
         note_phase("update")
@@ -201,7 +224,7 @@ class PSCFramework:
             elapsed=time.perf_counter() - t0,
             extra={
                 "raw_count_sum": sum(x.count for x in nodes), "validation": validation,
-                "mechanism": self.mechanism.name,
+                "mechanism": self.mechanism_label,
                 "mechanism_trace": {
                     **controller.degree_trace,
                     "d_hat_max": d_hat_max,
@@ -209,7 +232,9 @@ class PSCFramework:
                     "laplace_scale": sensitivity / split.eps3 if self.dp else 0.0,
                     "raw_counts": [node.count for node in nodes],
                     "noisy_counts": reports,
-                    "report_noise": [r - node.count for r, node in zip(reports, nodes)],
+                    "report_noise": [
+                        r - (node.report_scale * node.count + node.report_offset) for r, node in zip(reports, nodes)
+                    ],
                     "report_sum_before_clamp": float(sum(reports)),
                 },
             },
@@ -305,7 +330,7 @@ def _validate_psc(nodes: list[NodeAgent], algo: AlgorithmSpec, reports: list[flo
     mismatches: list[dict] = []
     for node in nodes:
         given_inbox = node.reference_count(task, node.inbox)
-        expected_inbox = [expected_send[j] for j in node.noisy_neighbors] if algo.needs_messages else []
+        expected_inbox = [expected_send[j] for j in node.message_sources] if algo.needs_messages else []
         perfect = node.reference_count(task, expected_inbox)
         rule_counts.append(perfect)
         update_exact += math.isclose(node.count, given_inbox, abs_tol=1e-6)
@@ -316,8 +341,8 @@ def _validate_psc(nodes: list[NodeAgent], algo: AlgorithmSpec, reports: list[flo
                 {"node": node.node_id, "llm": node.count, "rule": perfect, "messages": len(node.inbox)},
             )
 
-    noise = [r - node.count for r, node in zip(reports, nodes)]
-    rule_estimate = rules.aggregate(task, [c + z for c, z in zip(rule_counts, noise)], n)
+    rule_reports = [r + node.report_scale * (c - node.count) for r, node, c in zip(reports, nodes, rule_counts)]
+    rule_estimate = rules.aggregate(task, rule_reports, n)
     rule_aggregate = rules.aggregate(task, reports, n)
     llm_sum, rule_sum = sum(node.count for node in nodes), sum(rule_counts)
     return {

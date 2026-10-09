@@ -1,0 +1,14 @@
+# hy3-ioa for both node and curator, through the OpenAI-compatible gateway in .env
+# (OPENAI_API_KEY, OPENAI_BASE_URL). Used by scripts/run_hy3.sh.
+
+provider = "openai"
+temperature = 0.0     # paper: 0
+max_concurrency = 8
+parallel_runs = 8
+stream = true         # the gateway rejects non-stream requests
+max_retries = 4
+retry_backoff = 5.0
+
+[openai]
+node_model = "hy3-ioa"
+curator_model = "hy3-ioa"

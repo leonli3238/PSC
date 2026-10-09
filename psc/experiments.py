@@ -97,7 +97,7 @@ NON_DP_METHODS: tuple[str, ...] = ("RAW", "REFINED", "PSC-noDP")
 GT_METHODS: tuple[str, ...] = ("GT-Naive", "GT-PSC", "GT-PSC-B", "GT-TriTR")
 # error kinds after which a model call was retried
 RETRY_KINDS: tuple[str, ...] = ("api_error", "empty_reply")
-ALL_METHODS: tuple[str, ...] = ("Naive", "Naive+REFINED", "PSC", "PSC-B") + NON_DP_METHODS
+ALL_METHODS: tuple[str, ...] = ("Naive", "Naive+REFINED", "PSC", "PSC-B", "TriTR") + NON_DP_METHODS
 
 
 def paper_value(task: str, method: str, dataset: str) -> float | None:
@@ -119,8 +119,9 @@ def paper_value(task: str, method: str, dataset: str) -> float | None:
 def make_framework(
     method: str, cfg: ModelConfig, seed: int, r1: float = 0.5, r2: float = 0.2,
     mechanism: str = DEFAULT_MECHANISM,
+    tritr_alpha: float = 0.0,
 ):
-    """Instantiate the agent-based method by its paper name."""
+    """Instantiate the agent-based method by its paper name (TriTR: NAM-DPRD in the PSC pipeline)."""
     if method == "Naive":
         return NaiveFramework(cfg, seed=seed)
     if method == "Naive+REFINED":
@@ -129,6 +130,8 @@ def make_framework(
         return PSCFramework(cfg, seed=seed, gs_optimization=True, r1=r1, r2=r2, mechanism=mechanism)
     if method == "PSC-B":
         return PSCFramework(cfg, seed=seed, gs_optimization=False, r1=r1, r2=r2, mechanism=mechanism)
+    if method == "TriTR":
+        return PSCFramework(cfg, seed=seed, r1=r1, r2=r2, mechanism=mechanism, tritr_alpha=tritr_alpha)
     if method == "PSC-noDP":
         return PSCFramework(cfg, seed=seed, dp=False, mechanism=mechanism)
     if method in ("RAW", "REFINED"):
@@ -337,6 +340,7 @@ async def run_agent_experiment(
     verbose: bool = False,
     mechanism: str = DEFAULT_MECHANISM,
     on_result: Callable[[dict], None] | None = None,
+    tritr_alpha: float = 0.0,
 ) -> tuple[list[dict], list[dict]]:
     """Return ``(summary rows, per-run rows)``.
 
@@ -362,7 +366,7 @@ async def run_agent_experiment(
     # All frameworks are built before any run starts: each one resets the
     # class-wide node-agent semaphore, which in-flight runs must share.
     cells = [
-        (ds, task, eps, method, make_framework(method, cfg, seed, r1, r2, profile.name), n_runs_of(method))
+        (ds, task, eps, method, make_framework(method, cfg, seed, r1, r2, profile.name, tritr_alpha), n_runs_of(method))
         for ds in datasets
         for task in tasks
         for eps in eps_values
@@ -384,7 +388,8 @@ async def run_agent_experiment(
             nonlocal done
             async with limiter:
                 res = await run_agent_once(fw, loaded[ds][task], eps, i, n, run_rng(seed, i), emit if verbose else None)
-            res.extra.update(run=i + 1, seed=seed, rng_recipe="default_rng([seed, run-1])", mechanism=profile.name)
+            res.extra.update(run=i + 1, seed=seed, rng_recipe="default_rng([seed, run-1])")
+            res.extra.setdefault("mechanism", profile.name)
             if on_result is not None:
                 on_result(res.to_dict())
             done += 1
@@ -416,7 +421,7 @@ async def run_agent_experiment(
                         [r.estimate for r in results], rec.answer, rec.vertex_num,
                         paper_value(task, method, ds) if eps in (0.0, 2.0) else None,
                     ),
-                    "mechanism": profile.name,
+                    "mechanism": results[0].extra["mechanism"],
                     "seed": seed,
                     "llm_calls_per_run": float(np.mean([r.llm_calls for r in results])),
                     "parse_failures": int(sum(r.parse_failures for r in results)),

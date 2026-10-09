@@ -243,3 +243,37 @@ def test_ground_truth_runner_labels_tritr_rows():
     assert math.isclose(rows[0]["avg_relative_error"], rows[1]["avg_relative_error"])
     with pytest.raises(ValueError):
         run_ground_truth(Path(__file__).resolve().parents[1] / "data", ["CU"], ["degree"], [2.0], 1, methods=["GT-X"])
+
+
+def test_agent_tritr_is_exact_without_noise_and_matches_node_rules():
+    g = _random_graph(12, .45, 9)
+    fw = PSCFramework(ModelConfig(provider="mock"), tritr_alpha=.5)
+    assert fw.name == "TriTR" and fw.mechanism_label == "tritr_alpha0.5"
+    for task in ("degree", "2-star", "3-star", "triangle"):
+        res = asyncio.run(fw.run(record(g, task), 6000.0, np.random.default_rng(1)))
+        v = res.extra["validation"]
+        assert math.isclose(res.estimate, g.ground_truth(task), rel_tol=1e-3)
+        assert v["e2e_exact"] == v["nodes"] and v["rule_estimate"] == pytest.approx(res.estimate)
+        if task == "triangle":
+            assert v["send_exact"] == v["nodes"]
+    with pytest.raises(ValueError):
+        PSCFramework(ModelConfig(provider="mock"), gs_optimization=False, tritr_alpha=0.0)
+
+
+def test_agent_tritr_triangle_report_is_half_the_unbiased_neighbor_sum():
+    g = _random_graph(14, .4, 2)
+    res = asyncio.run(PSCFramework(ModelConfig(provider="mock"), tritr_alpha=1.0).run(
+        record(g, "triangle"), 2.0, np.random.default_rng(4)))
+    trace = res.extra["mechanism_trace"]
+    eps1 = split_budget(2.0, True, True).eps1
+    a_one, a_zero = math.exp(eps1) / math.expm1(eps1), -1 / math.expm1(eps1)
+    checked = 0
+    for i, D in enumerate(trace["node_projection_degrees"]):
+        d = len(g.adj[i])
+        if d > D:
+            continue  # randomly projected list; covered by the exactness test
+        m = trace["raw_counts"][i]  # noisy edges among the neighbors, counted by the node agent
+        expected = (2 * m * a_one + (d * (d - 1) - 2 * m) * a_zero) / 2
+        assert math.isclose(trace["noisy_counts"][i] - trace["report_noise"][i], expected, rel_tol=1e-9, abs_tol=1e-9)
+        checked += 1
+    assert checked > 3

@@ -19,6 +19,10 @@ degree 和 triangle 的机制保持原有行为。此配置是按论文公开描
 # 正式运行：沿用 config.toml 的 hy3-ioa 与 .env 中的连接配置
 .venv/bin/python scripts/run_experiments.py --exp pilot --provider openai --datasets CU,Do --runs 10 --mechanism floor_tight --tag hy3-ioa_cudo_r10_floor_tight --verbose
 
+# 用 hy3-ioa 单独跑论文的某一个实验（config.hy3.toml；exp1 … exp6，见脚本头部说明）；
+# exp1–exp3 默认加跑智能体版 TriTR，并附 1000 次的 GT-PSC / GT-TriTR（WITH_TRITR=0、GT_RUNS=0 关闭）
+bash scripts/run_hy3.sh exp3 --datasets CU,Do --verbose
+
 # 纯 Python 的三种 GT 方法，每个数据集/任务/方法各 10 次
 .venv/bin/python scripts/run_ground_truth.py --datasets CU,Do --runs 10 --mechanism floor_tight --trace --tag cudo_gt_r10_floor_tight
 ```
@@ -238,6 +242,13 @@ C(min(dᵢ, ⌊d̃ᵢ⌋), k) + Lap(C(⌊d̃ᵢ⌋−1, k−1)/ε₃)；degree �
 默认参数为 PSC 的预算拆分、α = 0，输出端与 PSC 一样把负数截断为 0。可用 `--tritr-alpha` 调整 α
 （上游取 150），`--tritr-budget nam` 改用 TriTR 的 0.1 / 0.45 / 0.45 拆分。
 结果见 `results/ground_truth/all6_r1000_psc_vs_tritr_a0_20261009/` 与 `all6_r1000_tritr_*_20261009/`。
+
+智能体版 `TriTR`（`run_experiments.py --with-tritr`，用于 exp1–exp3）只替换隐私控制器中的 DP 框架
+（`PrivacyController.tritr_prepare`）：curator 和节点仍执行 PSC 的 send / update / aggregate 规则。
+triangle 节点基于投影后的真实邻居表，读取这些邻居在公开带噪图中的行，按附录 E 规则数出邻居之间的带噪边数 m。
+随后本地服务器把 m 换算为无偏值 a·m − b·C(d′, 2)，即 Σ Â_jk / 2，加 Lap(κ·d̃ᵢ/ε₃) 噪声，
+因此聚合规则仍是"总和除以 3"。mock 下与 GT-TriTR 分布一致，节点、发送、聚合正确率均为 1。
+`--gt-runs N` 在同一张表中附上 N 次纯代码 GT-PSC（exp3 另加 GT-PSC-B）和 GT-TriTR。
 
 ### 智能体版（AgentScope，mock 模型，10 次）
 
