@@ -26,7 +26,7 @@ from psc.dp import (  # noqa: E402
 from psc.framework import NaiveFramework, PSCFramework  # noqa: E402
 from psc.graph import Graph, TaskRecord, task_prompt  # noqa: E402
 from psc.ground_truth import gt_psc, relative_error  # noqa: E402
-from psc.models import ModelConfig  # noqa: E402
+from psc.models import ModelConfig, create_model  # noqa: E402
 
 
 def _toy_graph() -> Graph:
@@ -381,6 +381,18 @@ def test_model_config_from_env_file_and_config_file():
                 assert "node_modle" in str(e)
             else:
                 raise AssertionError("typo in config file must be rejected")
+
+            # per-role tables override [provider.extra] key by key
+            conf.write_text(
+                'provider = "openai"\n[openai.extra]\nmax_tokens = 10\nextra_body = { a = 1 }\n'
+                '[openai.curator_extra]\ntemperature = 0.6\nextra_body = { b = 2 }\n',
+            )
+            cfg = ModelConfig.from_env(config_path=conf, env_path=env)
+            assert cfg.role_extra("node") == {"max_tokens": 10, "extra_body": {"a": 1}}
+            assert cfg.role_extra("curator") == {"max_tokens": 10, "extra_body": {"b": 2}, "temperature": 0.6}
+            curator = create_model(cfg, "curator")
+            assert curator.generate_kwargs["temperature"] == 0.6
+            assert create_model(cfg, "node").generate_kwargs["temperature"] == 0.0
     finally:
         for k, v in saved.items():
             os.environ.pop(k, None)

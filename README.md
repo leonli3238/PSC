@@ -106,7 +106,7 @@ python scripts/run_experiments.py --exp exp6 --runs 10                 # 附录 
 | 文件 | 内容 |
 |---|---|
 | `.env` | `OPENAI_API_KEY`、`OPENAI_BASE_URL`（留空即官方 API）、`DASHSCOPE_API_KEY`、`OLLAMA_HOST` |
-| `config.toml` | 默认 `provider`、`temperature`、`max_concurrency`、`parallel_runs`、`stream`、`max_retries`、`retry_backoff`，以及每个 provider 的 `node_model` / `curator_model`（隐私控制器复用 curator 模型）；只接受流式请求的网关需设 `stream = true` |
+| `config.toml` | 默认 `provider`、`temperature`、`max_concurrency`、`parallel_runs`、`stream`、`max_retries`、`retry_backoff`，以及每个 provider 的 `node_model` / `curator_model`（隐私控制器复用 curator 模型）；只接受流式请求的网关需设 `stream = true`；`[<provider>.extra]` 为附加请求参数，`[<provider>.node_extra]` / `[<provider>.curator_extra]` 按角色覆盖其中的顶层键（示例见 `config.vllm-think.toml`） |
 
 优先级：命令行参数 > 环境变量（`PSC_PROVIDER`、`OLLAMA_MODEL`；已设置的环境变量也优先于 `.env`）> `config.toml` > 内置默认值。
 `--config path/to/other.toml`（或 `PSC_CONFIG`）可切换配置文件。

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vLLM server for the node agents: Qwen3-8B, one data-parallel replica per GPU.
-# Run on the GPU host:  bash scripts/serve_node_qwen3_8b.sh
-# Override e.g.:        GPUS=0,1,2,3 PORT=8000 MODEL_PATH=/models/Qwen3-8B bash scripts/serve_node_qwen3_8b.sh
+# Run on the GPU host:  bash scripts/serve_node.sh
+# Override e.g.:        GPUS=0,1,2,3 PORT=8000 MODEL_PATH=/models/Qwen3-8B bash scripts/serve_node.sh
 # The served name must match node_model in config.vllm.toml; the URL goes in
 # VLLM_NODE_BASE_URL of .env (http://<host>:$PORT/v1).
 set -euo pipefail

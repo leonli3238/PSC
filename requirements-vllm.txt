@@ -1,0 +1,7 @@
+# Self-hosted model servers (scripts/serve_node.sh, scripts/serve_curator.sh).
+# Install into a separate environment from requirements.txt, e.g. ~/venvs/vllm.
+# Pinned for NVIDIA drivers that only support CUDA 12.4: newer vLLM wheels need a newer driver.
+vllm==0.8.5.post1
+torch==2.6.0              # PyPI build is cu124
+transformers==4.51.3      # 4.52+ / 5.x drop all_special_tokens_extended, which vLLM 0.8.5 still uses
+modelscope                # model download only

@@ -1,0 +1,30 @@
+# config.vllm.toml with the curator (and privacy controller) in thinking mode;
+# node agents stay non-thinking. The curator server needs the reasoning parser
+# and a longer context, see scripts/serve_curator.sh.
+# Usage: CONFIG=config.vllm-think.toml PREFIX=qwen3-8b+32b-think bash scripts/run_all_vllm.sh
+
+provider = "vllm"
+temperature = 0.0     # paper: 0; the curator overrides it below
+max_concurrency = 64
+parallel_runs = 16
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-8B"
+curator_model = "Qwen3-32B"
+
+[vllm.extra]
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+max_tokens = 4096
+
+[vllm.curator_extra]
+# Replaces extra_body of [vllm.extra] as a whole
+extra_body = { chat_template_kwargs = { enable_thinking = true }, top_k = 20, min_p = 0.0 }
+# Qwen3 thinking-mode sampling; greedy decoding tends to loop in long reasoning
+temperature = 0.6
+top_p = 0.95
+# Prompt + max_tokens must fit the curator's --max-model-len (65536): the longest
+# prompts (exp6 Naive+REFINED on EE) are ~32.5k tokens
+max_tokens = 24576

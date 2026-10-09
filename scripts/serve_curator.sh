@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 # vLLM server for the curator agent / privacy controller (also the Naive answer):
 # Qwen3-32B, tensor parallel over the given GPUs.
-# Run on the GPU host:  bash scripts/serve_curator_qwen3_32b.sh
-# Override e.g.:        GPUS=2,3 PORT=8001 MODEL_PATH=/models/Qwen3-32B bash scripts/serve_curator_qwen3_32b.sh
+# Run on the GPU host:  bash scripts/serve_curator.sh
+# Override e.g.:        GPUS=2,3 PORT=8001 MODEL_PATH=/models/Qwen3-32B bash scripts/serve_curator.sh
+# Extra arguments are passed to vllm serve, e.g. for config.vllm-think.toml:
+#   MAX_MODEL_LEN=65536 bash scripts/serve_curator.sh --enable-reasoning --reasoning-parser deepseek_r1 \
+#     --rope-scaling '{"rope_type":"yarn","factor":2.0,"original_max_position_embeddings":32768}'
 # The served name must match curator_model in config.vllm.toml; the URL goes in
 # VLLM_CURATOR_BASE_URL of .env (http://<host>:$PORT/v1).
 set -euo pipefail
@@ -43,4 +46,5 @@ exec vllm serve "$MODEL_PATH" \
   --max-model-len "$MAX_MODEL_LEN" \
   --enable-prefix-caching \
   --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION" \
-  --host "$HOST" --port "$PORT"
+  --host "$HOST" --port "$PORT" \
+  "$@"

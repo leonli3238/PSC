@@ -283,7 +283,7 @@ def main() -> None:
         "temperature": cfg.temperature, "stream": cfg.stream, "parallel_runs": cfg.parallel_runs,
         "max_concurrency": cfg.max_concurrency, "max_retries": cfg.max_retries,
         "retry_backoff": cfg.retry_backoff, "structured_input": cfg.use_structured_input,
-        "node_base_url": cfg.endpoint("node"), "curator_base_url": cfg.endpoint("curator"), "extra": cfg.extra,
+        "node_base_url": cfg.endpoint("node"), "curator_base_url": cfg.endpoint("curator"), "extra": cfg.extra, "node_extra": cfg.node_extra, "curator_extra": cfg.curator_extra,
         "with_nodp": args.with_nodp,
         "rng_recipe": "default_rng([seed, run-1]); DP draws consumed sequentially within each run",
     })

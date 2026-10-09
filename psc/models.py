@@ -68,6 +68,12 @@ class ModelConfig:
     max_retries: int = 4
     retry_backoff: float = 5.0
     extra: dict = field(default_factory=dict)
+    # Per-role overrides merged over ``extra`` (top-level keys replace, e.g. extra_body)
+    node_extra: dict = field(default_factory=dict)
+    curator_extra: dict = field(default_factory=dict)
+
+    def role_extra(self, role: str) -> dict:
+        return {**self.extra, **(self.node_extra if role == "node" else self.curator_extra)}
 
     @property
     def use_structured_input(self) -> bool:
@@ -139,8 +145,9 @@ _CONFIG_KEYS = frozenset(
     },
 )
 # Only allowed inside a provider section: extra request parameters merged into
-# every chat call, e.g. [openai.extra] extra_body = {...}
-_SECTION_ONLY_KEYS = frozenset({"extra"})
+# every chat call, e.g. [openai.extra] extra_body = {...}, and per-role
+# overrides [openai.node_extra] / [openai.curator_extra]
+_SECTION_ONLY_KEYS = frozenset({"extra", "node_extra", "curator_extra"})
 
 
 def load_config_file(path: str | Path) -> dict:
@@ -157,8 +164,9 @@ def load_config_file(path: str | Path) -> dict:
             if key not in PROVIDERS:
                 raise ValueError(f"{path}: unknown provider section [{key}]; choose from {PROVIDERS}")
             bad = set(value) - _CONFIG_KEYS - _SECTION_ONLY_KEYS
-            if "extra" in value and not isinstance(value["extra"], dict):
-                raise ValueError(f"{path}: [{key}.extra] must be a table")
+            for table in _SECTION_ONLY_KEYS & set(value):
+                if not isinstance(value[table], dict):
+                    raise ValueError(f"{path}: [{key}.{table}] must be a table")
         else:
             bad = {key} - _CONFIG_KEYS
         if bad:
@@ -177,6 +185,7 @@ def create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
 
 def _create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
     name = cfg.node_model if role == "node" else cfg.curator_model
+    extra = cfg.role_extra(role)
     if cfg.provider == "mock":
         return MockChatModel(error_rate=cfg.mock_error_rate if role == "node" else 0.0)
     if cfg.provider in ("openai", "vllm"):
@@ -194,7 +203,7 @@ def _create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
             api_key=cfg.api_key,
             stream=cfg.stream,
             client_kwargs=client_kwargs,
-            generate_kwargs={"temperature": cfg.temperature, **cfg.extra},
+            generate_kwargs={"temperature": cfg.temperature, **extra},
         )
     if cfg.provider == "dashscope":
         from agentscope.model import DashScopeChatModel
@@ -206,7 +215,7 @@ def _create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
             api_key=cfg.api_key,
             stream=cfg.stream,
             enable_thinking=False,
-            generate_kwargs={"temperature": cfg.temperature, **cfg.extra},
+            generate_kwargs={"temperature": cfg.temperature, **extra},
         )
     if cfg.provider == "ollama":
         from agentscope.model import OllamaChatModel
@@ -215,7 +224,7 @@ def _create_model(cfg: ModelConfig, role: str) -> ChatModelBase:
             model_name=name,
             stream=cfg.stream,
             host=cfg.base_url,
-            options={"temperature": cfg.temperature, **cfg.extra},
+            options={"temperature": cfg.temperature, **extra},
         )
     raise ValueError(cfg.provider)
 
