@@ -15,7 +15,7 @@ import numpy as np
 from .events import collect_errors, count_errors
 from .framework import NaiveFramework, PSCFramework, RunResult
 from .graph import TASKS, TaskRecord, load_dataset
-from .ground_truth import gt_naive, gt_psc, relative_error
+from .ground_truth import gt_naive, gt_psc, gt_tritr, relative_error
 from .models import ModelConfig
 from .mechanism import DEFAULT_MECHANISM, get_mechanism
 from .progress import llm_progress
@@ -94,6 +94,7 @@ PAPER_TABLE5_REFINED: dict[str, list[float]] = {
 }
 
 NON_DP_METHODS: tuple[str, ...] = ("RAW", "REFINED", "PSC-noDP")
+GT_METHODS: tuple[str, ...] = ("GT-Naive", "GT-PSC", "GT-PSC-B", "GT-TriTR")
 # error kinds after which a model call was retried
 RETRY_KINDS: tuple[str, ...] = ("api_error", "empty_reply")
 ALL_METHODS: tuple[str, ...] = ("Naive", "Naive+REFINED", "PSC", "PSC-B") + NON_DP_METHODS
@@ -170,10 +171,16 @@ def run_ground_truth(
     log: Callable[[str], None] = print,
     mechanism: str = DEFAULT_MECHANISM,
     on_result: Callable[[dict], None] | None = None,
+    tritr_alpha: float = 0.0,
+    tritr_budget: str = "psc",
 ) -> list[dict]:
+    """``mechanism`` selects the PSC profile; GT-TriTR uses ``tritr_alpha`` / ``tritr_budget``."""
     profile = get_mechanism(mechanism)
     if runs < 1:
         raise ValueError("runs must be positive")
+    if set(methods) - set(GT_METHODS):
+        raise ValueError(f"unknown GT methods {sorted(set(methods) - set(GT_METHODS))}")
+    tritr_label = f"tritr_alpha{tritr_alpha:g}_{tritr_budget}"
     rows: list[dict] = []
     for ds in datasets:
         recs = load_dataset(data_dir, ds)
@@ -182,14 +189,15 @@ def run_ground_truth(
             for eps in eps_values:
                 t0 = time.perf_counter()
                 for method in methods:
-                    if method not in ("GT-Naive", "GT-PSC", "GT-PSC-B"):
-                        raise ValueError(method)
+                    label = tritr_label if method == "GT-TriTR" else profile.name
                     rng = np.random.default_rng(seed)
                     ests = []
                     for i in range(runs):
                         trace = None
                         if method == "GT-Naive":
                             estimate = gt_naive(g, task, eps, rng)
+                        elif method == "GT-TriTR":
+                            estimate = gt_tritr(g, task, eps, rng, tritr_alpha, tritr_budget, r1, r2)
                         else:
                             result = gt_psc(
                                 g, task, eps, rng, gs_optimization=method != "GT-PSC-B",
@@ -204,7 +212,7 @@ def run_ground_truth(
                         if on_result is not None:
                             on_result({
                                 "method": method, "dataset": ds, "task": task, "eps": eps,
-                                "run": i + 1, "seed": seed, "mechanism": profile.name,
+                                "run": i + 1, "seed": seed, "mechanism": label,
                                 "estimate": estimate, "truth": g.ground_truth(task),
                                 "relative_error": relative_error(estimate, g.ground_truth(task), g.n),
                                 "trace": trace.audit_dict() if trace else None,
@@ -222,7 +230,7 @@ def run_ground_truth(
                             "std_estimate": float(np.std(ests)),
                             **error_statistics(ests, g.ground_truth(task), g.n, paper),
                             "paper": paper,
-                            "mechanism": profile.name,
+                            "mechanism": label,
                             "seed": seed,
                             "rng_recipe": "default_rng(seed), sequential per cell",
                             "r1": r1,

@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from psc.dp import laplace_noise, split_budget
 from psc.framework import PSCFramework
 from psc.graph import Graph, TaskRecord, task_prompt
-from psc.ground_truth import gt_psc
+from psc.experiments import run_ground_truth
+from psc.ground_truth import TRITR_BUDGETS, gt_psc, gt_tritr, tritr_budget
 from psc.library import get_dp_framework
 from psc.mechanism import MECHANISMS, get_mechanism
 from psc.models import ModelConfig
@@ -199,3 +200,46 @@ def test_zero_degree_bound_produces_constant_zero_count():
         trace=gt_psc(g,task,2,AllNegativeDegreeNoise(),mechanism="floor_tight",return_trace=True)
         assert trace.d_hat_max==0 and trace.sensitivity==0 and trace.result==0
         assert trace.raw_counts==trace.noisy_counts==[0.0]*g.n
+
+
+def _random_graph(n, p, seed):
+    rng = np.random.default_rng(seed)
+    return Graph.from_edges(n, [(u, v) for u in range(n) for v in range(u + 1, n) if rng.random() < p])
+
+
+@pytest.mark.parametrize("budget", TRITR_BUDGETS)
+def test_tritr_budget_sums_to_eps_and_tritr_is_exact_without_noise(budget):
+    g = _random_graph(14, .4, 3)
+    for task in ("degree", "2-star", "3-star", "triangle"):
+        assert math.isclose(tritr_budget(2.0, task, budget).total, 2.0)
+        # alpha = 0.5 keeps floor(d~_i) = d_i once the degree noise is negligible
+        est = gt_tritr(g, task, 6000.0, np.random.default_rng(0), alpha=.5, budget=budget, clamp=False)
+        assert math.isclose(est, g.ground_truth(task), rel_tol=1e-3)
+    assert tritr_budget(2.0, "triangle", "nam").as_tuple() == pytest.approx((.9, .2, .9))
+
+
+def test_tritr_triangle_estimate_is_unbiased_without_projection():
+    g = _random_graph(16, .45, 5)
+    rng = np.random.default_rng(11)
+    ests = np.array([gt_tritr(g, "triangle", 4.0, rng, alpha=g.n, clamp=False) for _ in range(4000)])
+    assert abs(ests.mean() - g.ground_truth("triangle")) < 4 * ests.std() / math.sqrt(len(ests))
+
+
+def test_tritr_degree_coincides_with_gt_psc():
+    g = _random_graph(20, .3, 7)
+    for seed in range(5):
+        a = gt_tritr(g, "degree", 2.0, np.random.default_rng(seed), alpha=3.0)
+        b = gt_psc(g, "degree", 2.0, np.random.default_rng(seed), mechanism="floor_tight")
+        assert math.isclose(a, b, rel_tol=1e-12)
+
+
+def test_ground_truth_runner_labels_tritr_rows():
+    rows = run_ground_truth(Path(__file__).resolve().parents[1] / "data", ["CU"], ["degree", "triangle"], [2.0], 3,
+                            methods=["GT-PSC", "GT-TriTR"], log=lambda _: None, tritr_alpha=2.0)
+    assert [(r["task"], r["method"], r["mechanism"]) for r in rows] == [
+        ("degree", "GT-PSC", "floor_tight"), ("degree", "GT-TriTR", "tritr_alpha2_psc"),
+        ("triangle", "GT-PSC", "floor_tight"), ("triangle", "GT-TriTR", "tritr_alpha2_psc"),
+    ]
+    assert math.isclose(rows[0]["avg_relative_error"], rows[1]["avg_relative_error"])
+    with pytest.raises(ValueError):
+        run_ground_truth(Path(__file__).resolve().parents[1] / "data", ["CU"], ["degree"], [2.0], 1, methods=["GT-X"])

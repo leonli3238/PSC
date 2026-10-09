@@ -1,4 +1,4 @@
-"""Compute GT-Naive / GT-PSC / GT-PSC-B (pure-Python DP algorithms).
+"""Compute GT-Naive / GT-PSC / GT-PSC-B / GT-TriTR (pure-Python DP algorithms).
 
 The paper executes each Python algorithm 1,000 times and reports the average
 relative error (Section 4.1).
@@ -10,6 +10,9 @@ Examples::
 
     # Exp2: vary eps on CU and Do
     python scripts/run_ground_truth.py --datasets CU,Do --eps 1.0,1.5,2.0,2.5,3.0 --tag exp2
+
+    # PSC vs NAM-DPRD TriTR (and its per-node extension to degree / k-star)
+    python scripts/run_ground_truth.py --tasks degree,2-star,3-star,triangle --methods GT-PSC,GT-TriTR
 """
 
 from __future__ import annotations
@@ -22,12 +25,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from psc.experiments import (  # noqa: E402
     DATASETS,
+    GT_METHODS,
     generic_markdown,
     run_ground_truth,
     save_results,
     table2_markdown,
 )
 from psc.graph import DEFAULT_TASKS, TASKS  # noqa: E402
+from psc.ground_truth import TRITR_BUDGETS  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.artifacts import append_run, new_run_directory, write_manifest  # noqa: E402
 
@@ -43,7 +48,10 @@ def main() -> None:
     ap.add_argument("--mechanism", choices=MECHANISMS, default=DEFAULT_MECHANISM)
     ap.add_argument("--trace", action="store_true", help="save per-run estimates, degree reports and count noise to runs.jsonl")
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--methods", default="GT-Naive,GT-PSC,GT-PSC-B")
+    ap.add_argument("--methods", default="GT-Naive,GT-PSC,GT-PSC-B", help=f"comma separated, from {','.join(GT_METHODS)}")
+    ap.add_argument("--tritr-alpha", type=float, default=0.0, help="GT-TriTR: added to every noisy degree (NAM-DPRD uses 150)")
+    ap.add_argument("--tritr-budget", choices=TRITR_BUDGETS, default="psc",
+                    help="GT-TriTR: PSC split, or TriTR's 0.1 / 0.45 / 0.45 (projection / RR / Laplace)")
     ap.add_argument("--r1", type=float, default=0.5, help="eps1 = r1 * eps")
     ap.add_argument("--r2", type=float, default=0.2, help="eps2 = r2 * (eps - eps1)")
     ap.add_argument("--tag", default=None, help="new result directory; default includes mechanism and timestamp")
@@ -55,8 +63,10 @@ def main() -> None:
     methods = args.methods.split(",")
     if args.runs < 1 or set(datasets) - set(DATASETS) or set(tasks) - set(TASKS):
         ap.error("positive runs and known datasets/tasks are required")
-    if set(methods) - {"GT-Naive", "GT-PSC", "GT-PSC-B"}:
+    if set(methods) - set(GT_METHODS):
         ap.error("unknown GT method")
+    if args.tritr_alpha < 0:
+        ap.error("--tritr-alpha must be nonnegative")
     try:
         out_dir = new_run_directory(Path(args.out) / "ground_truth", args.tag, f"table2_{args.mechanism}")
     except (FileExistsError, ValueError) as exc:
@@ -64,11 +74,12 @@ def main() -> None:
     write_manifest(out_dir, args.mechanism, args.data, datasets, {
         "datasets": datasets, "tasks": tasks, "methods": methods, "eps": eps_values,
         "runs": args.runs, "seed": args.seed, "r1": args.r1, "r2": args.r2,
+        **({"tritr_alpha": args.tritr_alpha, "tritr_budget": args.tritr_budget} if "GT-TriTR" in methods else {}),
     })
 
     rows = run_ground_truth(
         args.data, datasets, tasks, eps_values, args.runs, args.seed, methods, args.r1, args.r2,
-        mechanism=args.mechanism,
+        mechanism=args.mechanism, tritr_alpha=args.tritr_alpha, tritr_budget=args.tritr_budget,
         on_result=(lambda row: append_run(out_dir / "runs.jsonl", row)) if args.trace else None,
     )
 

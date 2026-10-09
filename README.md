@@ -61,7 +61,7 @@ psc/
   artifacts.py          防覆盖目录、逐次落盘与非敏感实验清单
   library.py            算法库（send/update/aggregate 规则文本，附录 E）与 DP 框架库
   rules.py              规则的代码语义（GT 算法与 Mock 模型共用）
-  ground_truth.py       GT-Naive / GT-PSC / GT-PSC-B 纯 Python 实现 + 相对误差指标
+  ground_truth.py       GT-Naive / GT-PSC / GT-PSC-B / GT-TriTR 纯 Python 实现 + 相对误差指标
   baselines.py          附录 B 单 LLM 基线：RAW / REFINED（含 10 节点 few-shot 示例生成）
   prompts.py            各阶段 prompt 模板（自然语言 + <structured_input> 机器可读块，后者仅发给 mock）
   mock_model.py         离线 ChatModelBase：严格按规则推理的“完美 LLM”，用于无 API 的端到端验证
@@ -91,6 +91,7 @@ pip install -r requirements.txt
 python scripts/prepare_datasets.py            # 下载 + 预处理 6 个数据集
 python -m pytest tests -q                      # 单元测试
 python scripts/run_ground_truth.py --runs 1000 # Table 2 的 GT 列
+python scripts/run_ground_truth.py --tasks degree,2-star,3-star,triangle --methods GT-PSC,GT-TriTR  # 对照 TriTR
 python scripts/run_experiments.py --exp exp1 --runs 10                 # 离线 mock 模型
 python scripts/run_experiments.py --exp exp2 --runs 10                 # 变化 ε
 python scripts/run_experiments.py --exp exp3 --runs 10                 # PSC vs PSC-B
@@ -225,6 +226,18 @@ GT-Naive 24 个单元格与论文偏差均 < 1%，GT-PSC 的 degree / triangle �
 （triangle 采用附录 E 的 `degree-1` 灵敏度后 Avg 0.8833 vs 论文 0.8737）；
 k-star 的历史 GT-PSC 存在持续差距，特别是 2-star；仅用 ceil 更保守不能解释全部差距。
 当前候选比较和确认结果保存在 `results/alignment/`。历史 GT-PSC-B、Exp2、Exp3、Exp4 见 `results/`。
+
+### 对照：NAM-DPRD 的 TriTR（纯 Python，1000 次）
+
+`GT-TriTR`（`psc.ground_truth.gt_tritr`）的 triangle 部分是 NAM-DPRD 的 TriTR：每个用户发布
+d̃ᵢ = max(dᵢ + Lap(1/ε₂), 0) + α，并把自己的邻居表投影到 ⌊d̃ᵢ⌋；随后对投影后邻居表的上三角位做 RR，
+得到无偏矩阵 Â；用户 i 上报 Σ_{j,k∈N′(i)} clip(Â_jk, ±κ) + Lap(2κ·d̃ᵢ/ε₃)，总和除以 6。
+上游代码在原始邻居表上求和，当 dᵢ > d̃ᵢ 时 2κ·d̃ᵢ 的灵敏度不成立，所以本实现改在投影后的表上求和。
+degree / 2-star / 3-star 是同一框架的**扩展，并非原论文算法**：k-star 上报
+C(min(dᵢ, ⌊d̃ᵢ⌋), k) + Lap(C(⌊d̃ᵢ⌋−1, k−1)/ε₃)；degree 不投影，与 GT-PSC 逐位相同。
+默认参数为 PSC 的预算拆分、α = 0，输出端与 PSC 一样把负数截断为 0。可用 `--tritr-alpha` 调整 α
+（上游取 150），`--tritr-budget nam` 改用 TriTR 的 0.1 / 0.45 / 0.45 拆分。
+结果见 `results/ground_truth/all6_r1000_psc_vs_tritr_a0_20261009/` 与 `all6_r1000_tritr_*_20261009/`。
 
 ### 智能体版（AgentScope，mock 模型，10 次）
 
