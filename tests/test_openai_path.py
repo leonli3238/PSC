@@ -22,6 +22,7 @@ from psc.framework import NaiveFramework, PSCFramework  # noqa: E402
 from psc.graph import Graph, TaskRecord, task_prompt  # noqa: E402
 from psc.mock_model import MockChatModel  # noqa: E402
 from psc.models import ModelConfig  # noqa: E402
+from psc.prompts import NO_REASONING_INSTRUCTION  # noqa: E402
 
 
 GARBAGE = "gateway busy, please retry later. " * 200  # an unparseable reply longer than any short log cut
@@ -180,6 +181,87 @@ def test_exhausted_retries_and_parse_failures_keep_full_reply(tmp_path):
         assert [x["kind"] for x in lines] == [e["kind"] for e in errors]
     finally:
         set_error_sink(None)
+        server.shutdown()
+
+
+class _RecordingHandler(BaseHTTPRequestHandler):
+    """Records every request and answers with a fixed reply (real-model path, no structured block)."""
+    requests: list[dict] = []
+    reply = '```json\n{"task": "triangle"}\n```\nCounting the triangles gives a total of 2.'
+
+    def log_message(self, *args):  # silence
+        pass
+
+    def do_POST(self):  # noqa: N802
+        body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+        self.requests.append(body)
+        data = _sse(self.reply, body.get("model", "stub"))
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+
+def _text(content) -> str:
+    return content if isinstance(content, str) else "".join(b.get("text", "") for b in content)
+
+
+def test_paper_naive_prompt_sends_only_the_paper_prompt():
+    for style in ("default", "paper", "paper-direct"):
+        handler = type("_R", (_RecordingHandler,), {"requests": []})
+        server = HTTPServer(("127.0.0.1", 0), handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            cfg = ModelConfig(
+                provider="openai", api_key="sk-test", base_url=f"http://127.0.0.1:{server.server_address[1]}/v1",
+                stream=True, structured_input=False, retry_backoff=0.0,
+            )
+            rec = _toy_record()
+            nv = asyncio.run(NaiveFramework(cfg, seed=0, naive_prompt=style).run(rec, eps=1e6))
+            assert nv.estimate == 2.0 and nv.extra["reply"] == _RecordingHandler.reply
+            answer = [r["messages"] for r in handler.requests if "The edges are:" in _text(r["messages"][-1]["content"])]
+            assert len(answer) == 1
+            roles = [m["role"] for m in answer[0]]
+            user = _text(answer[0][-1]["content"])
+            assert "<structured_input>" not in user
+            if style != "default":
+                assert roles == ["user"]
+                assert user.startswith(rec.input_prompt.split(" Q:")[0])
+                tail = "" if style == "paper" else f"\n\n{NO_REASONING_INSTRUCTION}"
+                assert user.endswith(f"What is the total number of triangles in the graph?{tail}")
+            else:
+                assert roles == ["system", "user"] and "Think step by step" in user
+        finally:
+            server.shutdown()
+
+
+def test_transcripts_record_every_call_with_agent_and_phase(tmp_path):
+    from psc.events import set_transcript_sink
+
+    sink = tmp_path / "transcripts.jsonl"
+    set_transcript_sink(sink)
+    server, base_url = _serve()
+    try:
+        rec = _toy_record()
+        with collect_errors(method="PSC", run=1):
+            psc = asyncio.run(PSCFramework(_stub_cfg(base_url), seed=0).run(rec, eps=1e6))
+        with collect_errors(method="Naive", run=1):
+            nv = asyncio.run(NaiveFramework(_stub_cfg(base_url), seed=0).run(rec, eps=1e6))
+        calls = [json.loads(x) for x in sink.read_text(encoding="utf-8").splitlines()]
+        assert len(calls) == psc.llm_calls + nv.llm_calls
+        psc_calls = [c for c in calls if c["method"] == "PSC"]
+        phases = [(c["agent"], c["phase"]) for c in psc_calls]
+        n = rec.vertex_num
+        assert phases.count(("PrivacyController", "select")) == 1 and ("Curator", "design") in phases
+        assert sum(p == "send" for _, p in phases) == n and sum(p == "update" for _, p in phases) == n
+        assert ("Curator", "aggregate") in phases
+        assert all(a.startswith("Node-") for a, p in phases if p in ("send", "update"))
+        answer = [c for c in calls if c["method"] == "Naive" and c["phase"] == "answer"]
+        assert len(answer) == 1 and answer[0]["reply"] == nv.extra["reply"] and "The edges are:" in answer[0]["user"]
+        assert all(c["model"] and c["system"] and c["reply"] and c["attempts"] == 1 for c in calls)
+    finally:
+        set_transcript_sink(None)
         server.shutdown()
 
 

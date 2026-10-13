@@ -8,3 +8,5 @@ data/raw/
 data/models/
 results/**/runs.json
 .env
+.env.*
+!.env.example

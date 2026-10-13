@@ -1,0 +1,1009 @@
+2026-10-07 03:56:19,049 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-2565' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 03:56:19,051 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-2566' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 03:56:19,052 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-2567' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 03:56:19,052 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-2568' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:05:00,926 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-5987' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:05:00,927 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-5988' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:05:00,927 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-5989' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:05:00,928 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-5990' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:12:55,979 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-8660' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:12:55,979 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-8661' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:12:55,980 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-8662' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:12:55,981 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-8663' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:18:14,863 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-10206' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:18:14,863 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-10207' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:18:14,864 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-10208' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:18:14,864 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-10209' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:18:33,929 WARNING psc.errors: [api_error] dataset=CU task=triangle method=PSC run=4 APITimeoutError: Request timed out.
+2026-10-07 04:22:36,493 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-12753' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:22:36,493 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-12754' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:22:36,494 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-12755' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:22:36,495 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-12756' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:29:54,116 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-15300' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:29:54,117 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-15301' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:29:54,117 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-15302' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:29:54,118 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-15303' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:36:47,698 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-17847' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:36:47,698 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-17848' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:36:47,699 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-17849' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:36:47,699 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-17850' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:42:46,490 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-20941' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:42:46,491 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-20942' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:42:46,492 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-20943' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:42:46,492 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-20944' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:49:16,809 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-23942' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:49:16,810 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-23943' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:49:16,810 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-23944' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed
+2026-10-07 04:49:16,811 ERROR asyncio: Task exception was never retrieved
+future: <Task finished name='Task-23945' coro=<AsyncClient.aclose() done, defined at /root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py:2198> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last):
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_client.py", line 2208, in aclose
+    await proxy.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpx2/_transports/default.py", line 400, in aclose
+    await self._pool.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 382, in aclose
+    await self._close_connections(closing_connections)
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection_pool.py", line 374, in _close_connections
+    await connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http_proxy.py", line 202, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/connection.py", line 157, in aclose
+    await self._connection.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_async/http11.py", line 236, in aclose
+    await self._network_stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/httpcore2/_backends/anyio.py", line 55, in aclose
+    await self._stream.aclose()
+  File "/root/venvs/psc/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 1467, in aclose
+    self._transport.close()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/selector_events.py", line 860, in close
+    self._loop.call_soon(self._call_connection_lost, None)
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 761, in call_soon
+    self._check_closed()
+  File "/root/anaconda3/envs/py311/lib/python3.11/asyncio/base_events.py", line 519, in _check_closed
+    raise RuntimeError('Event loop is closed')
+RuntimeError: Event loop is closed

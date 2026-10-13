@@ -1,0 +1,86 @@
+{
+  "created_utc": "2026-10-06T20:54:47.231632+00:00",
+  "python": "3.11.6",
+  "mechanism": {
+    "name": "floor_tight",
+    "rounding": "floor",
+    "gs_mode": "tight",
+    "physical_cap": true,
+    "base_bound": "n_minus_one",
+    "description": "Floor projection with the tight sensitivity C(D-1,k-1) of clipped degree counts.",
+    "node_margin": []
+  },
+  "settings": {
+    "experiment": "exp5",
+    "datasets": [
+      "CU",
+      "Do",
+      "ML",
+      "CS",
+      "EE"
+    ],
+    "tasks": [
+      "degree",
+      "triangle",
+      "3-star"
+    ],
+    "runs": 10,
+    "seed": 0,
+    "provider": "vllm",
+    "node_model": "Qwen3-8B",
+    "curator_model": "Qwen3-32B",
+    "temperature": 0.0,
+    "stream": false,
+    "parallel_runs": 16,
+    "max_concurrency": 64,
+    "max_retries": 4,
+    "retry_backoff": 5.0,
+    "structured_input": false,
+    "node_base_url": "http://29.163.240.76:8000/v1",
+    "curator_base_url": "http://29.163.240.76:8001/v1",
+    "extra": {
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "max_tokens": 4096
+    },
+    "with_nodp": false,
+    "rng_recipe": "default_rng([seed, run-1]); DP draws consumed sequentially within each run"
+  },
+  "sha256": {
+    "/cfs_data/leonlanli/temp/PSC/psc/__init__.py": "6f26c74987168b554031ebe22390b7c847f2f5f05d82de1a8a04d268351bbcfe",
+    "/cfs_data/leonlanli/temp/PSC/psc/agents/__init__.py": "0d21c5abfd89aa4377ce6c64cdb0b88e4a66ed49cb55200473056b0fe5ee2495",
+    "/cfs_data/leonlanli/temp/PSC/psc/agents/curator_agent.py": "22781552b0c7c65732698a65d45f5e3164dd73ae724f16ce044c82fa7531eeb0",
+    "/cfs_data/leonlanli/temp/PSC/psc/agents/node_agent.py": "e20f52e1a2dbfb25fdbe83b43176cf9f9fc9107107194df0cff429ada2cb8c3a",
+    "/cfs_data/leonlanli/temp/PSC/psc/agents/privacy_controller.py": "21a72b522377fbbff865ffe0744515ba86642ce00fc18155a769f6ca0d386ee2",
+    "/cfs_data/leonlanli/temp/PSC/psc/alignment.py": "4c32400f2d76ecc536dbfdf288a6be904e16dc876f57f04cd79a06b7fc7b0546",
+    "/cfs_data/leonlanli/temp/PSC/psc/artifacts.py": "a57f9a94e9bcaf01b5055ea19b5e9878b5ca06c0663617f2ee9e324946fbe2c7",
+    "/cfs_data/leonlanli/temp/PSC/psc/baselines.py": "a3b94dc03bce2e33c2a3c0114dfec3ceedca45312cf3fcc403aa2ebda7d066fb",
+    "/cfs_data/leonlanli/temp/PSC/psc/dp.py": "1eab3342567a9331df83552b3c04b3e6a66d27dcf5fa7ce2d2e5be28dc27d50b",
+    "/cfs_data/leonlanli/temp/PSC/psc/events.py": "066ae8290ffe9df1ace0947f776d162d1c594f5f4363a67ae086bd6a1369cf54",
+    "/cfs_data/leonlanli/temp/PSC/psc/experiments.py": "d80677fcc941b062dc4ed84a13928e6ac4a0df2a29b1b6a5cb15f22f1cad6ff5",
+    "/cfs_data/leonlanli/temp/PSC/psc/framework.py": "4761b75b6ca67b8df06d6662ab6c6b70418e7b874ec0915b5959683359437040",
+    "/cfs_data/leonlanli/temp/PSC/psc/graph.py": "5b9ade1aada581652be0a933144735fa9cc200939a3262852f767d247974ba57",
+    "/cfs_data/leonlanli/temp/PSC/psc/ground_truth.py": "2d42181125f943b11eb967aae3f280b4686050ab9585dcb44d18c266c637ceee",
+    "/cfs_data/leonlanli/temp/PSC/psc/library.py": "c88af59779e670c1b26ae8e27c48548eb1583fe6760f7a21382fa50e0f19d227",
+    "/cfs_data/leonlanli/temp/PSC/psc/mechanism.py": "353fedc91377f658a7996a232f3819c9007548d53e9a44e0f65ca98f2f175de0",
+    "/cfs_data/leonlanli/temp/PSC/psc/mock_model.py": "813c46840c6e5fac00ae9a45e4bf42eda96636dae13fbe856fba148383c5c45b",
+    "/cfs_data/leonlanli/temp/PSC/psc/models.py": "af38a7a5fac28880168e5e5abcb04c4e167a0a2a2740f204c466dc83d90d5a1c",
+    "/cfs_data/leonlanli/temp/PSC/psc/progress.py": "787ce0abd78ca3dbc7a7c97fb901d92c1d1f917ccd5b06e8ea1b537ede06a793",
+    "/cfs_data/leonlanli/temp/PSC/psc/prompts.py": "efc9c22a32fbfa9eff880cb1616efb1b476e8e5da9e79cb75dee808339e5b9b9",
+    "/cfs_data/leonlanli/temp/PSC/psc/rules.py": "f0d6cd0dad19f136494084af543eee6c103639b68bc20e70b1ffee89683fa2bb",
+    "/cfs_data/leonlanli/temp/PSC/scripts/align_gt_psc.py": "d674a056b6d9bbac559f0c441cd2be2654a525f10a46ee48635f74a0715558b2",
+    "/cfs_data/leonlanli/temp/PSC/scripts/merge_runs.py": "77bd114104259333414e181b351c32bc7da13237bfec85c355e4e30bae83229a",
+    "/cfs_data/leonlanli/temp/PSC/scripts/prepare_datasets.py": "fc07bb61a8f49e741cd212dcc37ec5da8c7ce203cc2395c77bca2f6e9dfb92eb",
+    "/cfs_data/leonlanli/temp/PSC/scripts/run_experiments.py": "ab53526e98db22cba45192ca463e7531e88ecc033e470e1159b4038b36438a16",
+    "/cfs_data/leonlanli/temp/PSC/scripts/run_ground_truth.py": "79bf0d66581b740fdc7d8257a77cd25b22304daa5ea239242f49a3f5ae7dd4d9",
+    "/cfs_data/leonlanli/temp/PSC/data/CU.json": "6b56eec066e9e24f254e27aeaf5565d18c7804b19bbf00f13bb3efb0c8e47f57",
+    "/cfs_data/leonlanli/temp/PSC/data/Do.json": "cdd80dbcd6ecf774dfd3cbec930cff703e65c08d288ec07852c7561786d545a5",
+    "/cfs_data/leonlanli/temp/PSC/data/ML.json": "5e74f30d1c682bef02cf1d4c87a33d186f92b36ea30a26c9f1aa197726ca58db",
+    "/cfs_data/leonlanli/temp/PSC/data/CS.json": "944d220dcbd9338da2331daaa08322ae4785ba11db4e8ed58de91b368b3d49c1",
+    "/cfs_data/leonlanli/temp/PSC/data/EE.json": "9096e3e3f12288a42523b59fa953c9167c6fdf1fa789cce8884ff8c1eb371431"
+  },
+  "trace_note": "runs.jsonl includes local raw-count diagnostics; keep it in trusted storage."
+}

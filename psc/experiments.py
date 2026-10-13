@@ -120,10 +120,11 @@ def make_framework(
     method: str, cfg: ModelConfig, seed: int, r1: float = 0.5, r2: float = 0.2,
     mechanism: str = DEFAULT_MECHANISM,
     tritr_alpha: float = 0.0,
+    naive_prompt: str = "default",
 ):
     """Instantiate the agent-based method by its paper name (TriTR: NAM-DPRD in the PSC pipeline)."""
     if method == "Naive":
-        return NaiveFramework(cfg, seed=seed)
+        return NaiveFramework(cfg, seed=seed, naive_prompt=naive_prompt)
     if method == "Naive+REFINED":
         return NaiveFramework(cfg, seed=seed, prompt_style="refined")
     if method == "PSC":
@@ -302,17 +303,56 @@ async def run_agent_once(
     return res
 
 
+EXEC_TOLERANCE = 1e-3
+
+
 def validation_summary(results: Sequence[RunResult], n: int) -> dict:
-    """Aggregate the per-run LLM-vs-rule checks of :func:`psc.framework._validate_psc`."""
-    vals = [r.extra["validation"] for r in results if "validation" in r.extra]
-    if not vals:
+    """Aggregate the per-run LLM-vs-rule checks of :func:`psc.framework._validate_psc`.
+
+    With ``d_i = RE_LLM,i - RE_rule,i`` on the same noise and the execution
+    deviation ``E_i = |f_LLM,i - f_rule,i| / max(f, 0.001 n)``:
+
+    * ``delta`` -- Table 6's ``|mean RE_LLM - mean RE_rule|``; a lower bound,
+      ``delta <= delta_per_run <= exec_deviation``, so a small value proves nothing;
+    * ``delta_signed`` / ``se_delta_signed`` -- mean of ``d_i`` and its paired
+      standard error; negative means LLM mistakes lowered the error;
+    * ``exec_exact`` -- share of runs with ``E_i <= EXEC_TOLERANCE``;
+    * ``lucky_gain`` / ``llm_harm`` -- means of ``max(0, -d_i)`` and ``max(0, d_i)``,
+      so ``avg_relative_error = rule_relative_error - lucky_gain + llm_harm``;
+      ``lucky_runs`` / ``harm_runs`` count the runs with ``E_i`` above the tolerance;
+    * ``conservative_relative_error`` / ``optimistic_relative_error`` -- means of
+      ``max`` / ``min`` of the two errors, i.e. without / with every lucky mistake;
+    * ``rule_not_better_than_zero`` -- share of runs where answering 0 is at
+      least as accurate as the perfect pipeline, so under-counting cannot hurt.
+    """
+    pairs = [(r, r.extra["validation"]) for r in results if "validation" in r.extra]
+    if not pairs:
         return {}
+    vals = [v for _, v in pairs]
     out: dict = {"task_acc": float(np.mean([v["task_correct"] for v in vals]))}
-    rule_res = [relative_error(v["rule_estimate"], r.truth, n) for v, r in zip(vals, results)]
-    llm_res = [relative_error(r.estimate, r.truth, n) for r in results]
-    out["rule_relative_error"] = float(np.mean(rule_res))
-    # Delta of Table 6: |RE_LLM - RE_GT|, here with GT paired on the same noise
-    out["delta"] = abs(float(np.mean(llm_res)) - out["rule_relative_error"])
+    llm_re = np.array([relative_error(r.estimate, r.truth, n) for r, _ in pairs])
+    rule_re = np.array([relative_error(v["rule_estimate"], r.truth, n) for r, v in pairs])
+    zero_re = np.array([relative_error(0.0, r.truth, n) for r, _ in pairs])
+    exec_dev = np.array([abs(r.estimate - v["rule_estimate"]) / max(r.truth, 0.001 * n) for r, v in pairs])
+    diff = llm_re - rule_re
+    off = exec_dev > EXEC_TOLERANCE
+    out["rule_relative_error"] = float(rule_re.mean())
+    out["delta"] = abs(float(llm_re.mean()) - out["rule_relative_error"])
+    out.update(
+        delta_signed=float(diff.mean()),
+        se_delta_signed=float(diff.std(ddof=1) / math.sqrt(len(diff))) if len(diff) > 1 else None,
+        delta_per_run=float(np.abs(diff).mean()),
+        exec_deviation=float(exec_dev.mean()),
+        exec_exact=float(np.mean(~off)),
+        lucky_gain=float(np.clip(-diff, 0, None).mean()),
+        lucky_runs=int((off & (diff < 0)).sum()),
+        llm_harm=float(np.clip(diff, 0, None).mean()),
+        harm_runs=int((off & (diff > 0)).sum()),
+        conservative_relative_error=float(np.maximum(llm_re, rule_re).mean()),
+        optimistic_relative_error=float(np.minimum(llm_re, rule_re).mean()),
+        zero_answer_relative_error=float(zero_re.mean()),
+        rule_not_better_than_zero=float(np.mean(rule_re >= zero_re)),
+    )
     if "nodes" in vals[0]:
         nodes = sum(v["nodes"] for v in vals)
         sent = sum(v["send_checked"] for v in vals)
@@ -341,6 +381,7 @@ async def run_agent_experiment(
     mechanism: str = DEFAULT_MECHANISM,
     on_result: Callable[[dict], None] | None = None,
     tritr_alpha: float = 0.0,
+    naive_prompt: str = "default",
 ) -> tuple[list[dict], list[dict]]:
     """Return ``(summary rows, per-run rows)``.
 
@@ -366,7 +407,7 @@ async def run_agent_experiment(
     # All frameworks are built before any run starts: each one resets the
     # class-wide node-agent semaphore, which in-flight runs must share.
     cells = [
-        (ds, task, eps, method, make_framework(method, cfg, seed, r1, r2, profile.name, tritr_alpha), n_runs_of(method))
+        (ds, task, eps, method, make_framework(method, cfg, seed, r1, r2, profile.name, tritr_alpha, naive_prompt), n_runs_of(method))
         for ds in datasets
         for task in tasks
         for eps in eps_values
@@ -422,6 +463,7 @@ async def run_agent_experiment(
                         paper_value(task, method, ds) if eps in (0.0, 2.0) else None,
                     ),
                     "mechanism": results[0].extra["mechanism"],
+                    **({"naive_prompt": results[0].extra["naive_prompt"]} if "naive_prompt" in results[0].extra else {}),
                     "seed": seed,
                     "llm_calls_per_run": float(np.mean([r.llm_calls for r in results])),
                     "parse_failures": int(sum(r.parse_failures for r in results)),
@@ -487,6 +529,25 @@ def generic_markdown(rows: list[dict], columns: Sequence[str]) -> str:
             cells.append(f"{v:.4f}" if isinstance(v, float) else ("-" if v is None else str(v)))
         out.append("| " + " | ".join(cells) + " |")
     return "\n".join(out)
+
+
+LLM_ERROR_COLUMNS = [
+    "dataset", "task", "eps", "method", "runs", "avg_relative_error", "rule_relative_error",
+    "delta", "delta_signed", "se_delta_signed", "exec_exact", "exec_deviation",
+    "lucky_gain", "lucky_runs", "llm_harm", "harm_runs",
+    "conservative_relative_error", "optimistic_relative_error", "rule_not_better_than_zero",
+]
+
+
+def with_llm_error_table(md: str, rows: list[dict]) -> str:
+    """Append the per-run LLM error decomposition (:func:`validation_summary`) of the agent rows."""
+    agent = [r for r in rows if "delta_signed" in r]
+    if not agent:
+        return md
+    columns = LLM_ERROR_COLUMNS
+    if any("setting" in r for r in agent):
+        columns = ["setting", "r1", "r2", *columns]
+    return f"{md}\n\nLLM error decomposition (same noise, per run):\n\n{generic_markdown(agent, columns)}"
 
 
 def default_tag(cfg: ModelConfig) -> str:

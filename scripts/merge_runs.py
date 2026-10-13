@@ -36,6 +36,7 @@ from psc.experiments import (  # noqa: E402
     save_results,
     table2_markdown,
     validation_summary,
+    with_llm_error_table,
 )
 from psc.framework import RunResult  # noqa: E402
 from psc.graph import TASKS, load_dataset  # noqa: E402
@@ -156,6 +157,7 @@ def main() -> None:
     methods = [m for m in ALL_METHODS if any(k[3] == m for k in cells)]
     eps_values = sorted({k[2] for k in cells if k[3] not in NON_DP_METHODS})
     md = table2_markdown(summary, datasets, methods, eps=eps_values[0] if len(eps_values) == 1 else 2.0)
+    md = with_llm_error_table(md, summary)
     save_results(args.out, summary, [r.to_dict() for rs in cells.values() for r in rs], md)
     save_json({"sources": provenance, "manifests": manifests}, args.out / "merge.json")
     print("\n" + md)

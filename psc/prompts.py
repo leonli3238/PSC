@@ -56,10 +56,74 @@ def extract_json(text: str) -> dict[str, Any] | None:
     return None
 
 
+# "12,300,000" is one number, but "(44,341)" and "114,115,119," are lists of node ids
+_NUMBER = re.compile(
+    r"(?<![\d,(])-?\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\d,)])"
+    r"|-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?",
+)
+_FRAC = re.compile(r"\\[dt]?frac\{\s*(-?[\d.,]+)\s*\}\{\s*(-?[\d.,]+)\s*\}|(-?[\d.]+)\s*/\s*(-?[\d.]+)")
+# the "3" of "3-stars", the "1" of "1-hop"
+_TERM_SUFFIX = re.compile(r"\s*-\s*(?:stars?|hop)", re.I)
+
+
+def _to_float(token: str) -> float:
+    return float(token.replace(",", ""))
+
+
+def _boxed_contents(text: str) -> list[str]:
+    """Contents of every ``\\boxed{...}``, with nested braces."""
+    out = []
+    for m in re.finditer(r"\\boxed\{", text):
+        depth, i = 1, m.end()
+        while i < len(text) and depth:
+            depth += {"{": 1, "}": -1}.get(text[i], 0)
+            i += 1
+        if depth == 0:
+            out.append(text[m.end():i - 1])
+    return out
+
+
+def _numbers(text: str) -> list[str]:
+    return [m.group() for m in _NUMBER.finditer(text) if not _TERM_SUFFIX.match(text, m.end())]
+
+
+_PLAIN_FRAC = re.compile(r"(-?\d+(?:\.\d+)?)\s*/\s*(-?\d+(?:\.\d+)?)")
+
+
+def _last_number(text: str) -> float | None:
+    """The last number, or ``a/b`` when that number is the denominator of a bare fraction."""
+    matches = [m for m in _NUMBER.finditer(text) if not _TERM_SUFFIX.match(text, m.end())]
+    if not matches:
+        return None
+    last = matches[-1]
+    for frac in _PLAIN_FRAC.finditer(text):
+        if frac.end() == last.end() and frac.start(2) == last.start():
+            b = float(frac.group(2))
+            return float(frac.group(1)) / b if b else None
+    return _to_float(last.group())
+
+
+def _boxed_value(content: str) -> float | None:
+    frac = _FRAC.search(content)
+    if frac:
+        a, b = (frac.group(1), frac.group(2)) if frac.group(1) is not None else (frac.group(3), frac.group(4))
+        return _to_float(a) / _to_float(b) if _to_float(b) else None
+    nums = _numbers(content)
+    return _to_float(nums[-1]) if nums else None
+
+
 def extract_number(text: str) -> float | None:
-    """Fallback: last number in the text (supports ``###421`` style)."""
-    nums = re.findall(r"-?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?", text.replace(",", ""))
-    return float(nums[-1]) if nums else None
+    """Fallback when the reply has no JSON answer: the last ``\\boxed{...}``
+    (a number or ``\\frac{a}{b}``), else the last ``###421``, else the last
+    number (or bare ``a/b``) that is not part of a ``k-star`` / ``k-hop`` term."""
+    for content in reversed(_boxed_contents(text)):
+        value = _boxed_value(content)
+        if value is not None:
+            return value
+    marked = re.findall(r"###\s*(" + _NUMBER.pattern + ")", text)
+    if marked:
+        return _to_float(marked[-1])
+    return _last_number(text)
 
 
 # ---------------------------------------------------------------------------
@@ -105,17 +169,18 @@ def task_selection_prompt(role: str, input_prompt: str, library_summary: str, op
     )
 
 
-def node_send_prompt(node_id: int, noisy_neighbors: list[int], send_rule: str, count: float) -> str:
+def node_send_prompt(node_id: int, noisy_neighbors: list[int], send_rule: str, value: float, state_var: str) -> str:
+    """``state_var`` is the task's state variable (:attr:`psc.library.AlgorithmSpec.state_var`)."""
     payload = {
         "phase": "node_send",
         "node_id": node_id,
         "neighbors": noisy_neighbors,
-        "state": {"count": count},
+        "state": {state_var: value},
     }
     nb = ", ".join(f"Node {x}" for x in noisy_neighbors) if noisy_neighbors else "(none)"
     return (
         f"Send rule:\n{send_rule}\n\n"
-        f"Node ID: {node_id}\nState: 1. `Count`: {count}\n"
+        f"Node ID: {node_id}\nState: 1. `{state_var}`: {value}\n"
         f"Neighbor Information:\nConnected to:\n{nb}\n\n"
         "Construct the message that this node sends to each of its neighbors. "
         f"{ANSWER_INSTRUCTION} Required keys: \"Sender_ID\", \"Sender_Neighbors\".\n\n"
@@ -129,15 +194,19 @@ def node_update_prompt(
     real_neighbors: list[int],
     received: list[dict],
     update_rule: str,
-    count: float,
+    value: float,
+    state_var: str,
 ) -> str:
+    """The State line, the requested value and the JSON key all use ``state_var``,
+    the variable the update rule sets."""
     payload = {
         "phase": "node_update",
         "task": task,
         "node_id": node_id,
         "neighbors": real_neighbors,
         "messages": received,
-        "state": {"count": count},
+        "state_var": state_var,
+        "state": {state_var: value},
     }
     nb = ", ".join(str(x) for x in real_neighbors) if real_neighbors else "(none)"
     if received:
@@ -149,11 +218,11 @@ def node_update_prompt(
         msg_lines = "(no messages received)"
     return (
         f"Update rule:\n{update_rule}\n\n"
-        f"Node ID: {node_id}\nState: 1. `Count`: {count}\n"
+        f"Node ID: {node_id}\nState: 1. `{state_var}`: {value}\n"
         f"Neighbor Information:\nConnected to:\n{nb}\n"
         f"Received Messages:\n{msg_lines}\n\n"
-        "Apply the update rule and report the updated count of this node. "
-        f"{ANSWER_INSTRUCTION} Required key: \"count\" (a number).\n\n"
+        f"Apply the update rule and report the updated `{state_var}` of this node. "
+        f"{ANSWER_INSTRUCTION} Required key: \"{state_var}\" (a number).\n\n"
         f"{structured_block(payload)}"
     )
 
@@ -196,18 +265,40 @@ def insert_edges_into_prompt(input_prompt: str, edges: list[tuple[int, int]]) ->
     return new_prompt
 
 
-def naive_answer_prompt(task: str, input_prompt: str, n: int, noisy_edges: list[tuple[int, int]]) -> str:
+# "default": the project's prompt (curator system prompt + answer instruction);
+# "paper": only the RAW-style (V(G), Q) + edge list that the paper shows, no
+# system prompt and no answer-format instruction;
+# "paper-direct": "paper" followed by NO_REASONING_INSTRUCTION.
+NAIVE_PROMPTS: tuple[str, ...] = ("default", "paper", "paper-direct")
+PAPER_NAIVE_PROMPTS: frozenset[str] = frozenset({"paper", "paper-direct"})
+NO_REASONING_INSTRUCTION = (
+    "Answer directly with the final number only. Do not reason step by step, do not list "
+    "nodes, neighbors or degrees, and do not show any intermediate calculation."
+)
+
+
+def naive_answer_prompt(
+    task: str, input_prompt: str, n: int, noisy_edges: list[tuple[int, int]], style: str = "default",
+) -> str:
     """Section 2.4: the curator encodes the noisy edges of ``G'`` as an edge
     list string and appends it to the original prompt ``(V(G), Q)``."""
+    if style not in NAIVE_PROMPTS:
+        raise ValueError(f"unknown naive prompt {style!r}, expected one of {NAIVE_PROMPTS}")
     payload = {
         "phase": "naive_answer",
         "task": task,
         "n": n,
         "edges": [list(e) for e in noisy_edges],
     }
+    if style == "paper":
+        instruction = ""
+    elif style == "paper-direct":
+        instruction = f"{NO_REASONING_INSTRUCTION}\n\n"
+    else:
+        instruction = f"{ANSWER_INSTRUCTION} Required key: \"result\" (a number).\n\n"
     return (
         f"{insert_edges_into_prompt(input_prompt, noisy_edges)}\n\n"
-        f"{ANSWER_INSTRUCTION} Required key: \"result\" (a number).\n\n"
+        f"{instruction}"
         f"{structured_block(payload)}"
     )
 

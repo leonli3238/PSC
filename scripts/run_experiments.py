@@ -27,6 +27,7 @@ Examples::
     python scripts/run_experiments.py --exp exp1 --provider openai --datasets CU,Do --runs 3
     python scripts/run_experiments.py --exp exp3 --runs 10
     python scripts/run_experiments.py --exp exp1 --datasets CU,Do --with-tritr --gt-runs 1000
+    python scripts/run_experiments.py --exp exp1 --methods Naive --naive-prompt paper --datasets CU,Do
 """
 
 from __future__ import annotations
@@ -48,12 +49,14 @@ from psc.experiments import (  # noqa: E402
     run_ground_truth,
     save_results,
     table2_markdown,
+    with_llm_error_table,
 )
-from psc.events import set_error_sink  # noqa: E402
+from psc.events import set_error_sink, set_transcript_sink  # noqa: E402
 from psc.graph import DEFAULT_TASKS, TASKS, load_dataset  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.artifacts import append_run, new_run_directory, write_manifest  # noqa: E402
+from psc.prompts import NAIVE_PROMPTS  # noqa: E402
 
 
 def _runs(args, default: int) -> int:
@@ -70,6 +73,7 @@ def _run_experiment(args, *pos, **kwargs):
         *pos, **kwargs, mechanism=args.mechanism,
         on_result=getattr(args, "on_result", None),
         tritr_alpha=args.tritr_alpha,
+        naive_prompt=args.naive_prompt,
     )
 
 
@@ -217,7 +221,7 @@ def exp6(args, cfg):
 
 PILOT_COLUMNS = [
     "dataset", "task", "method", "mechanism", "runs", "avg_relative_error", "se_relative_error", "rule_relative_error", "delta",
-    "node_samples", "node_update_acc", "node_e2e_acc", "send_acc", "count_rel_diff",
+    "delta_signed", "exec_exact", "lucky_gain", "llm_harm", "node_samples", "node_update_acc", "node_e2e_acc", "send_acc", "count_rel_diff",
     "aggregate_acc", "task_acc", "parse_failures", "api_retries", "failed_calls", "llm_calls_per_run",
 ]
 
@@ -279,6 +283,9 @@ def main() -> None:
     ap.add_argument("--with-tritr", action="store_true", help=f"{'/'.join(TRITR_EXPERIMENTS)}: also run the agent-based TriTR")
     ap.add_argument("--tritr-alpha", type=float, default=0.0, help="TriTR: margin added to every noisy degree (NAM-DPRD uses 150)")
     ap.add_argument("--methods", default=None, help="exp1/exp2: subset of Naive,PSC,TriTR; exp3: of PSC,PSC-B,TriTR (default: the experiment's methods)")
+    ap.add_argument("--naive-prompt", choices=NAIVE_PROMPTS, default="default",
+                    help="Naive (+RAW): 'default' adds the curator system prompt and the step-by-step/JSON answer "
+                         "instruction; 'paper' sends only the paper's (V(G), Q) + edge list prompt")
     ap.add_argument("--gt-runs", type=int, default=0, help=f"{'/'.join(TRITR_EXPERIMENTS)}: append pure-Python GT rows over this many runs (0: none)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--config", default=None, help="model config file (default: $PSC_CONFIG or config.toml)")
@@ -289,6 +296,8 @@ def main() -> None:
     ap.add_argument("--parallel-runs", type=int, default=None, help="runs executed concurrently across all settings (default: config file)")
     ap.add_argument("--mock-error-rate", type=float, default=0.0, help="inject +-1 errors into mock node agents")
     ap.add_argument("--tag", default=None, help="new result directory; default includes model, mechanism and timestamp")
+    ap.add_argument("--save-transcripts", action="store_true",
+                    help="write every model call (agent, phase, system/user prompt, full reply, tokens) to transcripts.jsonl")
     ap.add_argument("--verbose", action="store_true", help="print one line per finished run; a model-call progress bar is always shown")
     ap.add_argument("--log-level", default="WARNING")
     args = ap.parse_args()
@@ -343,6 +352,8 @@ def main() -> None:
         **({"with_tritr": True} if args.with_tritr else {}),
         **({"tritr_alpha": args.tritr_alpha} if "TriTR" in _methods(args, ()) else {}),
         **({"gt_runs": args.gt_runs} if args.gt_runs else {}),
+        "naive_prompt": args.naive_prompt,
+        "save_transcripts": args.save_transcripts,
         "rng_recipe": "default_rng([seed, run-1]); DP draws consumed sequentially within each run",
     })
     level = getattr(logging, args.log_level.upper(), logging.WARNING)
@@ -351,6 +362,8 @@ def main() -> None:
     file_log.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
     logging.getLogger().addHandler(file_log)
     set_error_sink(out_dir / "errors.jsonl")
+    if args.save_transcripts:
+        set_transcript_sink(out_dir / "transcripts.jsonl")
 
     if cfg.endpoint("node") == cfg.endpoint("curator"):
         urls = f" base_url={cfg.base_url or 'default'}"
@@ -362,14 +375,19 @@ def main() -> None:
           f"structured_input={cfg.use_structured_input} max_retries={cfg.max_retries} retry_backoff={cfg.retry_backoff}s mechanism={args.mechanism}"
           + (f" methods={args.methods}" if args.methods else "")
           + (f" tritr_alpha={args.tritr_alpha:g}" if "TriTR" in _methods(args, ()) else "")
-          + (f" gt_runs={args.gt_runs}" if args.gt_runs else ""))
-    print(f"errors are logged to {out_dir}/errors.jsonl and {out_dir}/run.log while running")
+          + (f" gt_runs={args.gt_runs}" if args.gt_runs else "")
+          + (f" naive_prompt={args.naive_prompt}" if args.naive_prompt != "default" else ""))
+    print(f"errors are logged to {out_dir}/errors.jsonl and {out_dir}/run.log while running"
+          + (f"; every model call to {out_dir}/transcripts.jsonl" if args.save_transcripts else ""))
 
     summary, per_run, md = EXPERIMENTS[args.exp](args, cfg)
+    if args.exp != "pilot":
+        md = with_llm_error_table(md, summary)
 
     save_results(out_dir, summary, per_run, md)
     print("\n" + md)
-    print(f"\nsaved summary.json, runs.json, runs.jsonl, manifest.json, table.md, errors.jsonl, run.log in {out_dir}/")
+    print(f"\nsaved summary.json, runs.json, runs.jsonl, manifest.json, table.md, errors.jsonl, run.log"
+          + (", transcripts.jsonl" if args.save_transcripts else "") + f" in {out_dir}/")
 
 
 if __name__ == "__main__":

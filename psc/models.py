@@ -33,9 +33,9 @@ from agentscope.message import Msg
 from agentscope.model import ChatModelBase, ChatResponse
 from dotenv import load_dotenv
 
-from .events import record_error
+from .events import record_call, record_error
 from .mock_model import MockChatModel
-from .progress import note_llm_call
+from .progress import current_phase, note_llm_call
 from .prompts import strip_structured
 
 PROVIDERS = ("openai", "vllm", "dashscope", "ollama", "mock")
@@ -98,12 +98,18 @@ class ModelConfig:
 
         Precedence: ``overrides`` (CLI flags) > environment variables
         (``PSC_PROVIDER``, ``OLLAMA_MODEL``) > config file > built-in defaults.
-        Variables already set in the environment win over ``.env``.
+        Variables already set in the environment win over the config's
+        ``env_file``, which wins over ``.env``.
         """
-        if env_path is not None:
-            load_dotenv(env_path, override=False)
         path = Path(config_path or os.getenv("PSC_CONFIG") or DEFAULT_CONFIG)
         file_cfg = load_config_file(path)
+        if "env_file" in file_cfg:
+            env_file = path.parent / file_cfg["env_file"]
+            if not env_file.exists():
+                raise FileNotFoundError(f"{path}: env_file {env_file} does not exist")
+            load_dotenv(env_file, override=False)
+        if env_path is not None:
+            load_dotenv(env_path, override=False)
 
         provider = provider or os.getenv("PSC_PROVIDER") or file_cfg.get("provider") or "mock"
         if provider not in PROVIDERS:
@@ -125,7 +131,7 @@ class ModelConfig:
             cfg.base_url = os.getenv("OLLAMA_HOST") or None
             cfg.node_model = cfg.curator_model = "qwen3:8b"
 
-        shared = {k: v for k, v in file_cfg.items() if k != "provider" and not isinstance(v, dict)}
+        shared = {k: v for k, v in file_cfg.items() if k not in ("provider", "env_file") and not isinstance(v, dict)}
         for values in (shared, file_cfg.get(provider, {})):
             for k, v in values.items():
                 setattr(cfg, k, v)
@@ -159,6 +165,10 @@ def load_config_file(path: str | Path) -> dict:
         data = tomllib.load(f)
     for key, value in data.items():
         if key == "provider":
+            continue
+        if key == "env_file":
+            if not isinstance(value, str):
+                raise ValueError(f"{path}: env_file must be a path string (relative to the config file)")
             continue
         if isinstance(value, dict):
             if key not in PROVIDERS:
@@ -270,8 +280,15 @@ def _retry_after(exc: BaseException) -> float | None:
         return None
 
 
-async def _call_once(model: ChatModelBase, prompt) -> tuple[str, list[str]]:
-    """Return the reply text and the types of all content blocks."""
+def _usage(res: ChatResponse) -> dict | None:
+    usage = getattr(res, "usage", None)
+    if usage is None:
+        return None
+    return {k: getattr(usage, k) for k in ("input_tokens", "output_tokens") if getattr(usage, k, None) is not None}
+
+
+async def _call_once(model: ChatModelBase, prompt) -> tuple[str, list[str], dict | None]:
+    """Return the reply text, the types of all content blocks and the token usage."""
     res = await model(prompt)
     if not isinstance(res, ChatResponse):
         # streaming: every chunk carries the accumulated content, keep the last
@@ -279,14 +296,18 @@ async def _call_once(model: ChatModelBase, prompt) -> tuple[str, list[str]]:
         async for chunk in res:
             last = chunk
         if last is None:
-            return "", []
+            return "", [], None
         res = last
     types = [b.get("type", "?") if isinstance(b, dict) else type(b).__name__ for b in res.content]
-    return response_text(res), types
+    return response_text(res), types, _usage(res)
 
 
-async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user: str) -> str:
-    """One-shot system+user call returning the reply text.
+async def chat(
+    model: ChatModelBase, formatter: FormatterBase, system: str | None, user: str, agent: str | None = None,
+) -> str:
+    """One-shot system+user call returning the reply text (no system message
+    when ``system`` is ``None``). With a transcript sink set, the call is
+    written there with ``agent`` and the current pipeline phase.
 
     Retryable API errors and empty replies are recorded and retried with
     exponential backoff; ``""`` is returned when every attempt failed, so the
@@ -295,18 +316,28 @@ async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user
     """
     if not getattr(model, "psc_structured_input", True):
         user = strip_structured(user)
-    msgs = [Msg("system", system, "system"), Msg("user", user, "user")]
+    msgs = ([Msg("system", system, "system")] if system is not None else []) + [Msg("user", user, "user")]
     prompt = await formatter.format(msgs)
     retries = max(0, int(getattr(model, "psc_max_retries", 0)))
     backoff = float(getattr(model, "psc_retry_backoff", 0.0))
     model_name = getattr(model, "model_name", type(model).__name__)
+    phase = current_phase()
+    started = time.perf_counter()
+
+    def log_call(reply: str, attempts: int, usage: dict | None = None) -> None:
+        record_call(
+            agent=agent, phase=phase, model=model_name, system=system, user=user, reply=reply,
+            attempts=attempts, elapsed=round(time.perf_counter() - started, 2), usage=usage,
+        )
+
     for attempt in range(1, retries + 2):
         t0 = time.perf_counter()
         wait = backoff * 2 ** (attempt - 1)
         try:
-            text, block_types = await _call_once(model, prompt)
+            text, block_types, usage = await _call_once(model, prompt)
         except Exception as exc:  # noqa: BLE001 - classified below
             if not _is_retryable(exc):
+                log_call(f"[{type(exc).__name__}] {exc}", attempt)
                 raise
             wait = max(wait, _retry_after(exc) or 0.0)
             record_error(
@@ -317,6 +348,7 @@ async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user
         else:
             if text.strip():
                 note_llm_call()
+                log_call(text, attempt, usage)
                 return text
             record_error(
                 "empty_reply", f"no text in reply (content blocks: {block_types})",
@@ -326,4 +358,5 @@ async def chat(model: ChatModelBase, formatter: FormatterBase, system: str, user
             await asyncio.sleep(wait)
     note_llm_call()
     record_error("call_failed", f"no usable reply after {retries + 1} attempts", model=model_name)
+    log_call("", retries + 1)
     return ""

@@ -21,6 +21,7 @@ from .library import AlgorithmSpec
 from .models import ModelConfig, create_formatter, create_model
 from .mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
 from .progress import note_phase
+from .prompts import NAIVE_PROMPTS
 
 logger = logging.getLogger(__name__)
 
@@ -246,14 +247,22 @@ class NaiveFramework:
 
     ``prompt_style="raw"`` is the default Naive (+RAW) of Table 2;
     ``prompt_style="refined"`` gives Naive + REFINED of Exp6 / Table 5.
+    ``naive_prompt`` (raw style only) is ``"default"`` or ``"paper"``, see
+    :data:`psc.prompts.NAIVE_PROMPTS`.
     """
 
-    def __init__(self, model_cfg: ModelConfig | None = None, seed: int = 0, prompt_style: str = "raw") -> None:
+    def __init__(
+        self, model_cfg: ModelConfig | None = None, seed: int = 0, prompt_style: str = "raw",
+        naive_prompt: str = "default",
+    ) -> None:
         self.cfg = model_cfg or ModelConfig()
         self.factory = _AgentFactory(self.cfg, seed)
         if prompt_style not in ("raw", "refined"):
             raise ValueError(prompt_style)
+        if naive_prompt not in NAIVE_PROMPTS:
+            raise ValueError(f"unknown naive prompt {naive_prompt!r}, expected one of {NAIVE_PROMPTS}")
         self.prompt_style = prompt_style
+        self.naive_prompt = naive_prompt
 
     @property
     def name(self) -> str:
@@ -275,7 +284,9 @@ class NaiveFramework:
 
         note_phase("answer")
         if self.prompt_style == "raw":
-            estimate = await curator.answer_with_noisy_graph(spec.task, input_prompt, graph.n, noisy_graph.edges)
+            estimate = await curator.answer_with_noisy_graph(
+                spec.task, input_prompt, graph.n, noisy_graph.edges, self.naive_prompt,
+            )
         else:
             from .baselines import build_single_llm_prompt
 
@@ -300,7 +311,11 @@ class NaiveFramework:
             llm_calls=curator.llm_calls + controller.llm_calls,
             parse_failures=curator.parse_failures + controller.parse_failures,
             elapsed=time.perf_counter() - t0,
-            extra={"validation": validation},
+            extra={
+                "validation": validation,
+                **({"naive_prompt": self.naive_prompt} if self.prompt_style == "raw" else {}),
+                "reply": curator.last_reply,
+            },
         )
 
 

@@ -24,6 +24,7 @@ from ..library import AlgorithmSpec, algorithm_library_summary, get_algorithm
 from ..models import chat
 from ..prompts import (
     CURATOR_SYSTEM,
+    PAPER_NAIVE_PROMPTS,
     curator_aggregate_prompt,
     extract_json,
     extract_number,
@@ -41,10 +42,12 @@ class CuratorAgent(AgentBase):
         self.memory = InMemoryMemory()
         self.llm_calls = 0
         self.parse_failures = 0
+        self.last_reply = ""
 
-    async def _llm(self, user_prompt: str) -> str:
+    async def _llm(self, user_prompt: str, system: str | None = CURATOR_SYSTEM) -> str:
         self.llm_calls += 1
-        return await chat(self.model, self.formatter, CURATOR_SYSTEM, user_prompt)
+        self.last_reply = await chat(self.model, self.formatter, system, user_prompt, agent=self.name)
+        return self.last_reply
 
     # ------------------------------------------------------------------
     # Algorithm establishment (Algorithm 3, line 9)
@@ -80,8 +83,13 @@ class CuratorAgent(AgentBase):
         input_prompt: str,
         n: int,
         noisy_edges: list[tuple[int, int]],
+        style: str = "default",
     ) -> float:
-        text = await self._llm(naive_answer_prompt(task, input_prompt, n, noisy_edges))
+        """The paper styles send no curator system prompt, see :data:`psc.prompts.NAIVE_PROMPTS`."""
+        text = await self._llm(
+            naive_answer_prompt(task, input_prompt, n, noisy_edges, style),
+            system=None if style in PAPER_NAIVE_PROMPTS else CURATOR_SYSTEM,
+        )
         return self._parse_result(text, "answer")
 
     async def answer_prompt(self, prompt: str) -> float:

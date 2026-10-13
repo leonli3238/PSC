@@ -29,6 +29,7 @@ from agentscope.model import ChatModelBase
 from .. import rules
 from ..dp import laplace_mechanism, node_noisy_lower_row, node_noisy_upper_row, project_neighbor_list
 from ..events import record_error
+from ..library import get_algorithm
 from ..models import chat
 from ..prompts import NODE_SYSTEM, extract_json, extract_number, node_send_prompt, node_update_prompt
 
@@ -159,7 +160,7 @@ class NodeAgent(AgentBase):
         phase = meta.get("phase")
         rule = msg.get_text_content() or ""
         if phase == "send":
-            return await self._send(rule)
+            return await self._send(meta["task"], rule)
         if phase == "update":
             return await self._update(meta["task"], rule)
         raise ValueError(f"unknown phase {phase!r}")
@@ -169,17 +170,18 @@ class NodeAgent(AgentBase):
         system = NODE_SYSTEM.format(node_id=self.node_id)
         self.llm_calls += 1
         if NodeAgent._semaphore is None:
-            return await chat(self.model, self.formatter, system, user_prompt)
+            return await chat(self.model, self.formatter, system, user_prompt, agent=self.name)
         async with NodeAgent._semaphore:
-            return await chat(self.model, self.formatter, system, user_prompt)
+            return await chat(self.model, self.formatter, system, user_prompt, agent=self.name)
 
-    async def _send(self, rule: str) -> Msg:
+    async def _send(self, task: str, rule: str) -> Msg:
         """Send rule: reads only the noisy edge memory.
 
         An unparseable reply is counted as a failure and nothing is sent, so
         LLM mistakes propagate exactly as they would in the paper's setting.
         """
-        text = await self._llm(node_send_prompt(self.node_id, self.noisy_neighbors, rule, self.count))
+        state_var = get_algorithm(task).state_var
+        text = await self._llm(node_send_prompt(self.node_id, self.noisy_neighbors, rule, self.count, state_var))
         self.sent_payload = _parse_send_payload(extract_json(text))
         if self.sent_payload is None:
             self.parse_failures += 1
@@ -201,22 +203,22 @@ class NodeAgent(AgentBase):
 
     async def _update(self, task: str, rule: str) -> Msg:
         """Update rule: loads the (possibly degree-bounded) real neighbor list."""
+        state_var = get_algorithm(task).state_var
         text = await self._llm(
-            node_update_prompt(task, self.node_id, self._update_neighbors, self.inbox, rule, self.count),
+            node_update_prompt(task, self.node_id, self._update_neighbors, self.inbox, rule, self.count, state_var),
         )
-        payload = extract_json(text)
-        value = None
-        if payload and "count" in payload:
-            try:
-                value = float(payload["count"])
-            except (TypeError, ValueError):
-                value = None
+        value = _state_value(extract_json(text), state_var)
         if value is None:
             value = extract_number(text)
+            if value is not None:
+                record_error(
+                    "key_fallback", f"Node {self.node_id}: no \"{state_var}\" key, using the last number {value}",
+                    reply=text, agent=self.name, phase="update",
+                )
         if value is None:
             self.parse_failures += 1
             record_error(
-                "parse_failure", f"Node {self.node_id}: could not parse count, keeping {self.count}",
+                "parse_failure", f"Node {self.node_id}: could not parse {state_var}, keeping {self.count}",
                 reply=text, agent=self.name, phase="update",
             )
             value = self.count
@@ -245,6 +247,19 @@ def _node_id(x) -> int:
     if m is None:
         raise ValueError(f"not a node id: {x!r}")
     return int(m.group(1))
+
+
+def _state_value(payload: dict | None, state_var: str) -> float | None:
+    """The value of ``state_var`` in a JSON reply (key matched case-insensitively)."""
+    if not payload:
+        return None
+    for key, value in payload.items():
+        if str(key).strip().strip("`").lower() == state_var.lower():
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+    return None
 
 
 def _parse_send_payload(payload: dict | None) -> dict | None:

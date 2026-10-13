@@ -67,6 +67,7 @@ class PrivacyController(AgentBase):
             self.formatter,
             PRIVACY_CONTROLLER_SYSTEM,
             task_selection_prompt("privacy controller", input_prompt, dp_library_summary(), list(TASKS)),
+            agent=self.name,
         )
         payload = extract_json(text) or {}
         task = str(payload.get("task", "")).strip().lower()

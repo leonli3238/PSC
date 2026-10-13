@@ -17,7 +17,7 @@ from psc.ground_truth import gt_psc, relative_error
 
 OUT = Path('results/audit/2026-09-28')
 OUT.mkdir(parents=True, exist_ok=True)
-pilot = json.loads(Path('results/pilot/hy3-ioa_r3_v2/runs.json').read_text())
+pilot = json.loads(Path('results/archive/pilot/hy3-ioa_r3_v2/runs.json').read_text())
 distribution = []
 for dataset in ('CU', 'Do'):
     records = load_dataset('data', dataset)

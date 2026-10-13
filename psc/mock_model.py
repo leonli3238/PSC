@@ -58,7 +58,7 @@ class MockChatModel(ChatModelBase):
             return rules.send_message(p["node_id"], p["neighbors"])
         if phase == "node_update":
             count = rules.update(p["task"], p["neighbors"], p.get("messages"))
-            return {"count": self._maybe_perturb(count)}
+            return {p["state_var"]: self._maybe_perturb(count)}
         if phase == "curator_aggregate":
             return {"result": rules.aggregate(p["task"], p["counts"], p["n"])}
         if phase in ("naive_answer", "single_llm"):

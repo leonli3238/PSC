@@ -1,0 +1,16 @@
+# GPT-4.1 for both node and curator, through the elysia.h-e.top gateway.
+# Key and URL are read from .env.gpt41 (OPENAI_API_KEY, OPENAI_BASE_URL), not from .env.
+# Paper setting is node = gpt-4.1-mini, curator = gpt-4.1; Naive only calls the curator model.
+
+env_file = ".env.gpt41"
+provider = "openai"
+temperature = 0.0     # paper: 0
+max_concurrency = 8
+parallel_runs = 8
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[openai]
+node_model = "gpt-4.1"
+curator_model = "gpt-4.1"

@@ -29,6 +29,7 @@ MAX_LOGGED_CHARS = 4000
 _records: ContextVar[list[dict] | None] = ContextVar("psc_error_records", default=None)
 _context: ContextVar[dict[str, Any]] = ContextVar("psc_error_context", default={})
 _sink: Path | None = None
+_transcript_sink: Path | None = None
 
 
 def clip(text: str, limit: int) -> str:
@@ -65,7 +66,9 @@ def record_error(kind: str, message: str, *, reply: str | None = None, **fields:
 
     ``kind`` is one of ``api_error`` (retryable exception, will retry),
     ``empty_reply`` (will retry), ``call_failed`` (no usable reply after all
-    retries) or ``parse_failure`` (reply received but not understood).
+    retries), ``parse_failure`` (reply received but not understood) or
+    ``key_fallback`` (a node reply lacked the state-variable key and its last
+    number was used instead).
     """
     rec: dict[str, Any] = {
         "time": datetime.now().isoformat(timespec="milliseconds"),
@@ -86,6 +89,28 @@ def record_error(kind: str, message: str, *, reply: str | None = None, **fields:
     where = " ".join(f"{k}={v}" for k, v in _context.get().items())
     shown = f" | reply ({len(reply)} chars): {clip(reply, MAX_LOGGED_CHARS)!r}" if reply is not None else ""
     logger.warning("[%s]%s %s%s", kind, f" {where}" if where else "", message, shown)
+
+
+def set_transcript_sink(path: str | Path | None) -> None:
+    """Append every model call (prompts and full reply) as one JSON line to ``path`` (``None`` disables)."""
+    global _transcript_sink
+    _transcript_sink = Path(path) if path is not None else None
+    if _transcript_sink is not None:
+        _transcript_sink.parent.mkdir(parents=True, exist_ok=True)
+        _transcript_sink.write_text("", encoding="utf-8")
+
+
+def transcripts_enabled() -> bool:
+    return _transcript_sink is not None
+
+
+def record_call(**fields: Any) -> None:
+    """Write one model call to the transcript file, tagged with the current run."""
+    if _transcript_sink is None:
+        return
+    rec = {"time": datetime.now().isoformat(timespec="milliseconds"), **_context.get(), **fields}
+    with _transcript_sink.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, ensure_ascii=False, default=str) + "\n")
 
 
 def count_errors(records: list[dict], *kinds: str) -> int:

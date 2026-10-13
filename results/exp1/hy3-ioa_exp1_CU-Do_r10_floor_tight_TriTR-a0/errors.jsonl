@@ -1,0 +1,3 @@
+{"time": "2026-10-09T15:25:05.105", "kind": "api_error", "dataset": "CU", "task": "triangle", "method": "TriTR", "run": 8, "model": "hy3-ioa", "attempt": 1, "elapsed": 5.0, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-10-09T17:05:37.494", "kind": "api_error", "dataset": "Do", "task": "triangle", "method": "TriTR", "run": 7, "model": "hy3-ioa", "attempt": 1, "elapsed": 636.75, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-10-09T17:06:05.189", "kind": "api_error", "dataset": "Do", "task": "triangle", "method": "TriTR", "run": 9, "model": "hy3-ioa", "attempt": 1, "elapsed": 617.51, "status": null, "message": "APITimeoutError: Request timed out."}

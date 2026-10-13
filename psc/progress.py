@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 _tick: ContextVar[Callable[[], None] | None] = ContextVar("psc_llm_tick", default=None)
 _phase: ContextVar[Callable[[str], None] | None] = ContextVar("psc_phase", default=None)
+_current_phase: ContextVar[str | None] = ContextVar("psc_current_phase", default=None)
 
 
 def note_llm_call() -> None:
@@ -26,10 +27,18 @@ def note_llm_call() -> None:
 
 
 def note_phase(phase: str) -> None:
-    """Show the current pipeline step (``send``, ``update``, ...) on the bar."""
+    """Show the current pipeline step (``send``, ``update``, ...) on the bar.
+
+    The step is also kept for the current run (child tasks started afterwards
+    inherit it), see :func:`current_phase`."""
+    _current_phase.set(phase)
     fn = _phase.get()
     if fn is not None:
         fn(phase)
+
+
+def current_phase() -> str | None:
+    return _current_phase.get()
 
 
 @contextmanager

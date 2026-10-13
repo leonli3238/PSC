@@ -615,7 +615,7 @@ AgentScope 用法要点：
 - Naive 的 LLM 结果与同噪声规则答案接近（Do/triangle 在 hy3-ioa 下 Δ≈0.17 为最大值）；
 - PSC 比 Naive 低 1–2 个数量级，与论文结论一致。
 
-### 16.3 Mock 版（`results/exp1/mock/`）
+### 16.3 Mock 版（`results/archive/exp1/mock/`）
 
 PSC 平均 RE：degree 0.0142、2-star 0.1237、3-star 0.4562、triangle 0.8928（历史 legacy 机制）。Exp2 复现了“$\varepsilon=3$ 时三角形 GT-Naive 反超 GT-PSC”；Exp4 复现了 CU 误差随 $\varepsilon_1$ 单调上升、ML 先降后升，以及 $\varepsilon_2$ 过大/过小都会使误差上升的现象。
 

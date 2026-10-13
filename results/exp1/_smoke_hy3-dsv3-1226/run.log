@@ -1,0 +1,9 @@
+2026-10-13 03:03:06,976 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.
+2026-10-13 03:03:11,992 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.
+2026-10-13 03:03:21,998 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.
+2026-10-13 03:03:42,023 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.
+2026-10-13 03:04:22,065 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.
+2026-10-13 03:04:22,065 WARNING psc.errors: [call_failed] dataset=CU task=degree method=PSC run=1 no usable reply after 5 attempts
+2026-10-13 03:04:22,066 WARNING psc.errors: [parse_failure] dataset=CU task=degree method=PSC run=1 PrivacyController: invalid task, using rule-based inference (degree) | reply (0 chars): ''
+2026-10-13 03:04:22,070 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.
+2026-10-13 03:04:27,081 WARNING psc.errors: [api_error] dataset=CU task=degree method=PSC run=1 APIConnectionError: Connection error.

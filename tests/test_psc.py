@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -226,6 +227,51 @@ def test_naive_prompt_follows_raw_format():
     assert '"phase": "naive_answer"' in full
 
 
+def test_extract_number_reads_the_final_answer_of_free_text_replies():
+    from psc.prompts import extract_number
+
+    assert extract_number("... = 7084\n\n\\[\n\\boxed{7084}\n\\]\n\nThis is the total number of 3-stars in the graph.") == 7084
+    assert extract_number("so 11.419.\n\\[\n\\boxed{\\frac{354}{31}}\n\\]\nOr approximately 11.419.") == pytest.approx(354 / 31)
+    assert extract_number("\\boxed{12,300,000}") == 12_300_000
+    assert extract_number('"answer": ###421') == 421
+    assert extract_number("The total is **12,300** triangles.") == 12_300
+    assert extract_number("Total: 57 3-stars") == 57
+    # truncated reply ending in a neighbor list: never glue the ids into one number
+    assert extract_number("(88,89)...(88,451) -> 89,90,96,103,114,118,130,140,149,161,") == 161
+    assert extract_number("(44,327),(44,341") == 341
+    assert extract_number("no digits here") is None
+    assert extract_number("454/49") == pytest.approx(454 / 49)
+    assert extract_number("average degree = 354 / 31") == pytest.approx(354 / 31)
+    assert extract_number("354/31 ≈ 11.42") == 11.42
+
+
+def test_paper_naive_prompt_drops_answer_instruction_and_stays_exact():
+    from psc.prompts import ANSWER_INSTRUCTION, insert_edges_into_prompt, naive_answer_prompt, strip_structured
+
+    p = task_prompt("2-star", 49)
+    assert ANSWER_INSTRUCTION in naive_answer_prompt("2-star", p, 49, [(0, 1)])
+    paper = naive_answer_prompt("2-star", p, 49, [(0, 1)], style="paper")
+    assert strip_structured(paper) == insert_edges_into_prompt(p, [(0, 1)])
+    with pytest.raises(ValueError):
+        naive_answer_prompt("2-star", p, 49, [(0, 1)], style="nope")
+
+    g = _toy_graph()
+    cfg = ModelConfig(provider="mock")
+    for task in ["degree", "triangle", "3-star"]:
+        nv = _run(NaiveFramework(cfg, seed=3, naive_prompt="paper").run(_record(g, task), eps=1e6))
+        assert abs(nv.estimate - g.ground_truth(task)) < 1e-3, (task, nv.estimate)
+        assert nv.extra["naive_prompt"] == "paper" and nv.extra["reply"]
+
+
+def test_direct_naive_prompt_forbids_step_by_step_reasoning():
+    from psc.prompts import ANSWER_INSTRUCTION, NO_REASONING_INSTRUCTION, insert_edges_into_prompt, naive_answer_prompt, strip_structured
+
+    p = task_prompt("2-star", 49)
+    direct = strip_structured(naive_answer_prompt("2-star", p, 49, [(0, 1)], style="paper-direct"))
+    assert direct == f"{insert_edges_into_prompt(p, [(0, 1)])}\n\n{NO_REASONING_INSTRUCTION}"
+    assert ANSWER_INSTRUCTION not in direct
+
+
 def test_non_dp_psc_and_single_llm_baselines_are_exact_with_perfect_reasoner():
     from psc.baselines import SingleLLMBaseline, build_example
 
@@ -266,12 +312,43 @@ def test_structured_input_only_reaches_the_mock():
                 self.seen = "".join(b.get("text", "") for b in self.seen)
             return ChatResponse(content=[TextBlock(type="text", text='{"count": 1}')])
 
-    prompt = node_update_prompt("degree", 5, [2, 4], [], "Update rule text", 0.0)
+    prompt = node_update_prompt("degree", 5, [2, 4], [], "Update rule text", 0.0, "Degree")
     model = _Capture()
     model.psc_structured_input = False
     _run(chat(model, OpenAIChatFormatter(), "sys", prompt))
     assert "<structured_input>" not in model.seen and "Update rule text" in model.seen
     assert model.seen == strip_structured(prompt)
+
+
+def test_node_prompts_and_parser_use_each_tasks_state_variable():
+    import re
+
+    from psc.agents.node_agent import _state_value
+    from psc.events import collect_errors
+    from psc.library import ALGORITHM_LIBRARY
+    from psc.prompts import node_send_prompt, node_update_prompt
+
+    g = _toy_graph()
+    for task, algo in ALGORITHM_LIBRARY.items():
+        var = algo.state_var
+        declared = re.findall(r"^\d+\. `(\w+)`", algo.state, re.M)
+        assert declared[0] == var and f"`{var}`" in algo.initialization, task
+        # the update rule sets exactly this state variable
+        assert set(re.findall(r"`(\w+)`", algo.update)) & set(declared) == {var}, task
+
+        send = node_send_prompt(5, [2, 4], algo.send, 0.0, var)
+        update = node_update_prompt(task, 5, [2, 4], [], algo.update, 0.0, var)
+        for prompt in (send, update):
+            assert f"State: 1. `{var}`: 0.0" in prompt and "`Count`" not in prompt, task
+        assert f'Required key: "{var}"' in update and '"count"' not in update.split("<structured_input>")[0]
+
+        assert _state_value({var: 3}, var) == 3.0 and _state_value({var.lower(): "2.5"}, var) == 2.5
+        assert _state_value({"count": 3}, var) is None
+
+        with collect_errors(method="PSC", run=1) as errors:
+            res = _run(PSCFramework(ModelConfig(provider="mock"), seed=3).run(_record(g, task), eps=1e6))
+        assert res.parse_failures == 0 and not [e for e in errors if e["kind"] == "key_fallback"], task
+        assert abs(res.estimate - g.ground_truth(task)) < 1e-3, task
 
 
 def test_validation_counts_llm_mistakes_instead_of_hiding_them():
@@ -311,6 +388,29 @@ def test_validation_counts_llm_mistakes_instead_of_hiding_them():
 
     nv = _run(NaiveFramework(ModelConfig(provider="mock"), seed=0).run(rec, eps=2.0))
     assert abs(nv.extra["validation"]["rule_estimate"] - nv.estimate) < 1e-9
+
+
+def test_validation_summary_decomposes_llm_error_per_run():
+    from psc.experiments import validation_summary
+    from psc.framework import RunResult
+
+    def run(llm, rule=None):
+        extra = {} if rule is None else {"validation": {"task_correct": True, "rule_estimate": rule}}
+        return RunResult("PSC", "toy", "triangle", 2.0, llm, 100.0, (1.0, 0.2, 0.8), 1.0, None, None, 1, 0, 0.0, extra)
+
+    # exact; mirror (wrong by a whole truth, same RE); lucky; curator answers 0
+    runs = [run(7.0), run(100, 100), run(50, 150), run(110, 120), run(0, 100)]
+    s = validation_summary(runs, n=1000)
+    assert math.isclose(s["rule_relative_error"], 0.175)
+    assert math.isclose(s["delta"], 0.225) and math.isclose(s["delta_signed"], 0.225)
+    assert math.isclose(s["delta_per_run"], 0.275) and math.isclose(s["exec_deviation"], 0.525)
+    assert s["delta"] <= s["delta_per_run"] <= s["exec_deviation"]
+    assert s["exec_exact"] == 0.25 and s["lucky_runs"] == 1 and s["harm_runs"] == 1
+    assert math.isclose(s["lucky_gain"], 0.025) and math.isclose(s["llm_harm"], 0.25)
+    assert math.isclose(s["rule_relative_error"] - s["lucky_gain"] + s["llm_harm"], 0.4)
+    assert math.isclose(s["conservative_relative_error"], 0.425)
+    assert math.isclose(s["optimistic_relative_error"], 0.15)
+    assert s["zero_answer_relative_error"] == 1.0 and s["rule_not_better_than_zero"] == 0.0
 
 
 def test_parallel_runs_are_reproducible_and_overlap(monkeypatch):

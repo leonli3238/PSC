@@ -24,6 +24,9 @@ from .mechanism import MechanismProfile, get_mechanism
 @dataclass(frozen=True)
 class AlgorithmSpec:
     task: str
+    # the node state variable the rules set; node prompts show it as the State
+    # and ask for it as the JSON key, so rule, state and reply use one name
+    state_var: str
     title: str
     problem: str
     state: str
@@ -48,22 +51,24 @@ class AlgorithmSpec:
         return "\n\n".join(parts)
 
 
+_TRIANGLE_VAR = "Triangle_Count"
 _TRIANGLE_ALGO = AlgorithmSpec(
     task="triangle",
+    state_var=_TRIANGLE_VAR,
     title="Triangle Counting",
     problem=(
         "Count the total number of triangles in a given graph G (a triangle "
         "consists of three nodes, each connected to the other two)."
     ),
     state=(
-        "1. `Triangle_Count`: The number of triangles this node participates in.\n"
+        f"1. `{_TRIANGLE_VAR}`: The number of triangles this node participates in.\n"
         "2. `Triangles`: A list of detected triangles, each represented as an unordered set."
     ),
     message=(
         "1. `Sender_ID`: The sender node's ID.\n"
         "2. `Sender_Neighbors`: The list of the sender's neighbors."
     ),
-    initialization="Step 1: Set `Triangle_Count` to 0.",
+    initialization=f"Step 1: Set `{_TRIANGLE_VAR}` to 0.",
     send=(
         "For each node, the input is its Node ID, its State and its Neighbor "
         "Information (the list of nodes it is connected to).\n"
@@ -81,13 +86,13 @@ _TRIANGLE_ALGO = AlgorithmSpec(
         "Step 2: Extract `Sender_Neighbors` from the message. Identify the common "
         "neighbors between yourself and `Sender_ID` by finding which nodes in "
         "`Sender_Neighbors` also appear in <neighbor_list>.\n"
-        "Step 3: For each common neighbor `C`, increment `Triangle_Count` by 0.5, "
+        f"Step 3: For each common neighbor `C`, increment `{_TRIANGLE_VAR}` by 0.5, "
         "because a triangle will be counted twice.\n"
         "Example: Node 5 with neighbors [2, 4] receives {Sender_ID: 1, "
         "Sender_Neighbors: [4, 5]} and {Sender_ID: 4, Sender_Neighbors: [2, 5, 8]}. "
         "Node 1 is not a neighbor, discard. Node 4 is a neighbor; the common "
-        "neighbors are [2], so `Triangle_Count` increases by 0.5. Output state: "
-        "`Triangle_Count`: 0.5."
+        f"neighbors are [2], so `{_TRIANGLE_VAR}` increases by 0.5. Output state: "
+        f"`{_TRIANGLE_VAR}`: 0.5."
     ),
     aggregate=(
         "To determine the final result, sum the results of the distributed "
@@ -98,20 +103,22 @@ _TRIANGLE_ALGO = AlgorithmSpec(
     needs_messages=True,
 )
 
+_DEGREE_VAR = "Degree"
 _DEGREE_ALGO = AlgorithmSpec(
     task="degree",
+    state_var=_DEGREE_VAR,
     title="Average Degree",
     problem="Compute the average degree of a given graph G.",
-    state="1. `Degree`: The number of neighbors of this node.",
+    state=f"1. `{_DEGREE_VAR}`: The number of neighbors of this node.",
     message="No message is required for this task.",
-    initialization="Step 1: Set `Degree` to 0.",
+    initialization=f"Step 1: Set `{_DEGREE_VAR}` to 0.",
     send="No message needs to be sent for this task.",
     update=(
         "For each node, the input is its Node ID, its State and its Neighbor "
         "Information (<neighbor_list>).\n"
         "Step 1: Count the number of distinct nodes in <neighbor_list> and set "
-        "`Degree` to this number.\n"
-        "Example: Node 5 with neighbors [2, 4, 7] outputs `Degree`: 3."
+        f"`{_DEGREE_VAR}` to this number.\n"
+        f"Example: Node 5 with neighbors [2, 4, 7] outputs `{_DEGREE_VAR}`: 3."
     ),
     aggregate=(
         "To determine the final result, sum the results of the distributed "
@@ -130,25 +137,27 @@ def _kstar_algo(k: int) -> AlgorithmSpec:
     }.get(k, f"C(degree, {k}) = degree! / ({k}! * (degree - {k})!)")
     example_deg = 4
     example_val = math.comb(example_deg, k)
+    var = "Star_Count"
     return AlgorithmSpec(
         task=f"{k}-star",
+        state_var=var,
         title=f"{k}-star Counting",
         problem=(
             f"Count the total number of {k}-stars in a given graph G (a {k}-star "
             f"consists of a central node connected to {k} other nodes)."
         ),
-        state=f"1. `Star_Count`: The number of {k}-stars centered at this node.",
+        state=f"1. `{var}`: The number of {k}-stars centered at this node.",
         message="No message is required for this task.",
-        initialization="Step 1: Set `Star_Count` to 0.",
+        initialization=f"Step 1: Set `{var}` to 0.",
         send="No message needs to be sent for this task.",
         update=(
             "For each node, the input is its Node ID, its State and its Neighbor "
             "Information (<neighbor_list>).\n"
             "Step 1: Let degree be the number of distinct nodes in <neighbor_list>.\n"
-            f"Step 2: If degree < {k}, set `Star_Count` to 0. Otherwise set "
-            f"`Star_Count` to C(degree, {k}) = {formula}.\n"
+            f"Step 2: If degree < {k}, set `{var}` to 0. Otherwise set "
+            f"`{var}` to C(degree, {k}) = {formula}.\n"
             f"Example: Node 5 with neighbors [1, 2, 4, 7] has degree {example_deg}, "
-            f"so `Star_Count` = C({example_deg}, {k}) = {example_val}."
+            f"so `{var}` = C({example_deg}, {k}) = {example_val}."
         ),
         aggregate=(
             "To determine the final result, sum the results of the distributed "

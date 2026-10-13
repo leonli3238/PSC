@@ -19,7 +19,13 @@
 # (GT_RUNS=0 to skip). --methods (or -m, or METHODS=) picks the agent methods instead:
 # exp1 / exp2 from Naive,PSC,TriTR, exp3 from PSC,PSC-B,TriTR, e.g.
 #   bash scripts/run_hy3.sh exp1 -d CU,Do --methods Naive,TriTR --runs 5 --verbose
+# Naive prompt: --naive-prompt paper (or NAIVE_PROMPT=paper) drops the curator system prompt and the
+# step-by-step/JSON answer instruction, sending only the paper's prompt; the tag gets _paperprompt.
+#   CONFIG=config.dsv3.toml bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt paper
+# --naive-prompt paper-direct adds an instruction to answer with the final number only, without reasoning.
 # Other overrides: TASKS=degree,2-star,3-star,triangle MECHANISM=floor_tight TAG=name
+# The default tag starts with the config name: config.dsv3-1226.toml -> dsv3-1226_exp1_..., config.hy3.toml -> hy3-ioa_...
+#   CONFIG=config.dsv3-1226.toml TASKS=2-star bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive,PSC
 # Unset TASKS keeps the experiment's default tasks of run_experiments.py.
 # Further arguments go to run_experiments.py, e.g. --verbose, or --dry-run (exp1 only).
 set -euo pipefail
@@ -38,17 +44,19 @@ shift
 forward=()
 while (($#)); do
   case $1 in
-    -d|--d|--datasets|-m|--methods|-n|--runs)
+    -d|--d|--datasets|-m|--methods|-n|--runs|--naive-prompt)
       [[ $# -ge 2 ]] || { echo "$1 needs a value" >&2; exit 1; }
       case $1 in
         -d|--d|--datasets) DATASETS=$2 ;;
         -m|--methods)      METHODS=$2 ;;
+        --naive-prompt)    NAIVE_PROMPT=$2 ;;
         *)                 RUNS=$2 ;;
       esac
       shift 2 ;;
-    --datasets=*) DATASETS=${1#*=}; shift ;;
-    --methods=*)  METHODS=${1#*=}; shift ;;
-    --runs=*)     RUNS=${1#*=}; shift ;;
+    --datasets=*)     DATASETS=${1#*=}; shift ;;
+    --methods=*)      METHODS=${1#*=}; shift ;;
+    --runs=*)         RUNS=${1#*=}; shift ;;
+    --naive-prompt=*) NAIVE_PROMPT=${1#*=}; shift ;;
     *)            forward+=("$1"); shift ;;
   esac
 done
@@ -64,6 +72,7 @@ for ds in ${DATASETS//,/ }; do
 done
 ds_tag=${DATASETS//,/-}
 [[ $DATASETS == "$ALL_DATASETS" ]] && ds_tag=all6
+[[ -n ${TASKS:-} ]] && ds_tag+=_${TASKS//,/-}
 
 args=(--exp "$EXP" --config "$CONFIG" --datasets "$DATASETS" --runs "$RUNS" --mechanism "$MECHANISM")
 method_tag=
@@ -89,8 +98,16 @@ fi
 if [[ -n ${TASKS:-} ]]; then
   args+=(--tasks "$TASKS")
 fi
-TAG=${TAG:-hy3-ioa_${EXP}_${ds_tag}_r${RUNS}_${MECHANISM}${method_tag}}
+NAIVE_PROMPT=${NAIVE_PROMPT:-default}
+if [[ $NAIVE_PROMPT != default ]]; then
+  args+=(--naive-prompt "$NAIVE_PROMPT")
+  method_tag+=_${NAIVE_PROMPT}prompt
+fi
+model_tag=$(basename "$CONFIG" .toml)
+model_tag=${model_tag#config.}
+[[ $model_tag == hy3 ]] && model_tag=hy3-ioa
+TAG=${TAG:-${model_tag}_${EXP}_${ds_tag}_r${RUNS}_${MECHANISM}${method_tag}}
 args+=(--tag "$TAG")
 
-echo "== $EXP: config=$CONFIG datasets=$DATASETS runs=$RUNS mechanism=$MECHANISM tasks=${TASKS:-default}${METHODS:+ methods=$METHODS}${GT_RUNS:+ gt_runs=$GT_RUNS} -> results/$EXP/$TAG"
+echo "== $EXP: config=$CONFIG datasets=$DATASETS runs=$RUNS mechanism=$MECHANISM tasks=${TASKS:-default}${METHODS:+ methods=$METHODS}${GT_RUNS:+ gt_runs=$GT_RUNS} naive_prompt=$NAIVE_PROMPT -> results/$EXP/$TAG"
 exec "$PYTHON" scripts/run_experiments.py "${args[@]}" "${forward[@]}"

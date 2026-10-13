@@ -1,0 +1,3 @@
+2026-10-09 15:25:05,105 WARNING psc.errors: [api_error] dataset=CU task=triangle method=TriTR run=8 APITimeoutError: Request timed out.
+2026-10-09 17:05:37,494 WARNING psc.errors: [api_error] dataset=Do task=triangle method=TriTR run=7 APITimeoutError: Request timed out.
+2026-10-09 17:06:05,189 WARNING psc.errors: [api_error] dataset=Do task=triangle method=TriTR run=9 APITimeoutError: Request timed out.
