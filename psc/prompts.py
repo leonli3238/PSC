@@ -265,11 +265,13 @@ def insert_edges_into_prompt(input_prompt: str, edges: list[tuple[int, int]]) ->
     return new_prompt
 
 
-# "default": the project's prompt (curator system prompt + answer instruction);
-# "paper": only the RAW-style (V(G), Q) + edge list that the paper shows, no
-# system prompt and no answer-format instruction;
-# "paper-direct": "paper" followed by NO_REASONING_INSTRUCTION.
-NAIVE_PROMPTS: tuple[str, ...] = ("default", "paper", "paper-direct")
+# "paper" (default): only the RAW-style (V(G), Q) + edge list that the paper
+# shows, no system prompt and no answer-format instruction;
+# "paper-direct": "paper" followed by NO_REASONING_INSTRUCTION;
+# "cot": curator system prompt + ANSWER_INSTRUCTION (step by step, then JSON);
+# the default before 2026-10-13, recorded as "default" in older manifests.
+NAIVE_PROMPTS: tuple[str, ...] = ("paper", "paper-direct", "cot")
+DEFAULT_NAIVE_PROMPT = "paper"
 PAPER_NAIVE_PROMPTS: frozenset[str] = frozenset({"paper", "paper-direct"})
 NO_REASONING_INSTRUCTION = (
     "Answer directly with the final number only. Do not reason step by step, do not list "
@@ -278,7 +280,7 @@ NO_REASONING_INSTRUCTION = (
 
 
 def naive_answer_prompt(
-    task: str, input_prompt: str, n: int, noisy_edges: list[tuple[int, int]], style: str = "default",
+    task: str, input_prompt: str, n: int, noisy_edges: list[tuple[int, int]], style: str = DEFAULT_NAIVE_PROMPT,
 ) -> str:
     """Section 2.4: the curator encodes the noisy edges of ``G'`` as an edge
     list string and appends it to the original prompt ``(V(G), Q)``."""

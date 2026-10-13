@@ -249,9 +249,11 @@ def test_paper_naive_prompt_drops_answer_instruction_and_stays_exact():
     from psc.prompts import ANSWER_INSTRUCTION, insert_edges_into_prompt, naive_answer_prompt, strip_structured
 
     p = task_prompt("2-star", 49)
-    assert ANSWER_INSTRUCTION in naive_answer_prompt("2-star", p, 49, [(0, 1)])
+    assert ANSWER_INSTRUCTION in naive_answer_prompt("2-star", p, 49, [(0, 1)], style="cot")
     paper = naive_answer_prompt("2-star", p, 49, [(0, 1)], style="paper")
     assert strip_structured(paper) == insert_edges_into_prompt(p, [(0, 1)])
+    assert naive_answer_prompt("2-star", p, 49, [(0, 1)]) == paper
+    assert NaiveFramework(ModelConfig(provider="mock")).naive_prompt == "paper"
     with pytest.raises(ValueError):
         naive_answer_prompt("2-star", p, 49, [(0, 1)], style="nope")
 

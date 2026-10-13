@@ -27,7 +27,7 @@ Examples::
     python scripts/run_experiments.py --exp exp1 --provider openai --datasets CU,Do --runs 3
     python scripts/run_experiments.py --exp exp3 --runs 10
     python scripts/run_experiments.py --exp exp1 --datasets CU,Do --with-tritr --gt-runs 1000
-    python scripts/run_experiments.py --exp exp1 --methods Naive --naive-prompt paper --datasets CU,Do
+    python scripts/run_experiments.py --exp exp1 --methods Naive --naive-prompt cot --datasets CU,Do
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ from psc.graph import DEFAULT_TASKS, TASKS, load_dataset  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.artifacts import append_run, new_run_directory, write_manifest  # noqa: E402
-from psc.prompts import NAIVE_PROMPTS  # noqa: E402
+from psc.prompts import DEFAULT_NAIVE_PROMPT, NAIVE_PROMPTS  # noqa: E402
 
 
 def _runs(args, default: int) -> int:
@@ -283,9 +283,10 @@ def main() -> None:
     ap.add_argument("--with-tritr", action="store_true", help=f"{'/'.join(TRITR_EXPERIMENTS)}: also run the agent-based TriTR")
     ap.add_argument("--tritr-alpha", type=float, default=0.0, help="TriTR: margin added to every noisy degree (NAM-DPRD uses 150)")
     ap.add_argument("--methods", default=None, help="exp1/exp2: subset of Naive,PSC,TriTR; exp3: of PSC,PSC-B,TriTR (default: the experiment's methods)")
-    ap.add_argument("--naive-prompt", choices=NAIVE_PROMPTS, default="default",
-                    help="Naive (+RAW): 'default' adds the curator system prompt and the step-by-step/JSON answer "
-                         "instruction; 'paper' sends only the paper's (V(G), Q) + edge list prompt")
+    ap.add_argument("--naive-prompt", choices=NAIVE_PROMPTS, default=DEFAULT_NAIVE_PROMPT,
+                    help="Naive (+RAW): 'paper' (default) sends only the paper's (V(G), Q) + edge list prompt; "
+                         "'paper-direct' adds an instruction to answer with the final number only; 'cot' adds the "
+                         "curator system prompt and the step-by-step/JSON answer instruction (default before 2026-10-13)")
     ap.add_argument("--gt-runs", type=int, default=0, help=f"{'/'.join(TRITR_EXPERIMENTS)}: append pure-Python GT rows over this many runs (0: none)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--config", default=None, help="model config file (default: $PSC_CONFIG or config.toml)")
@@ -376,7 +377,7 @@ def main() -> None:
           + (f" methods={args.methods}" if args.methods else "")
           + (f" tritr_alpha={args.tritr_alpha:g}" if "TriTR" in _methods(args, ()) else "")
           + (f" gt_runs={args.gt_runs}" if args.gt_runs else "")
-          + (f" naive_prompt={args.naive_prompt}" if args.naive_prompt != "default" else ""))
+          + f" naive_prompt={args.naive_prompt}")
     print(f"errors are logged to {out_dir}/errors.jsonl and {out_dir}/run.log while running"
           + (f"; every model call to {out_dir}/transcripts.jsonl" if args.save_transcripts else ""))
 

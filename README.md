@@ -73,9 +73,10 @@ mock 模型在统计上等价于 GT（`tests/test_psc.py::test_agent_pipeline_ma
 # exp1–exp3 默认加跑智能体版 TriTR，并附 1000 次的 GT-PSC / GT-TriTR（WITH_TRITR=0、GT_RUNS=0 关闭）
 bash scripts/run_hy3.sh exp3 --datasets CU,Do --verbose
 
-# Naive 提示词对照：--naive-prompt paper 只发送论文中的 (V(G), Q) + 边列表，
-# 不带 curator system prompt 和 "Think step by step … JSON" 作答要求；runs.jsonl 的 extra.reply 保存原始回复
-CONFIG=config.dsv3.toml GT_RUNS=0 bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt paper --verbose
+# Naive 提示词：默认 paper，只发送论文中的 (V(G), Q) + 边列表，不带 system prompt 和作答要求；
+# --naive-prompt cot 加上 curator system prompt 和 "Think step by step … JSON" 作答要求（2026-10-13 之前的默认，
+# 当时的目录名不带提示词后缀），目录名加 _cotprompt；runs.jsonl 的 extra.reply 保存原始回复
+CONFIG=config.dsv3.toml GT_RUNS=0 bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt cot --verbose
 
 # 通义千问（论文 Exp7：node=qwen3-8b, curator=qwen-plus），模型取 config.toml 的 [dashscope]
 python scripts/run_experiments.py --exp exp1 --provider dashscope --datasets CU --runs 3
@@ -416,7 +417,8 @@ node、curator 均为 DeepSeek-V3-0324，degree / 3-star，带 `--save-transcrip
 
 ### Naive 提示词对照
 
-DeepSeek-V3，6 个数据集，每格 10 次，无失败调用。`--naive-prompt paper` 只发送论文附录中的 (V(G), Q) 和噪声边表，
+DeepSeek-V3，6 个数据集，每格 10 次，无失败调用。这组运行在 2026-10-13 之前，“默认 prompt”即现在的
+`--naive-prompt cot`；论文 prompt（现在的默认）只发送论文附录中的 (V(G), Q) 和噪声边表，
 不带 curator system prompt 和 "Think step by step … JSON" 作答要求：
 
 | Task | Method | CU | Do | ML | CS | EE | PM | Avg. |

@@ -7,6 +7,10 @@
 除特别说明外，下面都是 `floor_tight` 机制、ε = 2、seed = 0；第 i 次运行的 DP 噪声只由 `(seed, i)` 决定，
 所以同一 seed 的不同模型面对的是同一批噪声。
 
+Naive 提示词：2026-10-13 起默认是论文 prompt（`paper`），目录名不带提示词后缀；在此之前，不带后缀的目录用的是
+curator system prompt + "Think step by step … JSON"（现在的 `cot`），论文 prompt 的目录带 `_paperprompt`。
+以 `manifest.json` 的 `naive_prompt` 为准，旧目录里记作 `default` 的即 `cot`。
+
 ## exp1：论文 Table 2
 
 | 目录 | 内容 |
@@ -17,8 +21,8 @@
 | `exp1/hy3_exp1_r10/` | hy3 的原始运行，含 PM 的 degree 与 Naive triangle；Naive 有 13 次运行调用重试耗尽 |
 | `exp1/hy3_exp1_pm_rest/` | hy3 的 PM 补跑，未完成：PSC triangle 只有 7 次，Naive 3-star 10 次全部调用失败 |
 | `exp1/dsv3-0324_exp1_CU_degree-3star_r100_floor_tight_PSC/` | DeepSeek-V3-0324 在 CU 上的 PSC，degree/3-star 各 100 次，带逐调用 transcripts |
-| `exp1/dsv3-1226_exp1_all6_r10_floor_tight_Naive/` | DeepSeek-V3 的 Naive，6 个数据集，默认 prompt |
-| `exp1/dsv3-1226_exp1_all6_r10_floor_tight_Naive_paperprompt/` | 同上，`--naive-prompt paper`（只发论文附录的 prompt） |
+| `exp1/dsv3-1226_exp1_all6_r10_floor_tight_Naive/` | DeepSeek-V3 的 Naive，6 个数据集，当时的默认 prompt（即现在的 `--naive-prompt cot`） |
+| `exp1/dsv3-1226_exp1_all6_r10_floor_tight_Naive_paperprompt/` | 同上，`--naive-prompt paper`（只发论文附录的 prompt，现在的默认） |
 | `exp1/hy3-ioa_exp1_CU-Do_r10_floor_tight_TriTR-a0/` | hy3-ioa 的智能体版 TriTR，CU/Do |
 
 ## pilot：CU/Do 四任务（含 2-star）

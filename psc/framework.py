@@ -21,7 +21,7 @@ from .library import AlgorithmSpec
 from .models import ModelConfig, create_formatter, create_model
 from .mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
 from .progress import note_phase
-from .prompts import NAIVE_PROMPTS
+from .prompts import DEFAULT_NAIVE_PROMPT, NAIVE_PROMPTS
 
 logger = logging.getLogger(__name__)
 
@@ -247,13 +247,13 @@ class NaiveFramework:
 
     ``prompt_style="raw"`` is the default Naive (+RAW) of Table 2;
     ``prompt_style="refined"`` gives Naive + REFINED of Exp6 / Table 5.
-    ``naive_prompt`` (raw style only) is ``"default"`` or ``"paper"``, see
-    :data:`psc.prompts.NAIVE_PROMPTS`.
+    ``naive_prompt`` (raw style only) is ``"paper"`` (default), ``"paper-direct"``
+    or ``"cot"``, see :data:`psc.prompts.NAIVE_PROMPTS`.
     """
 
     def __init__(
         self, model_cfg: ModelConfig | None = None, seed: int = 0, prompt_style: str = "raw",
-        naive_prompt: str = "default",
+        naive_prompt: str = DEFAULT_NAIVE_PROMPT,
     ) -> None:
         self.cfg = model_cfg or ModelConfig()
         self.factory = _AgentFactory(self.cfg, seed)

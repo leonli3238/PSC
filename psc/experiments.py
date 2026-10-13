@@ -19,6 +19,7 @@ from .ground_truth import gt_naive, gt_psc, gt_tritr, relative_error
 from .models import ModelConfig
 from .mechanism import DEFAULT_MECHANISM, get_mechanism
 from .progress import llm_progress
+from .prompts import DEFAULT_NAIVE_PROMPT
 
 DATASETS: tuple[str, ...] = ("CU", "Do", "ML", "CS", "EE", "PM")
 
@@ -120,7 +121,7 @@ def make_framework(
     method: str, cfg: ModelConfig, seed: int, r1: float = 0.5, r2: float = 0.2,
     mechanism: str = DEFAULT_MECHANISM,
     tritr_alpha: float = 0.0,
-    naive_prompt: str = "default",
+    naive_prompt: str = DEFAULT_NAIVE_PROMPT,
 ):
     """Instantiate the agent-based method by its paper name (TriTR: NAM-DPRD in the PSC pipeline)."""
     if method == "Naive":
@@ -381,7 +382,7 @@ async def run_agent_experiment(
     mechanism: str = DEFAULT_MECHANISM,
     on_result: Callable[[dict], None] | None = None,
     tritr_alpha: float = 0.0,
-    naive_prompt: str = "default",
+    naive_prompt: str = DEFAULT_NAIVE_PROMPT,
 ) -> tuple[list[dict], list[dict]]:
     """Return ``(summary rows, per-run rows)``.
 

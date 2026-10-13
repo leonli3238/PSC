@@ -397,10 +397,10 @@ AgentScope 用法要点：
 | `node_send_prompt` | 节点 send（邻居以 `Node x` 列出） | `{"Sender_ID","Sender_Neighbors"}` |
 | `node_update_prompt` | 节点 update（真实邻居 + 消息列表） | `{"count"}` |
 | `curator_aggregate_prompt` | 聚合（带噪计数保留 4 位小数） | `{"result"}` |
-| `naive_answer_prompt` | Naive：边表插入 Q 句之后 | `{"result"}` |
+| `naive_answer_prompt` | Naive：边表插入 Q 句之后；默认 `paper` 不加 system prompt 和结尾指令，`cot` 才加 | 自由文本取最后一个数（`cot` 为 `{"result"}`） |
 | `raw_prompt` / `refined_prompt` | 附录 B | `{"result"}` |
 
-统一结尾指令：“可以逐步思考，最后在 ```json 代码块里给出只含所需键的 JSON”。
+统一结尾指令（Naive 默认的 `paper` 提示词除外）：“可以逐步思考，最后在 ```json 代码块里给出只含所需键的 JSON”。
 
 ### 9.4 解析策略
 

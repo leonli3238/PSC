@@ -19,9 +19,10 @@
 # (GT_RUNS=0 to skip). --methods (or -m, or METHODS=) picks the agent methods instead:
 # exp1 / exp2 from Naive,PSC,TriTR, exp3 from PSC,PSC-B,TriTR, e.g.
 #   bash scripts/run_hy3.sh exp1 -d CU,Do --methods Naive,TriTR --runs 5 --verbose
-# Naive prompt: --naive-prompt paper (or NAIVE_PROMPT=paper) drops the curator system prompt and the
-# step-by-step/JSON answer instruction, sending only the paper's prompt; the tag gets _paperprompt.
-#   CONFIG=config.dsv3.toml bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt paper
+# Naive prompt: the default "paper" sends only the paper's prompt, without a system prompt or answer instruction.
+# --naive-prompt cot (or NAIVE_PROMPT=cot) adds the curator system prompt and the step-by-step/JSON answer
+# instruction (the default before 2026-10-13, whose tags have no prompt suffix); the tag gets _cotprompt.
+#   CONFIG=config.dsv3.toml bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt cot
 # --naive-prompt paper-direct adds an instruction to answer with the final number only, without reasoning.
 # Other overrides: TASKS=degree,2-star,3-star,triangle MECHANISM=floor_tight TAG=name
 # The default tag starts with the config name: config.dsv3-1226.toml -> dsv3-1226_exp1_..., config.hy3.toml -> hy3-ioa_...
@@ -98,11 +99,9 @@ fi
 if [[ -n ${TASKS:-} ]]; then
   args+=(--tasks "$TASKS")
 fi
-NAIVE_PROMPT=${NAIVE_PROMPT:-default}
-if [[ $NAIVE_PROMPT != default ]]; then
-  args+=(--naive-prompt "$NAIVE_PROMPT")
-  method_tag+=_${NAIVE_PROMPT}prompt
-fi
+NAIVE_PROMPT=${NAIVE_PROMPT:-paper}
+args+=(--naive-prompt "$NAIVE_PROMPT")
+[[ $NAIVE_PROMPT != paper ]] && method_tag+=_${NAIVE_PROMPT}prompt
 model_tag=$(basename "$CONFIG" .toml)
 model_tag=${model_tag#config.}
 [[ $model_tag == hy3 ]] && model_tag=hy3-ioa

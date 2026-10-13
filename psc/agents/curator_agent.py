@@ -24,6 +24,7 @@ from ..library import AlgorithmSpec, algorithm_library_summary, get_algorithm
 from ..models import chat
 from ..prompts import (
     CURATOR_SYSTEM,
+    DEFAULT_NAIVE_PROMPT,
     PAPER_NAIVE_PROMPTS,
     curator_aggregate_prompt,
     extract_json,
@@ -83,7 +84,7 @@ class CuratorAgent(AgentBase):
         input_prompt: str,
         n: int,
         noisy_edges: list[tuple[int, int]],
-        style: str = "default",
+        style: str = DEFAULT_NAIVE_PROMPT,
     ) -> float:
         """The paper styles send no curator system prompt, see :data:`psc.prompts.NAIVE_PROMPTS`."""
         text = await self._llm(

@@ -208,7 +208,7 @@ def _text(content) -> str:
 
 
 def test_paper_naive_prompt_sends_only_the_paper_prompt():
-    for style in ("default", "paper", "paper-direct"):
+    for style in ("cot", "paper", "paper-direct"):
         handler = type("_R", (_RecordingHandler,), {"requests": []})
         server = HTTPServer(("127.0.0.1", 0), handler)
         threading.Thread(target=server.serve_forever, daemon=True).start()
@@ -225,7 +225,7 @@ def test_paper_naive_prompt_sends_only_the_paper_prompt():
             roles = [m["role"] for m in answer[0]]
             user = _text(answer[0][-1]["content"])
             assert "<structured_input>" not in user
-            if style != "default":
+            if style != "cot":
                 assert roles == ["user"]
                 assert user.startswith(rec.input_prompt.split(" Q:")[0])
                 tail = "" if style == "paper" else f"\n\n{NO_REASONING_INSTRUCTION}"
@@ -259,7 +259,9 @@ def test_transcripts_record_every_call_with_agent_and_phase(tmp_path):
         assert all(a.startswith("Node-") for a, p in phases if p in ("send", "update"))
         answer = [c for c in calls if c["method"] == "Naive" and c["phase"] == "answer"]
         assert len(answer) == 1 and answer[0]["reply"] == nv.extra["reply"] and "The edges are:" in answer[0]["user"]
-        assert all(c["model"] and c["system"] and c["reply"] and c["attempts"] == 1 for c in calls)
+        assert all(c["model"] and c["reply"] and c["attempts"] == 1 for c in calls)
+        # the default (paper) Naive answer is sent without a system prompt
+        assert not answer[0]["system"] and all(c["system"] for c in calls if c is not answer[0])
     finally:
         set_transcript_sink(None)
         server.shutdown()
