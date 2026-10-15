@@ -1,0 +1,80 @@
+{
+  "created_utc": "2026-10-14T07:37:55.281651+00:00",
+  "python": "3.14.6",
+  "mechanism": {
+    "name": "floor_tight",
+    "rounding": "floor",
+    "gs_mode": "tight",
+    "physical_cap": true,
+    "base_bound": "n_minus_one",
+    "description": "Floor projection with the tight sensitivity C(D-1,k-1) of clipped degree counts.",
+    "node_margin": []
+  },
+  "settings": {
+    "experiment": "exp1",
+    "datasets": [
+      "CU",
+      "Do"
+    ],
+    "tasks": [
+      "2-star",
+      "3-star"
+    ],
+    "runs": 30,
+    "seed": 0,
+    "provider": "openai",
+    "node_model": "gpt-4.1",
+    "curator_model": "gpt-4.1",
+    "temperature": 0.0,
+    "stream": false,
+    "parallel_runs": 8,
+    "max_concurrency": 8,
+    "max_retries": 4,
+    "retry_backoff": 5.0,
+    "structured_input": false,
+    "node_base_url": "https://api.oaipro.com/v1",
+    "curator_base_url": "https://api.oaipro.com/v1",
+    "extra": {},
+    "node_extra": {},
+    "curator_extra": {},
+    "with_nodp": false,
+    "methods": [
+      "Naive"
+    ],
+    "naive_prompt": "paper",
+    "save_transcripts": false,
+    "rng_recipe": "default_rng([seed, run-1]); DP draws consumed sequentially within each run"
+  },
+  "sha256": {
+    "/data/workspace/PSC/psc/__init__.py": "6f26c74987168b554031ebe22390b7c847f2f5f05d82de1a8a04d268351bbcfe",
+    "/data/workspace/PSC/psc/agents/__init__.py": "0d21c5abfd89aa4377ce6c64cdb0b88e4a66ed49cb55200473056b0fe5ee2495",
+    "/data/workspace/PSC/psc/agents/curator_agent.py": "c8074d994e15bf33ce6a952d4a8815beb70b90ce1726d0fdca2115cf6cc0dadd",
+    "/data/workspace/PSC/psc/agents/node_agent.py": "56d6dfe834afae730e6988c55278eda3eded5ddcab6d426e6353c2166389830c",
+    "/data/workspace/PSC/psc/agents/privacy_controller.py": "c459fb016d364bb06e4f2728ac8329114d922b12ed8671a6d1d820ddd1e6b3e4",
+    "/data/workspace/PSC/psc/alignment.py": "4c32400f2d76ecc536dbfdf288a6be904e16dc876f57f04cd79a06b7fc7b0546",
+    "/data/workspace/PSC/psc/artifacts.py": "a57f9a94e9bcaf01b5055ea19b5e9878b5ca06c0663617f2ee9e324946fbe2c7",
+    "/data/workspace/PSC/psc/baselines.py": "a3b94dc03bce2e33c2a3c0114dfec3ceedca45312cf3fcc403aa2ebda7d066fb",
+    "/data/workspace/PSC/psc/dp.py": "4f2a75ff95bd808f5ffb1ad0ad0f27813a5c8e2c79e7086f1a41182f5c5596c0",
+    "/data/workspace/PSC/psc/events.py": "a5fda57c4e8df46b4fed842a1fbd06e5b0fc00df1bd8180e2d3746e56acb855b",
+    "/data/workspace/PSC/psc/experiments.py": "3e40115f7f9918f33c7bb7843496dca25a6d8477f37fe7b83af9e441743793a8",
+    "/data/workspace/PSC/psc/framework.py": "a5f55caba2cc149f6a283744464cead659e9a3a1cf9a32d99a0bcb2c2f86d360",
+    "/data/workspace/PSC/psc/graph.py": "5b9ade1aada581652be0a933144735fa9cc200939a3262852f767d247974ba57",
+    "/data/workspace/PSC/psc/ground_truth.py": "390ddc2a41093e11e2a8b18dc5a675198a70c69d9d4f1f103613e7dc7848175b",
+    "/data/workspace/PSC/psc/library.py": "130822e776e05d6005ec2ba90b1ae3c72d3052c1852f3ffa4a82f4cbb000299f",
+    "/data/workspace/PSC/psc/mechanism.py": "353fedc91377f658a7996a232f3819c9007548d53e9a44e0f65ca98f2f175de0",
+    "/data/workspace/PSC/psc/mock_model.py": "e105057cb0d44b0a2078050778644745cd15b5a53a350bb4c999ed41497b96dd",
+    "/data/workspace/PSC/psc/models.py": "4346303193cf2a3a805cf31f2b55cf2e5a3825e2089a04b18ab6782d0950a862",
+    "/data/workspace/PSC/psc/progress.py": "e07ce280d2b3bcb3ad61a9ed1b2209834e7bcfc22ac8e5703d61fa0111301289",
+    "/data/workspace/PSC/psc/prompts.py": "602c721523dce3a4c15f786cc811a12ab10318e57b9beca89387b20f052d7c58",
+    "/data/workspace/PSC/psc/rules.py": "f0d6cd0dad19f136494084af543eee6c103639b68bc20e70b1ffee89683fa2bb",
+    "/data/workspace/PSC/scripts/align_gt_psc.py": "d674a056b6d9bbac559f0c441cd2be2654a525f10a46ee48635f74a0715558b2",
+    "/data/workspace/PSC/scripts/build_exp1_table.py": "8d58fc6bba0e9bdb11b6e9c5c56412b76dbb60f2e1d80a4cc7ac8ffb10a7ca85",
+    "/data/workspace/PSC/scripts/merge_runs.py": "409ae3fe47e97bbac60476c7f4e79ff2f6c44b494c5baf73f28e551fdebce813",
+    "/data/workspace/PSC/scripts/prepare_datasets.py": "fc07bb61a8f49e741cd212dcc37ec5da8c7ce203cc2395c77bca2f6e9dfb92eb",
+    "/data/workspace/PSC/scripts/run_experiments.py": "881c6733aff05ae63ceae2d49c9d5cf6aded1bbebc008f7297a83bb473973004",
+    "/data/workspace/PSC/scripts/run_ground_truth.py": "83e8cb3ce3d5b20d5c96600d004b843bd2f01f5aa390ede06c0a585d39192133",
+    "/data/workspace/PSC/data/CU.json": "6b56eec066e9e24f254e27aeaf5565d18c7804b19bbf00f13bb3efb0c8e47f57",
+    "/data/workspace/PSC/data/Do.json": "cdd80dbcd6ecf774dfd3cbec930cff703e65c08d288ec07852c7561786d545a5"
+  },
+  "trace_note": "runs.jsonl includes local raw-count diagnostics; keep it in trusted storage."
+}

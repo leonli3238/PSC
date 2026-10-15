@@ -246,7 +246,9 @@ class NaiveFramework:
     """Section 2.4: RR noisy graph appended to the curator's prompt.
 
     ``prompt_style="raw"`` is the default Naive (+RAW) of Table 2;
-    ``prompt_style="refined"`` gives Naive + REFINED of Exp6 / Table 5.
+    ``prompt_style="refined"`` gives Naive + REFINED of Exp6 / Table 5;
+    ``prompt_style="code"`` is Naive+Code (LLM + code tool): the curator writes a
+    program that runs on the noisy graph, see :mod:`psc.code_tool`.
     ``naive_prompt`` (raw style only) is ``"paper"`` (default), ``"paper-direct"``
     or ``"cot"``, see :data:`psc.prompts.NAIVE_PROMPTS`.
     """
@@ -257,7 +259,7 @@ class NaiveFramework:
     ) -> None:
         self.cfg = model_cfg or ModelConfig()
         self.factory = _AgentFactory(self.cfg, seed)
-        if prompt_style not in ("raw", "refined"):
+        if prompt_style not in ("raw", "refined", "code"):
             raise ValueError(prompt_style)
         if naive_prompt not in NAIVE_PROMPTS:
             raise ValueError(f"unknown naive prompt {naive_prompt!r}, expected one of {NAIVE_PROMPTS}")
@@ -266,7 +268,7 @@ class NaiveFramework:
 
     @property
     def name(self) -> str:
-        return "Naive" if self.prompt_style == "raw" else "Naive+REFINED"
+        return {"raw": "Naive", "refined": "Naive+REFINED", "code": "Naive+Code"}[self.prompt_style]
 
     async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
         t0 = time.perf_counter()
@@ -283,10 +285,13 @@ class NaiveFramework:
         noisy_graph = controller.build_noisy_graph(nodes, split.eps1)  # Algorithm 1
 
         note_phase("answer")
+        program: dict = {}
         if self.prompt_style == "raw":
             estimate = await curator.answer_with_noisy_graph(
                 spec.task, input_prompt, graph.n, noisy_graph.edges, self.naive_prompt,
             )
+        elif self.prompt_style == "code":
+            estimate, program = await curator.answer_with_code(spec.task, input_prompt, graph.n, noisy_graph.edges)
         else:
             from .baselines import build_single_llm_prompt
 
@@ -315,6 +320,7 @@ class NaiveFramework:
                 "validation": validation,
                 **({"naive_prompt": self.naive_prompt} if self.prompt_style == "raw" else {}),
                 "reply": curator.last_reply,
+                **program,
             },
         )
 

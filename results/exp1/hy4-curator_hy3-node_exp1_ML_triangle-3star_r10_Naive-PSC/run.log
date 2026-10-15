@@ -1,0 +1,16 @@
+2026-10-14 22:08:08,854 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:08:42,714 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=7 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:12:53,114 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=5 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:15:27,629 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=9 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:16:39,108 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=10 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:22:24,988 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=5 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:22:38,137 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=7 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:22:56,555 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:37:13,748 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-10-14 22:52:34,426 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-10-14 23:04:01,293 WARNING psc.errors: [empty_reply] dataset=ML task=triangle method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-10-14 23:04:01,293 WARNING psc.errors: [call_failed] dataset=ML task=triangle method=Naive run=4 no usable reply after 5 attempts
+2026-10-14 23:04:01,293 WARNING psc.errors: [parse_failure] dataset=ML task=triangle method=Naive run=4 Curator: could not parse a numeric result, using 0.0 | reply (0 chars): ''
+2026-10-14 23:15:39,250 WARNING psc.errors: [empty_reply] dataset=ML task=3-star method=Naive run=1 no text in reply (content blocks: ['thinking'])
+2026-10-14 23:35:07,332 WARNING psc.errors: [empty_reply] dataset=ML task=3-star method=Naive run=5 no text in reply (content blocks: ['thinking'])
+2026-10-14 23:42:30,588 WARNING psc.errors: [empty_reply] dataset=ML task=3-star method=Naive run=9 no text in reply (content blocks: ['thinking'])

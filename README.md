@@ -167,8 +167,8 @@ PM（453 节点）triangle 的 Naive 提示词约 15 万 token，PSC 每次 909 
 .venv/bin/python scripts/align_gt_psc.py --runs 5000 --confirm-runs 1000
 ```
 
-比较结果见 `results/alignment/profiles_20260929/`，运行说明和限制见 `docs/RUN_CUDO_10.md`，
-k-star 差距的诊断见 `docs/KSTAR_DIAGNOSIS_2026-09-28.md`。
+比较结果见 `results/alignment/profiles_20260929/`，运行说明、k-star 差距诊断和工作计划见
+`docs/PSC_REPRODUCTION_REPORT.md`。
 
 ## 实现说明
 

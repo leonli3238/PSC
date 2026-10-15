@@ -98,7 +98,7 @@ NON_DP_METHODS: tuple[str, ...] = ("RAW", "REFINED", "PSC-noDP")
 GT_METHODS: tuple[str, ...] = ("GT-Naive", "GT-PSC", "GT-PSC-B", "GT-TriTR")
 # error kinds after which a model call was retried
 RETRY_KINDS: tuple[str, ...] = ("api_error", "empty_reply")
-ALL_METHODS: tuple[str, ...] = ("Naive", "Naive+REFINED", "PSC", "PSC-B", "TriTR") + NON_DP_METHODS
+ALL_METHODS: tuple[str, ...] = ("Naive", "Naive+REFINED", "Naive+Code", "PSC", "PSC-B", "TriTR") + NON_DP_METHODS
 
 
 def paper_value(task: str, method: str, dataset: str) -> float | None:
@@ -128,6 +128,8 @@ def make_framework(
         return NaiveFramework(cfg, seed=seed, naive_prompt=naive_prompt)
     if method == "Naive+REFINED":
         return NaiveFramework(cfg, seed=seed, prompt_style="refined")
+    if method == "Naive+Code":
+        return NaiveFramework(cfg, seed=seed, prompt_style="code")
     if method == "PSC":
         return PSCFramework(cfg, seed=seed, gs_optimization=True, r1=r1, r2=r2, mechanism=mechanism)
     if method == "PSC-B":

@@ -1,0 +1,19 @@
+# GPT-4o-mini for both node and curator, through the hub.oaifree.com gateway.
+# Not a paper setting (paper: node = gpt-4.1-mini, curator = gpt-4.1); a small-model reference.
+# Key and URL are read from .env.oaifree (OPENAI_API_KEY, OPENAI_BASE_URL), not from .env.
+# Naive only calls the curator model.
+
+env_file = ".env.oaifree"
+provider = "openai"
+temperature = 0.0     # paper: 0
+# The gateway's upstream rate-limits the account (429 user_global_rate_limited), so stay
+# slow and wait long between retries
+max_concurrency = 2
+parallel_runs = 2
+stream = false
+max_retries = 5
+retry_backoff = 20.0
+
+[openai]
+node_model = "gpt-4o-mini"
+curator_model = "gpt-4o-mini"

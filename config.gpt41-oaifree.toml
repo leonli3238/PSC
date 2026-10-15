@@ -1,0 +1,18 @@
+# GPT-4.1 for both node and curator, through the hub.oaifree.com gateway.
+# Key and URL are read from .env.oaifree (OPENAI_API_KEY, OPENAI_BASE_URL), not from .env.
+# The gateway's /anthropic path only serves the Anthropic Messages API; the runner needs
+# the OpenAI-compatible root, OPENAI_BASE_URL=https://hub.oaifree.com/v1.
+# Naive only calls the curator model.
+
+env_file = ".env.oaifree"
+provider = "openai"
+temperature = 0.0     # paper: 0
+max_concurrency = 2
+parallel_runs = 2
+stream = false
+max_retries = 5
+retry_backoff = 20.0
+
+[openai]
+node_model = "gpt-4.1"
+curator_model = "gpt-4.1"

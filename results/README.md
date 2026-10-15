@@ -31,7 +31,7 @@ curator system prompt + "Think step by step … JSON"（现在的 `cot`），论
 |---|---|
 | `pilot/hy3-ioa_cudo_r10_floor_tight/` | hy3-ioa，Naive/PSC × 10；Do triangle Naive 有 1 次调用重试耗尽 |
 | `pilot/hy4-preview-ioa_cudo_r10_floor_tight/` | hy4-preview-ioa，同上 |
-| `pilot/mock_cudo_r10_20260929/` | mock（完美推理器），流程验证，见 `docs/RUN_CUDO_10.md` |
+| `pilot/mock_cudo_r10_20260929/` | mock（完美推理器），流程验证，见 `docs/PSC_REPRODUCTION_REPORT.md` §36 |
 | `pilot/mock_cudo_r10_imola_check_20261009/` | mock，k-star 投影改动后的复核 |
 
 ## exp2
@@ -61,8 +61,8 @@ exp3–exp6 目前没有当前机制下的有效结果，历史结果见 `archiv
 | 目录 | 内容 |
 |---|---|
 | `alignment/profiles_20260929/`、`profiles_20261002_adaptive/` | k-star 候选机制的六图比较与独立随机流确认（`scripts/align_gt_psc.py`） |
-| `audit/2026-09-28/`、`audit/2026-10-02/` | 离线诊断脚本和输出，对应 `docs/AUDIT_2026-09-28.md`、`docs/KSTAR_DIAGNOSIS_2026-09-28.md` |
-| `research/2026-09-28-author-implementation/` | 作者实现检索记录和上游 Imola et al. 源码，对应 `docs/PSC_SOURCE_RESEARCH_2026-09-28.md` |
+| `audit/2026-09-28/`、`audit/2026-10-02/` | 离线诊断脚本和输出，对应 `docs/PSC_REPRODUCTION_REPORT.md` 第三、四部分 |
+| `research/2026-09-28-author-implementation/` | 作者实现检索记录和上游 Imola et al. 源码，对应 `docs/PSC_REPRODUCTION_REPORT.md` §28、§29、§32 |
 
 ## archive：不再作为证据使用
 

@@ -65,7 +65,7 @@ def _runs(args, default: int) -> int:
 
 TRITR_EXPERIMENTS = ("exp1", "exp2", "exp3")
 # agent methods that --methods may select per experiment
-METHOD_CHOICES = {"exp1": ("Naive", "PSC", "TriTR"), "exp2": ("Naive", "PSC", "TriTR"), "exp3": ("PSC", "PSC-B", "TriTR")}
+METHOD_CHOICES = {"exp1": ("Naive", "Naive+Code", "PSC", "TriTR"), "exp2": ("Naive", "Naive+Code", "PSC", "TriTR"), "exp3": ("PSC", "PSC-B", "TriTR")}
 
 
 def _run_experiment(args, *pos, **kwargs):
@@ -122,7 +122,7 @@ def exp1(args, cfg):
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, [2.0], _runs(args, 10), methods, args.seed, verbose=args.verbose),
     )
-    gt = _gt_reference(args, datasets, tasks, [2.0], ("PSC",), methods)
+    gt = _gt_reference(args, datasets, tasks, [2.0], ("Naive", "PSC"), methods)
     md = table2_markdown(summary + gt, datasets, methods + tuple(dict.fromkeys(r["method"] for r in gt)))
     return summary + gt, per_run, md
 
@@ -135,7 +135,7 @@ def exp2(args, cfg):
     summary, per_run = run_async(
         _run_experiment(args, args.data, cfg, datasets, tasks, eps_values, _runs(args, 10), methods, args.seed, verbose=args.verbose),
     )
-    summary += _gt_reference(args, datasets, tasks, eps_values, ("PSC",), methods)
+    summary += _gt_reference(args, datasets, tasks, eps_values, ("Naive", "PSC"), methods)
     md = generic_markdown(summary, ["dataset", "task", "eps", "method", "avg_relative_error", "mean_estimate", "truth"])
     return summary, per_run, md
 
@@ -282,7 +282,7 @@ def main() -> None:
     ap.add_argument("--with-nodp", action="store_true", help="pilot only: also run PSC-noDP once per setting")
     ap.add_argument("--with-tritr", action="store_true", help=f"{'/'.join(TRITR_EXPERIMENTS)}: also run the agent-based TriTR")
     ap.add_argument("--tritr-alpha", type=float, default=0.0, help="TriTR: margin added to every noisy degree (NAM-DPRD uses 150)")
-    ap.add_argument("--methods", default=None, help="exp1/exp2: subset of Naive,PSC,TriTR; exp3: of PSC,PSC-B,TriTR (default: the experiment's methods)")
+    ap.add_argument("--methods", default=None, help="exp1/exp2: subset of Naive,Naive+Code,PSC,TriTR; exp3: of PSC,PSC-B,TriTR (default: the experiment's methods)")
     ap.add_argument("--naive-prompt", choices=NAIVE_PROMPTS, default=DEFAULT_NAIVE_PROMPT,
                     help="Naive (+RAW): 'paper' (default) sends only the paper's (V(G), Q) + edge list prompt; "
                          "'paper-direct' adds an instruction to answer with the final number only; 'cot' adds the "

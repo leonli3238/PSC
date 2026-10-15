@@ -1,0 +1,6 @@
+2026-10-14 16:45:25,218 WARNING psc.errors: [empty_reply] dataset=CU task=2-star method=Naive run=4 no text in reply (content blocks: ['thinking'])
+2026-10-14 16:57:42,804 WARNING psc.errors: [empty_reply] dataset=CU task=3-star method=Naive run=2 no text in reply (content blocks: ['thinking'])
+2026-10-14 17:14:07,525 WARNING psc.errors: [empty_reply] dataset=CU task=triangle method=Naive run=5 no text in reply (content blocks: ['thinking'])
+2026-10-14 17:39:12,420 WARNING psc.errors: [empty_reply] dataset=CU task=triangle method=Naive run=25 no text in reply (content blocks: ['thinking'])
+2026-10-14 17:41:32,686 WARNING psc.errors: [empty_reply] dataset=CU task=triangle method=Naive run=29 no text in reply (content blocks: ['thinking'])
+2026-10-14 17:49:50,168 WARNING psc.errors: [api_error] dataset=CU task=triangle method=Naive run=29 APIConnectionError: Connection error.

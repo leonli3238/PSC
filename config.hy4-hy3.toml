@@ -1,0 +1,15 @@
+# Curator and privacy controller: hy4-preview-ioa. Node agents: hy3-ioa.
+# Key and URL come from .env (OPENAI_API_KEY, OPENAI_BASE_URL).
+# Naive only calls the curator model, so Naive runs here are hy4-preview-ioa.
+
+provider = "openai"
+temperature = 0.0     # paper: 0
+max_concurrency = 8
+parallel_runs = 8
+stream = true         # the gateway rejects non-stream requests
+max_retries = 4
+retry_backoff = 5.0
+
+[openai]
+node_model = "hy3-ioa"
+curator_model = "hy4-preview-ioa"

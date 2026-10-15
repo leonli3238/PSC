@@ -45,6 +45,9 @@ class MockChatModel(ChatModelBase):
         payload = extract_structured(text)
         if payload is None:
             raise ValueError("MockChatModel requires a <structured_input> block in the prompt")
+        if payload.get("phase") == "naive_code":
+            reply = f"```python\n{_COUNT_PROGRAMS[payload['task']]}\n```"
+            return ChatResponse(content=[TextBlock(type="text", text=reply)])
         answer = self._dispatch(payload, text)
         reply = f"Following the given rules.\n```json\n{json.dumps(answer)}\n```"
         return ChatResponse(content=[TextBlock(type="text", text=reply)])
@@ -71,6 +74,26 @@ class MockChatModel(ChatModelBase):
         if self.error_rate > 0 and self._rng.random() < self.error_rate:
             return max(0.0, value + float(self._rng.choice([-1, 1])))
         return value
+
+
+_KSTAR_PROGRAM = """from math import comb
+deg = [0] * n
+for u, v in edges:
+    deg[u] += 1
+    deg[v] += 1
+print(sum(comb(d, {k}) for d in deg))"""
+
+# exact counts on the given graph, matching rules.naive_answer
+_COUNT_PROGRAMS = {
+    "degree": "print(2 * len(edges) / n)",
+    "2-star": _KSTAR_PROGRAM.format(k=2),
+    "3-star": _KSTAR_PROGRAM.format(k=3),
+    "triangle": """adj = [set() for _ in range(n)]
+for u, v in edges:
+    adj[u].add(v)
+    adj[v].add(u)
+print(sum(len(adj[u] & adj[v]) for u, v in edges) // 3)""",
+}
 
 
 def _last_user_text(messages: list[dict]) -> str:
