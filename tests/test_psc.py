@@ -495,6 +495,30 @@ def test_model_config_from_env_file_and_config_file():
             curator = create_model(cfg, "curator")
             assert curator.generate_kwargs["temperature"] == 0.6
             assert create_model(cfg, "node").generate_kwargs["temperature"] == 0.0
+
+            # --profile: its env_file replaces .env, its keys win over the provider section
+            (Path(d) / ".env.alt").write_text("OPENAI_API_KEY=sk-alt\n")
+            conf.write_text(
+                'provider = "openai"\nmax_retries = 4\n[openai]\nstream = true\nnode_model = "m"\n'
+                '[profiles.alt]\nenv_file = ".env.alt"\nstream = false\nmax_retries = 5\n'
+                '[profiles.alt.extra]\nextra_body = { c = 3 }\n',
+            )
+            os.environ.pop("OPENAI_API_KEY", None)
+            cfg = ModelConfig.from_env(config_path=conf, env_path=env, profile="alt", curator_model="cli")
+            assert (cfg.api_key, cfg.stream, cfg.max_retries, cfg.profile) == ("sk-alt", False, 5, "alt")
+            assert (cfg.node_model, cfg.curator_model, cfg.extra) == ("m", "cli", {"extra_body": {"c": 3}})
+            os.environ.pop("OPENAI_API_KEY", None)
+            cfg = ModelConfig.from_env(config_path=conf, env_path=env)
+            assert (cfg.api_key, cfg.stream, cfg.profile) == ("sk-from-dotenv", True, None)
+            for bad in ("nope", None):
+                if bad is None:
+                    conf.write_text('[profiles.alt]\nstreem = false\n')
+                try:
+                    ModelConfig.from_env(config_path=conf, env_path=None, profile=bad or "nope")
+                except ValueError as e:
+                    assert ("nope" if bad else "streem") in str(e)
+                else:
+                    raise AssertionError("unknown profile / profile key must be rejected")
     finally:
         for k, v in saved.items():
             os.environ.pop(k, None)

@@ -71,6 +71,8 @@ class ModelConfig:
     # Per-role overrides merged over ``extra`` (top-level keys replace, e.g. extra_body)
     node_extra: dict = field(default_factory=dict)
     curator_extra: dict = field(default_factory=dict)
+    # [profiles.<name>] of the config file that was applied, if any
+    profile: str | None = None
 
     def role_extra(self, role: str) -> dict:
         return {**self.extra, **(self.node_extra if role == "node" else self.curator_extra)}
@@ -92,19 +94,26 @@ class ModelConfig:
         provider: str | None = None,
         config_path: str | Path | None = None,
         env_path: str | Path | None = DEFAULT_ENV,
+        profile: str | None = None,
         **overrides,
     ) -> "ModelConfig":
         """Build the config from ``.env`` (keys / URLs) and ``config.toml`` (models).
 
         Precedence: ``overrides`` (CLI flags) > environment variables
-        (``PSC_PROVIDER``, ``OLLAMA_MODEL``) > config file > built-in defaults.
-        Variables already set in the environment win over the config's
-        ``env_file``, which wins over ``.env``.
+        (``PSC_PROVIDER``, ``OLLAMA_MODEL``) > ``[profiles.<profile>]`` >
+        provider section > shared keys of the config file > built-in defaults.
+        Variables already set in the environment win over the ``env_file`` of
+        the profile (else of the file), which wins over ``.env``.
         """
         path = Path(config_path or os.getenv("PSC_CONFIG") or DEFAULT_CONFIG)
         file_cfg = load_config_file(path)
-        if "env_file" in file_cfg:
-            env_file = path.parent / file_cfg["env_file"]
+        profiles = file_cfg.get("profiles", {})
+        if profile is not None and profile not in profiles:
+            raise ValueError(f"{path}: unknown profile {profile!r}; choose from {sorted(profiles)}")
+        chosen = profiles.get(profile, {})
+        env_name = chosen.get("env_file", file_cfg.get("env_file"))
+        if env_name is not None:
+            env_file = path.parent / env_name
             if not env_file.exists():
                 raise FileNotFoundError(f"{path}: env_file {env_file} does not exist")
             load_dotenv(env_file, override=False)
@@ -132,9 +141,11 @@ class ModelConfig:
             cfg.node_model = cfg.curator_model = "qwen3:8b"
 
         shared = {k: v for k, v in file_cfg.items() if k not in ("provider", "env_file") and not isinstance(v, dict)}
-        for values in (shared, file_cfg.get(provider, {})):
+        profile_values = {k: v for k, v in chosen.items() if k != "env_file"}
+        for values in (shared, file_cfg.get(provider, {}), profile_values):
             for k, v in values.items():
                 setattr(cfg, k, v)
+        cfg.profile = profile
 
         if provider == "ollama" and os.getenv("OLLAMA_MODEL"):
             cfg.node_model = cfg.curator_model = os.environ["OLLAMA_MODEL"]
@@ -156,6 +167,17 @@ _CONFIG_KEYS = frozenset(
 _SECTION_ONLY_KEYS = frozenset({"extra", "node_extra", "curator_extra"})
 
 
+def _check_section(path: Path, name: str, section: dict, allowed: frozenset[str]) -> None:
+    bad = set(section) - allowed
+    if bad:
+        raise ValueError(f"{path}: unknown key(s) {sorted(bad)} in [{name}]; allowed: {sorted(allowed)}")
+    for table in _SECTION_ONLY_KEYS & set(section):
+        if not isinstance(section[table], dict):
+            raise ValueError(f"{path}: [{name}.{table}] must be a table")
+    if not isinstance(section.get("env_file", ""), str):
+        raise ValueError(f"{path}: env_file in [{name}] must be a path string (relative to the config file)")
+
+
 def load_config_file(path: str | Path) -> dict:
     """Read ``config.toml``; a missing file means "use the defaults"."""
     path = Path(path)
@@ -170,17 +192,20 @@ def load_config_file(path: str | Path) -> dict:
             if not isinstance(value, str):
                 raise ValueError(f"{path}: env_file must be a path string (relative to the config file)")
             continue
+        if key == "profiles":
+            # [profiles.<name>]: gateway settings (env_file, stream, retries, extra, ...)
+            # applied over the provider section with --profile <name>
+            if not isinstance(value, dict) or not all(isinstance(v, dict) for v in value.values()):
+                raise ValueError(f"{path}: profiles must be tables [profiles.<name>]")
+            for name, section in value.items():
+                _check_section(path, f"profiles.{name}", section, _CONFIG_KEYS | _SECTION_ONLY_KEYS | {"env_file"})
+            continue
         if isinstance(value, dict):
             if key not in PROVIDERS:
                 raise ValueError(f"{path}: unknown provider section [{key}]; choose from {PROVIDERS}")
-            bad = set(value) - _CONFIG_KEYS - _SECTION_ONLY_KEYS
-            for table in _SECTION_ONLY_KEYS & set(value):
-                if not isinstance(value[table], dict):
-                    raise ValueError(f"{path}: [{key}.{table}] must be a table")
-        else:
-            bad = {key} - _CONFIG_KEYS
-        if bad:
-            raise ValueError(f"{path}: unknown key(s) {sorted(bad)}; allowed: {sorted(_CONFIG_KEYS | _SECTION_ONLY_KEYS)}")
+            _check_section(path, key, value, _CONFIG_KEYS | _SECTION_ONLY_KEYS)
+        elif key not in _CONFIG_KEYS:
+            raise ValueError(f"{path}: unknown key(s) {[key]}; allowed: {sorted(_CONFIG_KEYS | _SECTION_ONLY_KEYS)}")
     return data
 
 

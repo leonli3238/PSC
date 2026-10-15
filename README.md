@@ -52,9 +52,24 @@ mock 模型在统计上等价于 GT（`tests/test_psc.py::test_agent_pipeline_ma
 | `.env` | `OPENAI_API_KEY`、`OPENAI_BASE_URL`（留空即官方 API）、`DASHSCOPE_API_KEY`、`OLLAMA_HOST` |
 | `config.toml` | 默认 `provider`、`temperature`、`max_concurrency`、`parallel_runs`、`stream`、`max_retries`、`retry_backoff`，以及每个 provider 的 `node_model` / `curator_model`（隐私控制器复用 curator 模型）；只接受流式请求的网关需设 `stream = true`；`[<provider>.extra]` 为附加请求参数，`[<provider>.node_extra]` / `[<provider>.curator_extra]` 按角色覆盖其中的顶层键（示例见 `config.vllm-think.toml`） |
 
-优先级：命令行参数 > 环境变量（`PSC_PROVIDER`、`OLLAMA_MODEL`；已设置的环境变量也优先于 `.env`）> `config.toml` > 内置默认值。
-`--config path/to/other.toml`（或 `PSC_CONFIG`）可切换配置文件；仓库里的 `config.hy3.toml`、`config.dsv3*.toml`、
-`config.hy3-dsv3.toml`、`config.vllm*.toml` 是本项目实际用过的几组模型配置。
+优先级：命令行参数 > 环境变量（`PSC_PROVIDER`、`OLLAMA_MODEL`；已设置的环境变量也优先于 `.env`）> `--profile` 选中的 `[profiles.<name>]` > provider 分节 > 共享键 > 内置默认值。
+非 vLLM 的模型共用 `config.toml`：模型用 `--node-model` / `--curator-model` 在命令行指定；不同网关的密钥文件
+（`env_file`，替代 `.env`）、`stream`、并发与重试写在 `[profiles.<name>]` 中，用 `--profile` 选择：
+
+| profile | 网关 / 密钥文件 | 用过的模型 |
+|---|---|---|
+| （不指定） | `.env`，`stream = true` | hy3-ioa、hy4-preview-ioa、deepseek-v3、deepseek-v3-0324 |
+| `gpt41` | elysia.h-e.top，`.env.gpt41` | gpt-4.1、gpt-4.1-mini |
+| `oaifree` / `oaifree2` | hub.oaifree.com，`.env.oaifree` / `.env.oaifree2`，低并发、长退避 | gpt-4.1、gpt-4.1-mini、gpt-4o、gpt-4o-mini |
+| `glm` | `.env`，关闭 thinking | glm-5.2 |
+
+```bash
+# 论文设置：node = gpt-4.1-mini、curator = gpt-4.1
+.venv/bin/python scripts/run_experiments.py --exp exp1 --provider openai --profile gpt41 \
+  --node-model gpt-4.1-mini --curator-model gpt-4.1 --datasets CU --tasks degree --methods PSC --runs 10
+```
+
+`--config path/to/other.toml`（或 `PSC_CONFIG`）可切换配置文件；本地 vLLM 用 `config.vllm.toml` / `config.vllm-think.toml`。
 
 真实模型只收到自然语言 prompt：`<structured_input>` 块只在 `provider=mock` 时保留
 （`ModelConfig.structured_input` 可强制开关）。节点 send 回复无法解析时不用规则结果兜底，
@@ -69,14 +84,14 @@ mock 模型在统计上等价于 GT（`tests/test_psc.py::test_agent_pipeline_ma
 # CU/Do 上 PSC、Naive 各 10 次，沿用 config.toml 与 .env
 .venv/bin/python scripts/run_experiments.py --exp pilot --provider openai --datasets CU,Do --runs 10 --tag hy3-ioa_cudo_r10_floor_tight --verbose
 
-# 单独跑论文的某一个实验（exp1 … exp6，见脚本头部说明）；默认 config.hy3.toml，CONFIG= 可换；
+# 单独跑论文的某一个实验（exp1 … exp6，见脚本头部说明）；默认 hy3-ioa，NODE_MODEL= / CURATOR_MODEL= / PROFILE= 可换；
 # exp1–exp3 默认加跑智能体版 TriTR，并附 1000 次的 GT-PSC / GT-TriTR（WITH_TRITR=0、GT_RUNS=0 关闭）
 bash scripts/run_hy3.sh exp3 --datasets CU,Do --verbose
 
 # Naive 提示词：默认 paper，只发送论文中的 (V(G), Q) + 边列表，不带 system prompt 和作答要求；
 # --naive-prompt cot 加上 curator system prompt 和 "Think step by step … JSON" 作答要求（2026-10-13 之前的默认，
 # 当时的目录名不带提示词后缀），目录名加 _cotprompt；runs.jsonl 的 extra.reply 保存原始回复
-CONFIG=config.dsv3.toml GT_RUNS=0 bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt cot --verbose
+NODE_MODEL=deepseek-v3-0324 GT_RUNS=0 bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt cot --verbose
 
 # 通义千问（论文 Exp7：node=qwen3-8b, curator=qwen-plus），模型取 config.toml 的 [dashscope]
 python scripts/run_experiments.py --exp exp1 --provider dashscope --datasets CU --runs 3

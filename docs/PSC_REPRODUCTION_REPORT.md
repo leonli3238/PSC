@@ -1086,7 +1086,7 @@ $$\hat T_2=\sum_i\Big[\frac{y_i(y_i-1)}{2}-b^2\Big],\qquad \hat T_3=\sum_i\Big[\
 
 ### 35.4 阶段三：补齐论文主实验（2–3 人日，API 另计）
 
-**3.1 冻结协议。** 用单独的论文配置（计划为 `configs/paper.toml`；目前根目录已有 `config.gpt41-oaifree.toml`、`config.gpt41mini-oaifree.toml` 等）：node=GPT-4.1-mini、curator=GPT-4.1、temperature=0、ε=2、六图四任务、PSC/Naive 每格 10 次。执行前核实模型可用性与返回标识，不把 OpenAI-compatible provider 名称等同于论文模型；原版本不可用或别名指向不同快照时记录并独立命名。控制器模型、stream、token 上限、超时、重试、并发、prompt/解析版本、回退策略写入 manifest。选 10 个固定 DP 重复编号，独立 GT 种子库每格 ≥1000 次；固定十次主表后才按事先规则决定是否增加到 30 次，新增结果单列。
+**3.1 冻结协议。** 用单独的论文配置（计划为 `configs/paper.toml`；目前可用 `config.toml` 的 `--profile gpt41` 或 `oaifree` 加 `--node-model gpt-4.1-mini --curator-model gpt-4.1`）：node=GPT-4.1-mini、curator=GPT-4.1、temperature=0、ε=2、六图四任务、PSC/Naive 每格 10 次。执行前核实模型可用性与返回标识，不把 OpenAI-compatible provider 名称等同于论文模型；原版本不可用或别名指向不同快照时记录并独立命名。控制器模型、stream、token 上限、超时、重试、并发、prompt/解析版本、回退策略写入 manifest。选 10 个固定 DP 重复编号，独立 GT 种子库每格 ≥1000 次；固定十次主表后才按事先规则决定是否增加到 30 次，新增结果单列。
 
 **3.2 预检与正式运行分开。** 先在 CU/Do/EE 的代表性调用上预检 node send、update、aggregate、Naive 大 prompt、stream 重试和 usage；预检前后改配置的调用不计入正式实验。PM 的 Naive triangle prompt 约 15 万 token，需先确认能放入实际上下文，不能静默截断或更换图表示后仍标“同条件”。模型质量差不是删除样本的理由；接口配置错误、意外截断或日志损坏才是修协议的依据。
 

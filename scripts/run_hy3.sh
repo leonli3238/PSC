@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Run one paper experiment with hy3-ioa (config.hy3.toml; key and URL from .env).
+# Run one paper experiment; models default to hy3-ioa on the gateway in .env (config.toml).
+# NODE_MODEL= / CURATOR_MODEL= pick the models (CURATOR_MODEL defaults to NODE_MODEL);
+# PROFILE= picks [profiles.<name>] of config.toml for another gateway, e.g.
+#   PROFILE=gpt41 NODE_MODEL=gpt-4.1-mini CURATOR_MODEL=gpt-4.1 bash scripts/run_hy3.sh exp1 -d CU
 # Run from anywhere; results go to results/<exp>/<TAG>/.
 #
 #   bash scripts/run_hy3.sh exp1   # Table 2: Naive / PSC (+ TriTR), six datasets
@@ -22,11 +25,11 @@
 # Naive prompt: the default "paper" sends only the paper's prompt, without a system prompt or answer instruction.
 # --naive-prompt cot (or NAIVE_PROMPT=cot) adds the curator system prompt and the step-by-step/JSON answer
 # instruction (the default before 2026-10-13, whose tags have no prompt suffix); the tag gets _cotprompt.
-#   CONFIG=config.dsv3.toml bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt cot
+#   NODE_MODEL=deepseek-v3-0324 bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive --naive-prompt cot
 # --naive-prompt paper-direct adds an instruction to answer with the final number only, without reasoning.
 # Other overrides: TASKS=degree,2-star,3-star,triangle MECHANISM=floor_tight TAG=name
-# The default tag starts with the config name: config.dsv3-1226.toml -> dsv3-1226_exp1_..., config.hy3.toml -> hy3-ioa_...
-#   CONFIG=config.dsv3-1226.toml TASKS=2-star bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive,PSC
+# The default tag starts with the models: hy3-ioa_exp1_..., or <node>-node_<curator>-curator_exp1_... when they differ
+#   NODE_MODEL=deepseek-v3 TASKS=2-star bash scripts/run_hy3.sh exp1 -d CU,Do -m Naive,PSC
 # Unset TASKS keeps the experiment's default tasks of run_experiments.py.
 # Further arguments go to run_experiments.py, e.g. --verbose, or --dry-run (exp1 only).
 set -euo pipefail
@@ -62,7 +65,10 @@ while (($#)); do
   esac
 done
 
-CONFIG=${CONFIG:-config.hy3.toml}
+CONFIG=${CONFIG:-config.toml}
+NODE_MODEL=${NODE_MODEL:-hy3-ioa}
+CURATOR_MODEL=${CURATOR_MODEL:-$NODE_MODEL}
+PROFILE=${PROFILE:-}
 RUNS=${RUNS:-10}
 MECHANISM=${MECHANISM:-floor_tight}
 DATASETS=${DATASETS:-$default_datasets}
@@ -75,7 +81,7 @@ ds_tag=${DATASETS//,/-}
 [[ $DATASETS == "$ALL_DATASETS" ]] && ds_tag=all6
 [[ -n ${TASKS:-} ]] && ds_tag+=_${TASKS//,/-}
 
-args=(--exp "$EXP" --config "$CONFIG" --datasets "$DATASETS" --runs "$RUNS" --mechanism "$MECHANISM")
+args=(--exp "$EXP" --config "$CONFIG" --provider openai --node-model "$NODE_MODEL" --curator-model "$CURATOR_MODEL" --datasets "$DATASETS" --runs "$RUNS" --mechanism "$MECHANISM")
 method_tag=
 if [[ $EXP == exp1 || $EXP == exp2 || $EXP == exp3 ]]; then
   WITH_TRITR=${WITH_TRITR:-1}
@@ -102,11 +108,11 @@ fi
 NAIVE_PROMPT=${NAIVE_PROMPT:-paper}
 args+=(--naive-prompt "$NAIVE_PROMPT")
 [[ $NAIVE_PROMPT != paper ]] && method_tag+=_${NAIVE_PROMPT}prompt
-model_tag=$(basename "$CONFIG" .toml)
-model_tag=${model_tag#config.}
-[[ $model_tag == hy3 ]] && model_tag=hy3-ioa
+[[ -n $PROFILE ]] && args+=(--profile "$PROFILE")
+model_tag=$NODE_MODEL
+[[ $NODE_MODEL != "$CURATOR_MODEL" ]] && model_tag=${NODE_MODEL}-node_${CURATOR_MODEL}-curator
 TAG=${TAG:-${model_tag}_${EXP}_${ds_tag}_r${RUNS}_${MECHANISM}${method_tag}}
 args+=(--tag "$TAG")
 
-echo "== $EXP: config=$CONFIG datasets=$DATASETS runs=$RUNS mechanism=$MECHANISM tasks=${TASKS:-default}${METHODS:+ methods=$METHODS}${GT_RUNS:+ gt_runs=$GT_RUNS} naive_prompt=$NAIVE_PROMPT -> results/$EXP/$TAG"
+echo "== $EXP: node=$NODE_MODEL curator=$CURATOR_MODEL${PROFILE:+ profile=$PROFILE} datasets=$DATASETS runs=$RUNS mechanism=$MECHANISM tasks=${TASKS:-default}${METHODS:+ methods=$METHODS}${GT_RUNS:+ gt_runs=$GT_RUNS} naive_prompt=$NAIVE_PROMPT -> results/$EXP/$TAG"
 exec "$PYTHON" scripts/run_experiments.py "${args[@]}" "${forward[@]}"

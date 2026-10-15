@@ -107,6 +107,7 @@ def _cfg(args) -> ModelConfig:
     return ModelConfig.from_env(
         args.provider,
         config_path=args.config,
+        profile=args.profile,
         node_model=args.node_model,
         curator_model=args.curator_model,
         max_concurrency=args.concurrency,
@@ -290,6 +291,7 @@ def main() -> None:
     ap.add_argument("--gt-runs", type=int, default=0, help=f"{'/'.join(TRITR_EXPERIMENTS)}: append pure-Python GT rows over this many runs (0: none)")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--config", default=None, help="model config file (default: $PSC_CONFIG or config.toml)")
+    ap.add_argument("--profile", default=None, help="[profiles.<name>] of the config file: gateway key file, stream, concurrency, retries")
     ap.add_argument("--provider", default=None, choices=PROVIDERS, help="default: $PSC_PROVIDER, then config file")
     ap.add_argument("--node-model", default=None, help="default: config file")
     ap.add_argument("--curator-model", default=None, help="default: config file")
@@ -332,7 +334,8 @@ def main() -> None:
             count * _expected_calls(method, task, load_dataset(args.data, ds)[task].vertex_num)
             for ds in datasets for task in tasks for method, count in counts.items()
         )
-        print(f"provider={cfg.provider} node={cfg.node_model} curator={cfg.curator_model} mechanism={args.mechanism}")
+        print(f"provider={cfg.provider} profile={cfg.profile or 'none'} node={cfg.node_model} curator={cfg.curator_model} "
+              f"stream={cfg.stream} concurrency={cfg.max_concurrency} parallel_runs={cfg.parallel_runs} mechanism={args.mechanism}")
         print(f"datasets={datasets} tasks={tasks} runs={counts}; total runs={len(datasets)*len(tasks)*sum(counts.values())}; expected LLM calls={total}")
         return
     try:
@@ -343,7 +346,7 @@ def main() -> None:
     write_manifest(out_dir, args.mechanism, args.data, datasets, {
         "experiment": args.exp, "datasets": datasets, "tasks": tasks,
         "runs": pilot_runs(args) if args.exp == "pilot" else _runs(args, 10), "seed": args.seed,
-        "provider": cfg.provider, "node_model": cfg.node_model, "curator_model": cfg.curator_model,
+        "provider": cfg.provider, "profile": cfg.profile, "node_model": cfg.node_model, "curator_model": cfg.curator_model,
         "temperature": cfg.temperature, "stream": cfg.stream, "parallel_runs": cfg.parallel_runs,
         "max_concurrency": cfg.max_concurrency, "max_retries": cfg.max_retries,
         "retry_backoff": cfg.retry_backoff, "structured_input": cfg.use_structured_input,
@@ -371,7 +374,7 @@ def main() -> None:
     else:
         urls = f" node_base_url={cfg.endpoint('node') or 'default'} curator_base_url={cfg.endpoint('curator') or 'default'}"
     endpoint = f"{urls} api_key={'set' if cfg.api_key else 'MISSING'}" if cfg.provider in ("openai", "vllm", "dashscope") else ""
-    print(f"provider={cfg.provider} node_model={cfg.node_model} curator_model={cfg.curator_model}{endpoint} "
+    print(f"provider={cfg.provider} profile={cfg.profile or 'none'} node_model={cfg.node_model} curator_model={cfg.curator_model}{endpoint} "
           f"concurrency={cfg.max_concurrency} parallel_runs={cfg.parallel_runs} stream={cfg.stream} runs={args.runs if args.runs is not None else 'default'} "
           f"structured_input={cfg.use_structured_input} max_retries={cfg.max_retries} retry_backoff={cfg.retry_backoff}s mechanism={args.mechanism}"
           + (f" methods={args.methods}" if args.methods else "")
