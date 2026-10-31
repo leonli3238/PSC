@@ -1,0 +1,611 @@
+{
+  "gs": [
+    {
+      "task": "degree",
+      "library": true,
+      "D=dmax": 2,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree",
+      "library": true,
+      "D=dmax": 5,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree",
+      "library": true,
+      "D=dmax": 8,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree",
+      "library": true,
+      "D=dmax": 16,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree",
+      "library": true,
+      "D=dmax": 36,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "2-star",
+      "library": true,
+      "D=dmax": 2,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "2-star",
+      "library": true,
+      "D=dmax": 5,
+      "derived_gs": 4.0,
+      "hand_gs": 4.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "2-star",
+      "library": true,
+      "D=dmax": 8,
+      "derived_gs": 7.0,
+      "hand_gs": 7.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "2-star",
+      "library": true,
+      "D=dmax": 16,
+      "derived_gs": 15.0,
+      "hand_gs": 15.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "2-star",
+      "library": true,
+      "D=dmax": 36,
+      "derived_gs": 35.0,
+      "hand_gs": 35.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "3-star",
+      "library": true,
+      "D=dmax": 2,
+      "derived_gs": 0.0,
+      "hand_gs": 0.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "3-star",
+      "library": true,
+      "D=dmax": 5,
+      "derived_gs": 6.0,
+      "hand_gs": 6.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "3-star",
+      "library": true,
+      "D=dmax": 8,
+      "derived_gs": 21.0,
+      "hand_gs": 21.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "3-star",
+      "library": true,
+      "D=dmax": 16,
+      "derived_gs": 105.0,
+      "hand_gs": 105.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "3-star",
+      "library": true,
+      "D=dmax": 36,
+      "derived_gs": 595.0,
+      "hand_gs": 595.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "triangle",
+      "library": true,
+      "D=dmax": 2,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": "rows_bounded,self_not_in_private,symmetric_rows"
+    },
+    {
+      "task": "triangle",
+      "library": true,
+      "D=dmax": 5,
+      "derived_gs": 4.0,
+      "hand_gs": 4.0,
+      "equal": true,
+      "facts_used": "rows_bounded,self_not_in_private,symmetric_rows"
+    },
+    {
+      "task": "triangle",
+      "library": true,
+      "D=dmax": 8,
+      "derived_gs": 7.0,
+      "hand_gs": 7.0,
+      "equal": true,
+      "facts_used": "rows_bounded,self_not_in_private,symmetric_rows"
+    },
+    {
+      "task": "triangle",
+      "library": true,
+      "D=dmax": 16,
+      "derived_gs": 15.0,
+      "hand_gs": 15.0,
+      "equal": true,
+      "facts_used": "rows_bounded,self_not_in_private,symmetric_rows"
+    },
+    {
+      "task": "triangle",
+      "library": true,
+      "D=dmax": 36,
+      "derived_gs": 35.0,
+      "hand_gs": 35.0,
+      "equal": true,
+      "facts_used": "rows_bounded,self_not_in_private,symmetric_rows"
+    },
+    {
+      "task": "4-star",
+      "library": false,
+      "D=dmax": 2,
+      "derived_gs": 0.0,
+      "hand_gs": 0.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "4-star",
+      "library": false,
+      "D=dmax": 5,
+      "derived_gs": 4.0,
+      "hand_gs": 4.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "4-star",
+      "library": false,
+      "D=dmax": 8,
+      "derived_gs": 35.0,
+      "hand_gs": 35.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "4-star",
+      "library": false,
+      "D=dmax": 16,
+      "derived_gs": 455.0,
+      "hand_gs": 455.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "4-star",
+      "library": false,
+      "D=dmax": 36,
+      "derived_gs": 6545.0,
+      "hand_gs": 6545.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "5-star",
+      "library": false,
+      "D=dmax": 2,
+      "derived_gs": 0.0,
+      "hand_gs": 0.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "5-star",
+      "library": false,
+      "D=dmax": 5,
+      "derived_gs": 1.0,
+      "hand_gs": 1.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "5-star",
+      "library": false,
+      "D=dmax": 8,
+      "derived_gs": 35.0,
+      "hand_gs": 35.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "5-star",
+      "library": false,
+      "D=dmax": 16,
+      "derived_gs": 1365.0,
+      "hand_gs": 1365.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "5-star",
+      "library": false,
+      "D=dmax": 36,
+      "derived_gs": 52360.0,
+      "hand_gs": 52360.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree-moment2",
+      "library": false,
+      "D=dmax": 2,
+      "derived_gs": 3.0,
+      "hand_gs": 3.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree-moment2",
+      "library": false,
+      "D=dmax": 5,
+      "derived_gs": 9.0,
+      "hand_gs": 9.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree-moment2",
+      "library": false,
+      "D=dmax": 8,
+      "derived_gs": 15.0,
+      "hand_gs": 15.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree-moment2",
+      "library": false,
+      "D=dmax": 16,
+      "derived_gs": 31.0,
+      "hand_gs": 31.0,
+      "equal": true,
+      "facts_used": ""
+    },
+    {
+      "task": "degree-moment2",
+      "library": false,
+      "D=dmax": 36,
+      "derived_gs": 71.0,
+      "hand_gs": 71.0,
+      "equal": true,
+      "facts_used": ""
+    }
+  ],
+  "fact_ablation": [
+    {
+      "task": "triangle",
+      "facts": "all facts",
+      "D=dmax": 2,
+      "derived_gs": 1.0
+    },
+    {
+      "task": "triangle",
+      "facts": "all facts",
+      "D=dmax": 5,
+      "derived_gs": 4.0
+    },
+    {
+      "task": "triangle",
+      "facts": "all facts",
+      "D=dmax": 8,
+      "derived_gs": 7.0
+    },
+    {
+      "task": "triangle",
+      "facts": "all facts",
+      "D=dmax": 16,
+      "derived_gs": 15.0
+    },
+    {
+      "task": "triangle",
+      "facts": "all facts",
+      "D=dmax": 36,
+      "derived_gs": 35.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no symmetry",
+      "D=dmax": 2,
+      "derived_gs": 2.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no symmetry",
+      "D=dmax": 5,
+      "derived_gs": 5.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no symmetry",
+      "D=dmax": 8,
+      "derived_gs": 8.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no symmetry",
+      "D=dmax": 16,
+      "derived_gs": 16.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no symmetry",
+      "D=dmax": 36,
+      "derived_gs": 36.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no self-not-in-P",
+      "D=dmax": 2,
+      "derived_gs": 2.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no self-not-in-P",
+      "D=dmax": 5,
+      "derived_gs": 5.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no self-not-in-P",
+      "D=dmax": 8,
+      "derived_gs": 8.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no self-not-in-P",
+      "D=dmax": 16,
+      "derived_gs": 16.0
+    },
+    {
+      "task": "triangle",
+      "facts": "no self-not-in-P",
+      "D=dmax": 36,
+      "derived_gs": 36.0
+    },
+    {
+      "task": "triangle",
+      "facts": "neither",
+      "D=dmax": 2,
+      "derived_gs": 2.0
+    },
+    {
+      "task": "triangle",
+      "facts": "neither",
+      "D=dmax": 5,
+      "derived_gs": 5.0
+    },
+    {
+      "task": "triangle",
+      "facts": "neither",
+      "D=dmax": 8,
+      "derived_gs": 8.0
+    },
+    {
+      "task": "triangle",
+      "facts": "neither",
+      "D=dmax": 16,
+      "derived_gs": 16.0
+    },
+    {
+      "task": "triangle",
+      "facts": "neither",
+      "D=dmax": 36,
+      "derived_gs": 36.0
+    }
+  ],
+  "falsifier": [
+    {
+      "task": "degree",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 1.0,
+      "max_delta": 1.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 64,
+      "seconds": 0.0
+    },
+    {
+      "task": "2-star",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 2.0,
+      "max_delta": 2.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 64,
+      "seconds": 0.0
+    },
+    {
+      "task": "3-star",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 1.0,
+      "max_delta": 1.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 64,
+      "seconds": 0.0
+    },
+    {
+      "task": "triangle",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 2.0,
+      "max_delta": 2.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 49152,
+      "seconds": 0.1
+    },
+    {
+      "task": "triangle",
+      "graph": "asymmetric rows (sampled)",
+      "derived_gs": 2.0,
+      "max_delta": 2.5,
+      "refuted": true,
+      "tight": null,
+      "checked": 128000,
+      "seconds": null
+    },
+    {
+      "task": "4-star",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 0.0,
+      "max_delta": 0.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 64,
+      "seconds": 0.0
+    },
+    {
+      "task": "5-star",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 0.0,
+      "max_delta": 0.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 64,
+      "seconds": 0.0
+    },
+    {
+      "task": "degree-moment2",
+      "graph": "symmetric (exhaustive)",
+      "derived_gs": 5.0,
+      "max_delta": 5.0,
+      "refuted": false,
+      "tight": true,
+      "checked": 64,
+      "seconds": 0.0
+    }
+  ],
+  "utility": [
+    {
+      "task": "degree",
+      "graphs": 30,
+      "passed": true
+    },
+    {
+      "task": "2-star",
+      "graphs": 30,
+      "passed": true
+    },
+    {
+      "task": "3-star",
+      "graphs": 30,
+      "passed": true
+    },
+    {
+      "task": "triangle",
+      "graphs": 30,
+      "passed": true
+    },
+    {
+      "task": "4-star",
+      "graphs": 30,
+      "passed": true
+    },
+    {
+      "task": "5-star",
+      "graphs": 30,
+      "passed": true
+    },
+    {
+      "task": "degree-moment2",
+      "graphs": 30,
+      "passed": true
+    }
+  ],
+  "design": [
+    {
+      "task": "degree",
+      "accepted": true,
+      "iterations": 1,
+      "program": "return size(P) ; aggregate: total / n",
+      "feedback": "accepted"
+    },
+    {
+      "task": "2-star",
+      "accepted": true,
+      "iterations": 2,
+      "program": "return comb(size(project(P, D)), 2) ; aggregate: total",
+      "feedback": "sensitivity GS = 47 is too loose: comb(..., 2) of a count bounded only by n-1 = 48: the bo | accepted"
+    },
+    {
+      "task": "3-star",
+      "accepted": true,
+      "iterations": 2,
+      "program": "return comb(size(project(P, D)), 3) ; aggregate: total",
+      "feedback": "sensitivity GS = 1081 is too loose: comb(..., 3) of a count bounded only by n-1 = 48: the  | accepted"
+    },
+    {
+      "task": "triangle",
+      "accepted": true,
+      "iterations": 1,
+      "program": "S = P & N(self) ; return 0.5 * sum(size(P & N(j)) for j in S) ; aggregate: total / 3",
+      "feedback": "accepted"
+    },
+    {
+      "task": "4-star",
+      "accepted": true,
+      "iterations": 2,
+      "program": "return comb(size(project(P, D)), 4) ; aggregate: total",
+      "feedback": "sensitivity GS = 16215 is too loose: comb(..., 4) of a count bounded only by n-1 = 48: the | accepted"
+    },
+    {
+      "task": "5-star",
+      "accepted": true,
+      "iterations": 2,
+      "program": "return comb(size(project(P, D)), 5) ; aggregate: total",
+      "feedback": "sensitivity GS = 178365 is too loose: comb(..., 5) of a count bounded only by n-1 = 48: th | accepted"
+    },
+    {
+      "task": "degree-moment2",
+      "accepted": true,
+      "iterations": 1,
+      "program": "return pow(size(project(P, D)), 2) ; aggregate: total",
+      "feedback": "accepted"
+    }
+  ]
+}

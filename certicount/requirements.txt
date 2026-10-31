@@ -1,0 +1,3 @@
+# the trust layer uses the reproduction's dependencies (agentscope, numpy, openai, ...) and nothing else
+-r ../psc/requirements.txt
+pytest

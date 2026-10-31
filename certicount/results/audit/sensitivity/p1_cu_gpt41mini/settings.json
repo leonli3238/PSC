@@ -1,0 +1,27 @@
+{
+  "provider": "openai",
+  "profile": "gpt41",
+  "config": null,
+  "node_model": "gpt-4.1-mini",
+  "temperature": 0.0,
+  "node_base_url": "https://api.oaipro.com/v1",
+  "repeats": 3,
+  "pairs_per_node": 4,
+  "runs": 2,
+  "nodes": null,
+  "followup": 50,
+  "followup_pairs": 20,
+  "alpha": 0.05,
+  "seed": 0,
+  "mock_error_rate": 0.0,
+  "source_names": [
+    "gpt41mini-node_gpt41-curator_exp1_CU_degree_r10_PSC",
+    "gpt41mini-node_gpt41-curator_exp1_CU_3-star_r10_PSC",
+    "gpt41mini-node_gpt41-curator_exp1_CU_triangle_r10_PSC"
+  ],
+  "sources": [
+    "/data/workspace/PSC/results/exp1/gpt41mini-node_gpt41-curator_exp1_CU_degree_r10_PSC",
+    "/data/workspace/PSC/results/exp1/gpt41mini-node_gpt41-curator_exp1_CU_3-star_r10_PSC",
+    "/data/workspace/PSC/results/exp1/gpt41mini-node_gpt41-curator_exp1_CU_triangle_r10_PSC"
+  ]
+}

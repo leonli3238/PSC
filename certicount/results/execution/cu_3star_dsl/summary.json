@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "datasets": "CU",
+    "tasks": "3-star",
+    "modes": "program",
+    "runs": 10,
+    "eps": 2.0,
+    "seed": 0,
+    "data": "/data/workspace/PSC/psc-reproduction/data",
+    "provider": "mock",
+    "profile": null,
+    "config": null,
+    "node_model": null,
+    "curator_model": null,
+    "mock_error_rate": 0.0,
+    "dry_run": false,
+    "tag": "cu_3star_dsl"
+  },
+  "rows": [
+    {
+      "dataset": "CU",
+      "task": "3-star",
+      "mode": "program",
+      "method": "PSC[program]",
+      "runs": 10,
+      "relative_error": 1.0228930667232787,
+      "rule_relative_error": 1.0228930667232787,
+      "exec_exact": 1.0,
+      "node_e2e_acc": 1.0,
+      "aggregate_acc": 1.0,
+      "llm_calls": 0.1,
+      "node_llm_calls": 0.0,
+      "guard_fallbacks": 0,
+      "rejected_messages": 0,
+      "violations": 0,
+      "ci_covers_truth": 1.0
+    }
+  ]
+}

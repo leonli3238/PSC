@@ -1,0 +1,280 @@
+{
+  "settings": {
+    "datasets": "CU,EE",
+    "plans": "clustering,degree_and_3star,star_profile",
+    "question": null,
+    "planner": "keywords",
+    "provider": null,
+    "profile": null,
+    "runs": 100,
+    "eps": 2.0,
+    "seed": 0,
+    "data": "/data/workspace/PSC/psc-reproduction/data",
+    "tag": "composite_cu_ee_r100"
+  },
+  "rows": [
+    {
+      "dataset": "CU",
+      "plan": "clustering",
+      "part": "T",
+      "task": "triangle",
+      "truth": 57.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 1.635917493926148,
+      "median_relative_error": 1.0
+    },
+    {
+      "dataset": "CU",
+      "plan": "clustering",
+      "part": "W",
+      "task": "2-star",
+      "truth": 421.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.8585830792228535,
+      "median_relative_error": 0.8145004842891284
+    },
+    {
+      "dataset": "CU",
+      "plan": "clustering",
+      "part": "combined",
+      "task": "3 * T / W",
+      "truth": 0.40617577197149646,
+      "undefined_runs": 22,
+      "mean_relative_error": 2.731690467761385,
+      "median_relative_error": 1.0
+    },
+    {
+      "dataset": "CU",
+      "plan": "degree_and_3star",
+      "part": "deg",
+      "task": "degree",
+      "truth": 4.36734693877551,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.108160769827745,
+      "median_relative_error": 0.09572661877225722
+    },
+    {
+      "dataset": "CU",
+      "plan": "degree_and_3star",
+      "part": "S3",
+      "task": "3-star",
+      "truth": 494.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.6631635995634262,
+      "median_relative_error": 0.41320105655117517
+    },
+    {
+      "dataset": "CU",
+      "plan": "degree_and_3star",
+      "part": "combined",
+      "task": "S3",
+      "truth": 494.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.6631635995634262,
+      "median_relative_error": 0.41320105655117517
+    },
+    {
+      "dataset": "CU",
+      "plan": "star_profile",
+      "part": "S2",
+      "task": "2-star",
+      "truth": 421.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.40946194666748675,
+      "median_relative_error": 0.2969328123155262
+    },
+    {
+      "dataset": "CU",
+      "plan": "star_profile",
+      "part": "S3",
+      "task": "3-star",
+      "truth": 494.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 1.314375700935952,
+      "median_relative_error": 1.0
+    },
+    {
+      "dataset": "CU",
+      "plan": "star_profile",
+      "part": "S4",
+      "task": "4-star",
+      "truth": 382.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 6.0763157416585925,
+      "median_relative_error": 1.0
+    },
+    {
+      "dataset": "CU",
+      "plan": "star_profile",
+      "part": "combined",
+      "task": "S3 / S2",
+      "truth": 1.173396674584323,
+      "undefined_runs": 3,
+      "mean_relative_error": 1.4044761933964978,
+      "median_relative_error": 1.0
+    },
+    {
+      "dataset": "EE",
+      "plan": "clustering",
+      "part": "T",
+      "task": "triangle",
+      "truth": 889.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.5543938086577884,
+      "median_relative_error": 0.5553773122754982
+    },
+    {
+      "dataset": "EE",
+      "plan": "clustering",
+      "part": "W",
+      "task": "2-star",
+      "truth": 7427.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.16562347644878003,
+      "median_relative_error": 0.12203633869971839
+    },
+    {
+      "dataset": "EE",
+      "plan": "clustering",
+      "part": "combined",
+      "task": "3 * T / W",
+      "truth": 0.3590951932139491,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.6061003590941427,
+      "median_relative_error": 0.5858529701709385
+    },
+    {
+      "dataset": "EE",
+      "plan": "degree_and_3star",
+      "part": "deg",
+      "task": "degree",
+      "truth": 8.713286713286713,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.02840010794436157,
+      "median_relative_error": 0.022961285666588938
+    },
+    {
+      "dataset": "EE",
+      "plan": "degree_and_3star",
+      "part": "S3",
+      "task": "3-star",
+      "truth": 39542.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.1917778143747283,
+      "median_relative_error": 0.14810312365366468
+    },
+    {
+      "dataset": "EE",
+      "plan": "degree_and_3star",
+      "part": "combined",
+      "task": "S3",
+      "truth": 39542.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.1917778143747283,
+      "median_relative_error": 0.14810312365366468
+    },
+    {
+      "dataset": "EE",
+      "plan": "star_profile",
+      "part": "S2",
+      "task": "2-star",
+      "truth": 7427.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.14635118175732031,
+      "median_relative_error": 0.12258973724247557
+    },
+    {
+      "dataset": "EE",
+      "plan": "star_profile",
+      "part": "S3",
+      "task": "3-star",
+      "truth": 39542.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.5060652388038093,
+      "median_relative_error": 0.43193925365057234
+    },
+    {
+      "dataset": "EE",
+      "plan": "star_profile",
+      "part": "S4",
+      "task": "4-star",
+      "truth": 213785.0,
+      "undefined_runs": 0,
+      "mean_relative_error": 1.1055594548176952,
+      "median_relative_error": 1.0
+    },
+    {
+      "dataset": "EE",
+      "plan": "star_profile",
+      "part": "combined",
+      "task": "S3 / S2",
+      "truth": 5.324087787801266,
+      "undefined_runs": 0,
+      "mean_relative_error": 0.565717608605007,
+      "median_relative_error": 0.4576140022593367
+    }
+  ],
+  "ledgers": {
+    "clustering": [
+      {
+        "release": "rr_graph",
+        "eps": 1.0,
+        "note": "randomized response, lower triangle"
+      },
+      {
+        "release": "noisy_degrees",
+        "eps": 0.2,
+        "note": "deg + Lap(1/eps2) per node"
+      },
+      {
+        "release": "report:T",
+        "eps": 0.4,
+        "note": "triangle: Lap(GS/eps3), GS = 18"
+      },
+      {
+        "release": "report:W",
+        "eps": 0.4,
+        "note": "2-star: Lap(GS/eps3), GS = 18"
+      }
+    ],
+    "degree_and_3star": [
+      {
+        "release": "noisy_degrees",
+        "eps": 0.4,
+        "note": "deg + Lap(1/eps2) per node"
+      },
+      {
+        "release": "noisy_degrees",
+        "eps": 0.0,
+        "note": "reused by deg (post-processing)"
+      },
+      {
+        "release": "report:S3",
+        "eps": 1.6,
+        "note": "3-star: Lap(GS/eps3), GS = 136"
+      }
+    ],
+    "star_profile": [
+      {
+        "release": "noisy_degrees",
+        "eps": 0.4,
+        "note": "deg + Lap(1/eps2) per node"
+      },
+      {
+        "release": "report:S2",
+        "eps": 0.5333333333333333,
+        "note": "2-star: Lap(GS/eps3), GS = 17"
+      },
+      {
+        "release": "report:S3",
+        "eps": 0.5333333333333333,
+        "note": "3-star: Lap(GS/eps3), GS = 136"
+      },
+      {
+        "release": "report:S4",
+        "eps": 0.5333333333333333,
+        "note": "4-star: Lap(GS/eps3), GS = 680"
+      }
+    ]
+  }
+}

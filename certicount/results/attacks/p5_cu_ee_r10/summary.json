@@ -1,0 +1,341 @@
+{
+  "settings": {
+    "datasets": "CU,EE",
+    "attacks": "malicious_rule,task_mismatch,text_injection,forged_messages",
+    "runs": 10,
+    "eps": 2.0,
+    "seed": 0,
+    "data": "/data/workspace/PSC/psc-reproduction/data",
+    "tag": "p5_cu_ee_r10"
+  },
+  "rows": [
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "malicious_rule",
+      "defended": false,
+      "nodes": 490,
+      "probed_edges": 500,
+      "recovered_edges": 400,
+      "success_rate": 0.8,
+      "probed_non_edges": 4300,
+      "false_positive_rate": 0.09093023255813953,
+      "rejections": {},
+      "advantage": 0.7090697674418605
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "malicious_rule",
+      "defended": true,
+      "nodes": 490,
+      "probed_edges": 500,
+      "recovered_edges": 0,
+      "success_rate": 0.0,
+      "probed_non_edges": 4300,
+      "false_positive_rate": 0.0,
+      "rejections": {
+        "rule_tampered": 490
+      },
+      "advantage": 0.0
+    },
+    {
+      "dataset": "CU",
+      "task": "degree",
+      "attack": "malicious_rule",
+      "defended": false,
+      "nodes": 490,
+      "probed_edges": 500,
+      "recovered_edges": 499,
+      "success_rate": 0.998,
+      "probed_non_edges": 4300,
+      "false_positive_rate": 0.0,
+      "rejections": {},
+      "advantage": 0.998
+    },
+    {
+      "dataset": "CU",
+      "task": "degree",
+      "attack": "malicious_rule",
+      "defended": true,
+      "nodes": 490,
+      "probed_edges": 500,
+      "recovered_edges": 0,
+      "success_rate": 0.0,
+      "probed_non_edges": 4300,
+      "false_positive_rate": 0.0,
+      "rejections": {
+        "rule_tampered": 490
+      },
+      "advantage": 0.0
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "task_mismatch",
+      "defended": false,
+      "nodes": 490,
+      "probed_edges": 0,
+      "recovered_edges": 0,
+      "success_rate": null,
+      "probed_non_edges": 0,
+      "false_positive_rate": null,
+      "rejections": {},
+      "eps3_claimed": 0.8,
+      "eps3_actual_max": 1.4933333333333334,
+      "eps3_actual_median": 0.23529411764705882,
+      "frac_nodes_over_claim": 0.03469387755102041
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "task_mismatch",
+      "defended": true,
+      "nodes": 490,
+      "probed_edges": 0,
+      "recovered_edges": 0,
+      "success_rate": null,
+      "probed_non_edges": 0,
+      "false_positive_rate": null,
+      "rejections": {
+        "task_mismatch": 490
+      },
+      "eps3_claimed": 0.8,
+      "eps3_actual_max": 0.26666666666666666,
+      "eps3_actual_median": 0.08000000000000002,
+      "frac_nodes_over_claim": 0.0
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "text_injection",
+      "defended": false,
+      "nodes": 599,
+      "probed_edges": 54,
+      "recovered_edges": 54,
+      "success_rate": 1.0,
+      "probed_non_edges": 545,
+      "false_positive_rate": 0.0,
+      "rejections": {},
+      "advantage": 1.0
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "text_injection",
+      "defended": true,
+      "nodes": 599,
+      "probed_edges": 54,
+      "recovered_edges": 0,
+      "success_rate": 0.0,
+      "probed_non_edges": 545,
+      "false_positive_rate": 0.0,
+      "rejections": {
+        "malformed_payload": 599
+      },
+      "advantage": 0.0
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "forged_messages",
+      "defended": false,
+      "nodes": 599,
+      "probed_edges": 54,
+      "recovered_edges": 54,
+      "success_rate": 1.0,
+      "probed_non_edges": 545,
+      "false_positive_rate": 0.23853211009174313,
+      "rejections": {},
+      "advantage": 0.7614678899082569
+    },
+    {
+      "dataset": "CU",
+      "task": "triangle",
+      "attack": "forged_messages",
+      "defended": true,
+      "nodes": 599,
+      "probed_edges": 54,
+      "recovered_edges": 9,
+      "success_rate": 0.16666666666666666,
+      "probed_non_edges": 545,
+      "false_positive_rate": 0.23853211009174313,
+      "rejections": {
+        "spoofed_sender_id": 59900
+      },
+      "advantage": -0.07186544342507648
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "malicious_rule",
+      "defended": false,
+      "nodes": 1430,
+      "probed_edges": 760,
+      "recovered_edges": 599,
+      "success_rate": 0.7881578947368421,
+      "probed_non_edges": 13440,
+      "false_positive_rate": 0.05528273809523809,
+      "rejections": {},
+      "advantage": 0.732875156641604
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "malicious_rule",
+      "defended": true,
+      "nodes": 1430,
+      "probed_edges": 760,
+      "recovered_edges": 0,
+      "success_rate": 0.0,
+      "probed_non_edges": 13440,
+      "false_positive_rate": 0.0,
+      "rejections": {
+        "rule_tampered": 1430
+      },
+      "advantage": 0.0
+    },
+    {
+      "dataset": "EE",
+      "task": "degree",
+      "attack": "malicious_rule",
+      "defended": false,
+      "nodes": 1430,
+      "probed_edges": 760,
+      "recovered_edges": 760,
+      "success_rate": 1.0,
+      "probed_non_edges": 13440,
+      "false_positive_rate": 0.0,
+      "rejections": {},
+      "advantage": 1.0
+    },
+    {
+      "dataset": "EE",
+      "task": "degree",
+      "attack": "malicious_rule",
+      "defended": true,
+      "nodes": 1430,
+      "probed_edges": 760,
+      "recovered_edges": 0,
+      "success_rate": 0.0,
+      "probed_non_edges": 13440,
+      "false_positive_rate": 0.0,
+      "rejections": {
+        "rule_tampered": 1430
+      },
+      "advantage": 0.0
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "task_mismatch",
+      "defended": false,
+      "nodes": 1430,
+      "probed_edges": 0,
+      "recovered_edges": 0,
+      "success_rate": null,
+      "probed_non_edges": 0,
+      "false_positive_rate": null,
+      "rejections": {},
+      "eps3_claimed": 0.8,
+      "eps3_actual_max": 23.75172413793104,
+      "eps3_actual_median": 0.5501202886928629,
+      "frac_nodes_over_claim": 0.3622377622377622
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "task_mismatch",
+      "defended": true,
+      "nodes": 1430,
+      "probed_edges": 0,
+      "recovered_edges": 0,
+      "success_rate": null,
+      "probed_non_edges": 0,
+      "false_positive_rate": null,
+      "rejections": {
+        "task_mismatch": 1430
+      },
+      "eps3_claimed": 0.8,
+      "eps3_actual_max": 0.33913043478260874,
+      "eps3_actual_median": 0.08163265306122448,
+      "frac_nodes_over_claim": 0.0
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "text_injection",
+      "defended": false,
+      "nodes": 1342,
+      "probed_edges": 96,
+      "recovered_edges": 96,
+      "success_rate": 1.0,
+      "probed_non_edges": 1246,
+      "false_positive_rate": 0.0,
+      "rejections": {},
+      "advantage": 1.0
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "text_injection",
+      "defended": true,
+      "nodes": 1342,
+      "probed_edges": 96,
+      "recovered_edges": 0,
+      "success_rate": 0.0,
+      "probed_non_edges": 1246,
+      "false_positive_rate": 0.0,
+      "rejections": {
+        "malformed_payload": 1342
+      },
+      "advantage": 0.0
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "forged_messages",
+      "defended": false,
+      "nodes": 1342,
+      "probed_edges": 96,
+      "recovered_edges": 95,
+      "success_rate": 0.9895833333333334,
+      "probed_non_edges": 1246,
+      "false_positive_rate": 0.398876404494382,
+      "rejections": {},
+      "advantage": 0.5907069288389514
+    },
+    {
+      "dataset": "EE",
+      "task": "triangle",
+      "attack": "forged_messages",
+      "defended": true,
+      "nodes": 1342,
+      "probed_edges": 96,
+      "recovered_edges": 46,
+      "success_rate": 0.4791666666666667,
+      "probed_non_edges": 1246,
+      "false_positive_rate": 0.398876404494382,
+      "rejections": {
+        "spoofed_sender_id": 134200
+      },
+      "advantage": 0.08029026217228469
+    }
+  ],
+  "honest_cost": [
+    {
+      "dataset": "CU",
+      "honest_messages": 7204,
+      "rejected": 0,
+      "pass_rate": 1.0,
+      "max_count_change": 0.0
+    },
+    {
+      "dataset": "EE",
+      "honest_messages": 54952,
+      "rejected": 0,
+      "pass_rate": 1.0,
+      "max_count_change": 0.0
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+# Model settings for scripts/run_experiments.py (vLLM: config.vllm.toml / config.vllm-think.toml).
+# Precedence: command-line flags > PSC_PROVIDER env var > [profiles.<name>] chosen with
+# --profile > provider section > shared keys below > built-in defaults.
+# Keys and URLs go in .env (or the env_file of a profile), not here.
+#
+# Models are given on the command line; the provider sections only hold fallbacks:
+#   --node-model    -> node agents (send / update)
+#   --curator-model -> curator agent (algorithm selection, aggregation, Naive answer)
+#                      and the privacy controller (DP framework selection)
+# Paper setting: --node-model gpt-4.1-mini --curator-model gpt-4.1. Naive only calls the curator model.
+#
+#   # gateway in .env (hy3-ioa, hy4-preview-ioa, deepseek-v3, deepseek-v3-0324, ...)
+#   python scripts/run_experiments.py --exp exp1 --provider openai --node-model hy3-ioa --curator-model hy4-preview-ioa ...
+#   # elysia.h-e.top gateway, key in .env.gpt41
+#   python scripts/run_experiments.py --exp exp1 --provider openai --profile gpt41 --node-model gpt-4.1-mini --curator-model gpt-4.1 ...
+#   # hub.oaifree.com gateway (gpt-4.1, gpt-4.1-mini, gpt-4o, gpt-4o-mini), key in .env.oaifree / .env.oaifree2
+#   python scripts/run_experiments.py --exp exp1 --provider openai --profile oaifree --node-model gpt-4o --curator-model gpt-4o ...
+#   # GLM-5.2 on the gateway in .env, thinking disabled
+#   python scripts/run_experiments.py --exp exp1 --provider openai --profile glm --node-model glm-5.2 --curator-model glm-5.2 ...
+
+# Provider used when --provider is not given: "mock" | "openai" | "dashscope" | "ollama".
+# "mock" is the offline rule-following model and costs nothing.
+provider = "mock"
+
+# Shared defaults; any of them can also be set per provider or per profile below.
+temperature = 0.0     # paper: 0
+max_concurrency = 8   # max concurrent LLM calls of node agents
+parallel_runs = 8     # runs executed at once (Naive answers and curator calls are not capped by max_concurrency)
+stream = false        # streaming chat requests; some OpenAI-compatible gateways require true
+max_retries = 4       # retries per call on 429 / 5xx / connection errors / empty replies
+retry_backoff = 5.0   # seconds; waits 5, 10, 20, 40 s (or the server's Retry-After)
+
+[openai]              # also used for OpenAI-compatible endpoints
+node_model = "hy3-ioa"
+curator_model = "hy3-ioa"
+stream = true         # the gateway in .env rejects non-stream requests; profiles below reset it
+
+[dashscope]           # paper Exp7
+node_model = "qwen3-8b"
+curator_model = "qwen-plus"
+
+[ollama]
+node_model = "qwen3:8b"
+curator_model = "qwen3:8b"
+
+# ---------------------------------------------------------------------------
+# Profiles (--profile <name>): per-gateway settings. env_file is relative to this
+# file and replaces .env for OPENAI_API_KEY / OPENAI_BASE_URL (variables already set
+# in the shell still win). extra / node_extra / curator_extra replace those of the
+# provider section as a whole.
+# ---------------------------------------------------------------------------
+
+[profiles.gpt41]      # elysia.h-e.top gateway
+env_file = ".env.gpt41"
+stream = false
+
+[profiles.openrouter] # openrouter.ai; model names need the vendor prefix, e.g. openai/gpt-4.1-mini
+env_file = ".env.gpt"
+stream = false
+
+[profiles.oaifree]    # hub.oaifree.com; OPENAI_BASE_URL must be the OpenAI-compatible root https://hub.oaifree.com/v1
+env_file = ".env.oaifree"
+stream = false
+# The upstream rate-limits accounts (429 user_global_rate_limited): stay slow and wait long between retries
+max_concurrency = 2
+parallel_runs = 2
+max_retries = 5
+retry_backoff = 20.0
+
+[profiles.oaifree2]   # same gateway, second account
+env_file = ".env.oaifree2"
+stream = false
+max_concurrency = 2
+parallel_runs = 2
+max_retries = 5
+retry_backoff = 20.0
+
+[profiles.glm]        # GLM-5.2 on the gateway in .env
+[profiles.glm.extra]
+# The gateway currently defaults GLM-5.2 to non-thinking, but the official API defaults to thinking
+extra_body = { thinking = { type = "disabled" } }

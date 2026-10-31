@@ -1,0 +1,1 @@
+{"time": "2026-10-15T20:06:26.396", "kind": "api_error", "dataset": "CU", "task": "degree", "run": 2, "node": 0, "input": "ea2a910efb70cdaf", "rep": 2, "audit_phase": "main", "model": "gpt-4.1-mini", "attempt": 1, "elapsed": 5.1, "status": null, "message": "APITimeoutError: Request timed out."}

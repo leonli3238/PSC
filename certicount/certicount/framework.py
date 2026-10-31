@@ -1,0 +1,335 @@
+"""PSC with the trusted execution layer (research contents 3 and 4).
+
+:class:`TrustedPSCFramework` runs Algorithm 3 of the paper with the
+reproduction's DP code (``PrivacyController``: RR graph, noisy max degree,
+projection, Laplace) and adds, as options:
+
+* ``binding``  -- task, rules and GS bound on the node side (:mod:`certicount.binding`);
+* ``validate`` -- strict message validation (:mod:`certicount.messages`);
+* ``execution`` -- ``llm`` (paper), ``guard`` (Improvement 1) or ``program``
+  (Improvement 2: curator designs a DSL program, nodes verify the certificate and
+  execute it, no node LLM call);
+* ``send_by_code`` / ``aggregate_by_code`` -- cost options; both steps only
+  post-process published data;
+* ``adversary`` -- attack hooks (:mod:`certicount.attacks`).
+
+With ``binding=False, validate=False, execution="llm"`` and no adversary the run
+is the reproduction's PSC (same model calls, same noise). For a given
+``rng`` every execution mode consumes the DP randomness in the same order, so
+modes are compared on identical noise.
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+import time
+from dataclasses import dataclass
+
+import numpy as np
+from agentscope.message import Msg
+from agentscope.pipeline import fanout_pipeline
+
+from psc import rules
+from psc.agents import CuratorAgent, PrivacyController
+from psc.dp import BudgetSplit, split_budget
+from psc.framework import RunResult, _validate_psc
+from psc.graph import TASKS, Graph, TaskRecord
+from psc.library import get_algorithm, get_dp_framework
+from psc.mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
+from psc.models import ModelConfig, create_formatter, create_model
+from psc.progress import note_phase
+
+from .agents import EXECUTIONS, TrustedNodeAgent
+from .binding import BindingViolation, check_algorithm, check_gs, check_program, get_binding, node_gs
+from .dsl.designer import DesignResult, MockDesignerModel, design_program, design_reference_params
+from .dsl.lang import Interpreter, Program
+from .dsl.library import PROGRAMS
+from .dsl.sensitivity import PublicParams, certify
+
+logger = logging.getLogger(__name__)
+
+_DESIGN_CACHE: dict[tuple, DesignResult] = {}
+
+
+@dataclass
+class TrustOptions:
+    execution: str = "llm"
+    binding: bool = True
+    validate: bool = True
+    strict: bool = True
+    send_by_code: bool = False
+    aggregate_by_code: bool = False
+    on_violation: str = "fallback"  # "fallback" to the bound algorithm, or "reject" the run
+    program_source: str = "design"  # program mode: "design" (curator LLM) or "library"
+    max_design_iterations: int = 3
+
+    @property
+    def label(self) -> str:
+        if self.execution == "llm" and not self.binding and not self.validate:
+            return "PSC"
+        parts = [self.execution]
+        if self.execution != "program":
+            parts += (["bind"] if self.binding else []) + (["validate"] if self.validate else [])
+        if self.send_by_code and self.execution != "program":
+            parts.append("codesend")
+        if self.aggregate_by_code and self.execution != "program":
+            parts.append("codeagg")
+        return "PSC[" + "+".join(parts) + "]"
+
+
+def baseline_options() -> TrustOptions:
+    return TrustOptions(execution="llm", binding=False, validate=False)
+
+
+class TrustedPSCFramework:
+    def __init__(
+        self,
+        model_cfg: ModelConfig | None = None,
+        options: TrustOptions | None = None,
+        mechanism: str | MechanismProfile = DEFAULT_MECHANISM,
+        r1: float = 0.5,
+        r2: float = 0.2,
+        adversary=None,
+        designer_model=None,
+    ) -> None:
+        self.cfg = model_cfg or ModelConfig()
+        self.opts = options or TrustOptions()
+        if self.opts.execution not in EXECUTIONS:
+            raise ValueError(f"unknown execution {self.opts.execution!r}")
+        self.mechanism = get_mechanism(mechanism)
+        self.r1, self.r2 = r1, r2
+        self.adversary = adversary
+        self.node_model = create_model(self.cfg, "node")
+        self.curator_model = create_model(self.cfg, "curator")
+        self.formatter = create_formatter(self.cfg)
+        if designer_model is None and self.cfg.provider == "mock":
+            designer_model = MockDesignerModel()
+        self.designer_model = designer_model or self.curator_model
+        TrustedNodeAgent.set_max_concurrency(self.cfg.max_concurrency)
+
+    @property
+    def name(self) -> str:
+        return self.opts.label
+
+    def _nodes(self, graph: Graph) -> list[TrustedNodeAgent]:
+        o = self.opts
+        return [
+            TrustedNodeAgent(i, graph.adj[i], self.node_model, self.formatter, execution=o.execution,
+                             validate=o.validate, strict=o.strict, send_by_code=o.send_by_code)
+            for i in range(graph.n)
+        ]
+
+    # ------------------------------------------------------------------
+    async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
+        rng = rng if rng is not None else np.random.default_rng(0)
+        if self.opts.execution == "program":
+            return await self._run_program(record, eps, rng)
+        return await self._run_rules(record, eps, rng)
+
+    async def _run_rules(self, record: TaskRecord, eps: float, rng: np.random.Generator) -> RunResult:
+        t0 = time.perf_counter()
+        graph = record.graph()
+        n = graph.n
+        nodes = self._nodes(graph)
+        curator = CuratorAgent(self.curator_model, self.formatter)
+        controller = PrivacyController(self.curator_model, self.formatter, rng, self.r1, self.r2, mechanism=self.mechanism)
+        trust: dict = {"violations": []}
+
+        note_phase("select")
+        spec = await controller.select_framework(record.input_prompt)
+        split: BudgetSplit = controller.determine_budget(eps, spec, True)
+        noisy_graph = controller.build_noisy_graph(nodes, split.eps1) if split.eps1 > 0 else None
+        d_hat_max = None
+        if split.eps2 > 0:
+            sensitivity, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
+        else:
+            sensitivity = spec.sensitivity(n, None, self.mechanism)
+
+        note_phase("design")
+        algo = await curator.design_algorithm(record.input_prompt)
+        if self.adversary is not None:
+            algo = self.adversary.tamper_algorithm(algo, spec.task)
+        binding = None
+        if self.opts.binding:
+            try:
+                binding = check_algorithm(spec.task, algo)
+            except BindingViolation as v:
+                trust["violations"].append({"kind": v.kind, "message": str(v)})
+                if self.opts.on_violation == "reject":
+                    return self._rejected(record, eps, split, t0, nodes, curator, controller, trust)
+                binding = get_binding(spec.task)
+                algo = binding.algorithm
+        elif algo.task != spec.task:
+            logger.warning("Curator (%s) and privacy controller (%s) disagree on the task", algo.task, spec.task)
+
+        rows = noisy_graph.adj if noisy_graph is not None else None
+        for node in nodes:
+            node.configure(n, dict(enumerate(rows)) if rows is not None else None, d_hat_max, binding)
+
+        if algo.needs_messages:
+            note_phase("send")
+            send_instr = Msg(curator.name, algo.send, "assistant", metadata={"phase": "send", "task": algo.task})
+            outgoing = await fanout_pipeline(nodes, send_instr, enable_gather=True)
+            for node, msg in zip(nodes, outgoing):
+                msg.metadata["channel_sender"] = node.node_id  # the transport knows who sent it
+            if self.adversary is not None:
+                outgoing = self.adversary.inject_messages(nodes, outgoing)
+            for msg in outgoing:
+                for j in msg.metadata["recipients"]:
+                    await nodes[j].observe(msg)
+        for node in nodes:
+            node.prepare_update()
+
+        note_phase("update")
+        update_instr = Msg(curator.name, algo.update, "assistant", metadata={"phase": "update", "task": algo.task})
+        await fanout_pipeline(nodes, update_instr, enable_gather=True)
+
+        if self.opts.binding:
+            own = node_gs(spec.task, n, d_hat_max, self.mechanism, controller.degree_trace.get("sensitivity_degree"))
+            try:
+                check_gs(sensitivity, own)
+            except BindingViolation as v:
+                trust["violations"].append({"kind": v.kind, "message": str(v)})
+            sensitivity = own
+        reports = controller.collect_reports(nodes, sensitivity, split.eps3)
+
+        note_phase("aggregate")
+        if self.opts.aggregate_by_code:
+            estimate = rules.aggregate(algo.task, reports, n)
+        else:
+            for node, value in zip(nodes, reports):
+                await curator.observe(Msg(node.name, f"{value}", "assistant", metadata={"kind": "report"}))
+            estimate = await curator.aggregate(algo, record.input_prompt, reports, n)
+
+        validation = _validate_psc(nodes, algo, reports, estimate, n)
+        validation.update(controller_task=spec.task, curator_task=algo.task, task_correct=spec.task == algo.task == record.task)
+        return self._result(record, eps, split, sensitivity, d_hat_max, noisy_graph, nodes, curator, controller,
+                            reports, estimate, validation, trust, t0)
+
+    async def _run_program(self, record: TaskRecord, eps: float, rng: np.random.Generator) -> RunResult:
+        t0 = time.perf_counter()
+        graph = record.graph()
+        n = graph.n
+        nodes = self._nodes(graph)
+        controller = PrivacyController(self.curator_model, self.formatter, rng, self.r1, self.r2, mechanism=self.mechanism)
+        trust: dict = {"violations": []}
+
+        note_phase("design")
+        program, design = await self._program(record)
+        if program is None:
+            trust["violations"].append({"kind": "design_failed", "message": "no accepted program"})
+            return self._rejected(record, eps, BudgetSplit(0, 0, 0), t0, nodes, None, controller, trust, design)
+
+        # DP framework from the program's requirements (degree class decides the rounding)
+        degree_class = record.task if record.task in TASKS else ("triangle" if program.uses_rows else "3-star")
+        spec = get_dp_framework(degree_class)
+        split = split_budget(eps, program.uses_rows, program.needs_degree_bound, self.r1, self.r2)
+        noisy_graph = controller.build_noisy_graph(nodes, split.eps1) if split.eps1 > 0 else None
+        d_hat_max = None
+        if split.eps2 > 0:
+            _, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
+        params = PublicParams(n, D=d_hat_max, dmax=d_hat_max)
+
+        cert = certify(program, params)
+        if self.adversary is not None:
+            cert = self.adversary.tamper_certificate(cert)
+        try:
+            gs = check_program(program, cert, params)  # every node runs the same public check
+        except BindingViolation as v:
+            trust["violations"].append({"kind": v.kind, "message": str(v)})
+            return self._rejected(record, eps, split, t0, nodes, None, controller, trust, design)
+
+        rows = dict(enumerate(noisy_graph.adj)) if noisy_graph is not None else None
+        for node in nodes:
+            node.configure(n, rows, d_hat_max, None, program)
+        note_phase("update")
+        for node in nodes:
+            node.count = node.run_program()
+        reports = [node.protected_count(gs, split.eps3, rng) for node in nodes]
+        estimate = Interpreter(program).aggregate(float(sum(reports)), n)
+
+        if record.task in TASKS:
+            algo = get_algorithm(record.task)
+            for node in nodes:  # the node reads the public rows directly; record them as its messages
+                if algo.needs_messages:
+                    node.sent_payload = rules.send_message(node.node_id, node.noisy_neighbors)
+                    node.inbox = [rules.send_message(j, node.public_rows.get(j, ())) for j in node.noisy_neighbors]
+            validation = _validate_psc(nodes, algo, reports, estimate, n)
+        else:
+            validation = {
+                "nodes": n, "send_checked": 0, "send_exact": 0, "update_exact": n, "e2e_exact": n,
+                "llm_count_sum": sum(x.count for x in nodes), "rule_count_sum": sum(x.count for x in nodes),
+                "count_rel_diff": 0.0, "aggregate_exact": True, "rule_estimate": estimate, "mismatches": [],
+            }
+        validation.update(controller_task=record.task, curator_task=record.task, task_correct=True)
+        trust["certificate"] = cert.to_dict()
+        trust["design"] = design.to_dict() if design is not None else None
+        return self._result(record, eps, split, gs, d_hat_max, noisy_graph, nodes, None, controller,
+                            reports, estimate, validation, trust, t0, design_calls=design.llm_calls if design else 0)
+
+    async def _program(self, record: TaskRecord) -> tuple[Program | None, DesignResult | None]:
+        if self.opts.program_source == "library":
+            return PROGRAMS[record.task].parse(), None
+        key = (id(self.designer_model), record.input_prompt, self.opts.max_design_iterations)
+        cached = key in _DESIGN_CACHE
+        if not cached:
+            n = record.vertex_num
+            ref = design_reference_params(n)
+            _DESIGN_CACHE[key] = await design_program(
+                self.designer_model, self.formatter, record.input_prompt, n, ref,
+                task=record.task, max_iterations=self.opts.max_design_iterations,
+            )
+        res = _DESIGN_CACHE[key]
+        if cached:  # design is public and reused: no new model call in this run
+            res = DesignResult(res.program, res.task, res.iterations, res.accepted, res.gs_reference, res.history, 0)
+        return res.program, res
+
+    # ------------------------------------------------------------------
+    def _trust_stats(self, nodes: list[TrustedNodeAgent], trust: dict) -> dict:
+        rejected: dict[str, int] = {}
+        for node in nodes:
+            for r in node.rejected:
+                rejected[r["reason"]] = rejected.get(r["reason"], 0) + 1
+        received = sum(len(node.raw_inbox) for node in nodes)
+        return {
+            **trust,
+            "messages_received": received,
+            "messages_rejected": sum(rejected.values()),
+            "rejected_by_reason": rejected,
+            "guard_fallbacks": sum(node.guard_fallbacks for node in nodes),
+            "guard_deviation": sum(node.guard_deviation for node in nodes),
+            "options": {k: v for k, v in vars(self.opts).items()},
+        }
+
+    def _result(self, record, eps, split, sensitivity, d_hat_max, noisy_graph, nodes, curator, controller,
+                reports, estimate, validation, trust, t0, design_calls: int = 0) -> RunResult:
+        node_calls = sum(x.llm_calls for x in nodes)
+        calls = node_calls + (curator.llm_calls if curator else 0) + controller.llm_calls + design_calls
+        return RunResult(
+            method=self.name, dataset=record.dataset, task=record.task, eps=eps, estimate=estimate, truth=record.answer,
+            split=split.as_tuple(), sensitivity=sensitivity, d_hat_max=d_hat_max,
+            noisy_edges=noisy_graph.m if noisy_graph is not None else None, llm_calls=calls,
+            parse_failures=sum(x.parse_failures for x in nodes) + (curator.parse_failures if curator else 0) + controller.parse_failures,
+            elapsed=time.perf_counter() - t0,
+            extra={
+                "validation": validation, "mechanism": self.mechanism.name, "node_llm_calls": node_calls,
+                "trust": self._trust_stats(nodes, trust),
+                "mechanism_trace": {
+                    **controller.degree_trace, "d_hat_max": d_hat_max, "sensitivity": sensitivity,
+                    "laplace_scale": sensitivity / split.eps3 if split.eps3 else 0.0,
+                    "raw_counts": [node.count for node in nodes], "noisy_counts": reports,
+                    "report_sum_before_clamp": float(sum(reports)),
+                },
+            },
+        )
+
+    def _rejected(self, record, eps, split, t0, nodes, curator, controller, trust, design=None) -> RunResult:
+        trust["design"] = design.to_dict() if design is not None else None
+        return RunResult(
+            method=self.name, dataset=record.dataset, task=record.task, eps=eps, estimate=math.nan, truth=record.answer,
+            split=split.as_tuple(), sensitivity=None, d_hat_max=None, noisy_edges=None,
+            llm_calls=(curator.llm_calls if curator else 0) + controller.llm_calls + (design.llm_calls if design else 0),
+            parse_failures=0, elapsed=time.perf_counter() - t0,
+            extra={"rejected": True, "trust": self._trust_stats(nodes, trust)},
+        )
