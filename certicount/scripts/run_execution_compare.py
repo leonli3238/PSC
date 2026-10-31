@@ -52,6 +52,7 @@ from psc.ground_truth import gt_naive, gt_psc, relative_error  # noqa: E402
 from psc.library import get_algorithm  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig  # noqa: E402
+from psc.progress import llm_progress  # noqa: E402
 from certicount import DATA_DIR  # noqa: E402
 from certicount.artifacts import append_jsonl, markdown_table, out_dir, write_json, write_manifest  # noqa: E402
 from certicount.cost import calls_per_run  # noqa: E402
@@ -201,27 +202,35 @@ def main() -> None:
 
     async def run_all() -> list[dict]:
         rows = []
-        for ds, task, mode in cells:
-            rec = task_record(loaded[ds], ds, task)
-            fw = None if mode in CODE_MODES else make_framework(mode, cfg)
-            method = CODE_MODES.get(mode) or ("DSL" if mode == "program" else fw.name)
-            results: list[RunResult] = []
-            dicts: list[dict] = []
-            for i in range(gt_runs if fw is None else args.runs):
-                if fw is None:
-                    res = run_code(mode, rec, args.eps, run_rng(args.seed, i))
-                else:
-                    res = await fw.run(rec, args.eps, rng=run_rng(args.seed, i))
-                d = res.to_dict()
-                d["mode"], d["run"] = mode, i
-                if mode == "program":
-                    gt = gt_dsl(rec.graph(), task, args.eps, run_rng(args.seed, i), mechanism=DEFAULT_MECHANISM)
-                    d["paired_gt_dsl"] = gt.to_dict()
-                    d["design_gs_ratio"] = None if res.extra.get("rejected") else gs_ratio(res.sensitivity, gt.gs)
-                results.append(res)
-                dicts.append(d)
-                append_jsonl(d, out / "runs.jsonl")
-            rows.append(summarize(ds, task, mode, method, rec, results, dicts))
+        with llm_progress(planned) as bar:
+            for c, (ds, task, mode) in enumerate(cells, 1):
+                rec = task_record(loaded[ds], ds, task)
+                fw = None if mode in CODE_MODES else make_framework(mode, cfg)
+                method = CODE_MODES.get(mode) or ("DSL" if mode == "program" else fw.name)
+                results: list[RunResult] = []
+                dicts: list[dict] = []
+                n_runs = gt_runs if fw is None else args.runs
+                t0 = time.perf_counter()
+                for i in range(n_runs):
+                    bar.set_description(f"cell {c}/{len(cells)} {ds} {task} {method} run {i + 1}/{n_runs}", refresh=False)
+                    if fw is None:
+                        res = run_code(mode, rec, args.eps, run_rng(args.seed, i))
+                    else:
+                        res = await fw.run(rec, args.eps, rng=run_rng(args.seed, i))
+                    d = res.to_dict()
+                    d["mode"], d["run"] = mode, i
+                    if mode == "program":
+                        gt = gt_dsl(rec.graph(), task, args.eps, run_rng(args.seed, i), mechanism=DEFAULT_MECHANISM)
+                        d["paired_gt_dsl"] = gt.to_dict()
+                        d["design_gs_ratio"] = None if res.extra.get("rejected") else gs_ratio(res.sensitivity, gt.gs)
+                    results.append(res)
+                    dicts.append(d)
+                    append_jsonl(d, out / "runs.jsonl")
+                row = summarize(ds, task, mode, method, rec, results, dicts)
+                rows.append(row)
+                extra = f", design_error {row['design_error']:.4f}" if row.get("design_error") is not None else ""
+                bar.write(f"[{c}/{len(cells)}] {ds} {task} {method}: RE {row['relative_error']:.4f} over {row['runs']} runs"
+                          f" ({row['rejected']} rejected){extra}, {time.perf_counter() - t0:.1f}s", file=bar.fp)
         return rows
 
     rows = asyncio.run(run_all())
