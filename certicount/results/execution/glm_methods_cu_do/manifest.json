@@ -1,5 +1,5 @@
 {
-  "created_utc": "2026-10-31T14:01:13.711561+00:00",
+  "created_utc": "2026-10-31T14:34:34.687069+00:00",
   "python": "3.14.6",
   "settings": {
     "datasets": "CU,Do",
@@ -11,13 +11,13 @@
     "seed": 0,
     "data": "/data/workspace/PSC/psc/data",
     "provider": "openai",
-    "profile": null,
+    "profile": "glm",
     "config": null,
-    "node_model": "hy3-ioa",
-    "curator_model": "hy3-ioa",
+    "node_model": "glm-5.2",
+    "curator_model": "glm-5.2",
     "mock_error_rate": 0.0,
     "dry_run": false,
-    "tag": "hy3_methods_cu_do",
+    "tag": "glm_methods_cu_do",
     "planned_calls": 5974
   },
   "sha256": {
@@ -48,7 +48,7 @@
     "certicount/scripts/run_composite.py": "7232827bdaa8b39ced6a8dce7776e864aa199291b80b924b36e86e214545f2d3",
     "certicount/scripts/run_dsl_check.py": "0c6c71119b5071330ddfd03609c8cf7a524c12592bbbd003c7824385523a69d3",
     "certicount/scripts/run_dsl_design_eval.py": "c876a74f7bd459490c7c7de0a6090728dce39595f6a9abf5dcdb87b9c2267fb3",
-    "certicount/scripts/run_execution_compare.py": "ba78ae8a887487b76df8171184b0257095198b66d8c2adad918b4a68900d41e0",
+    "certicount/scripts/run_execution_compare.py": "c2e1d1ad109b0a38fce75ae5caf48cb3b49d6b08d6379d398b0ca3acc14c579d",
     "certicount/scripts/run_sensitivity_audit.py": "4e3b0fa93050b299094120e906cd5ef94cf9ee01b8e0cd61fb586742bd454074",
     "psc/psc/__init__.py": "6f26c74987168b554031ebe22390b7c847f2f5f05d82de1a8a04d268351bbcfe",
     "psc/psc/agents/__init__.py": "0d21c5abfd89aa4377ce6c64cdb0b88e4a66ed49cb55200473056b0fe5ee2495",

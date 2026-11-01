@@ -45,6 +45,7 @@ sys.path.insert(0, str(ROOT))
 
 import certicount  # noqa: E402,F401
 from psc.dp import naive_budget  # noqa: E402
+from psc.events import collect_errors, set_error_sink, set_transcript_sink  # noqa: E402
 from psc.experiments import run_rng, validation_summary  # noqa: E402
 from psc.framework import NaiveFramework, RunResult  # noqa: E402
 from psc.graph import TASKS, TaskRecord, load_dataset  # noqa: E402
@@ -199,6 +200,8 @@ def main() -> None:
     gt_runs = args.gt_runs if args.gt_runs is not None else args.runs
     out = out_dir("execution", args.tag, "execution")
     write_manifest(out, {**vars(args), "planned_calls": planned})
+    set_error_sink(out / "errors.jsonl")
+    set_transcript_sink(out / "transcripts.jsonl")
 
     async def run_all() -> list[dict]:
         rows = []
@@ -216,7 +219,9 @@ def main() -> None:
                     if fw is None:
                         res = run_code(mode, rec, args.eps, run_rng(args.seed, i))
                     else:
-                        res = await fw.run(rec, args.eps, rng=run_rng(args.seed, i))
+                        with collect_errors(dataset=ds, task=task, mode=mode, method=method, run=i) as errors:
+                            res = await fw.run(rec, args.eps, rng=run_rng(args.seed, i))
+                        res.extra["errors"] = errors
                     d = res.to_dict()
                     d["mode"], d["run"] = mode, i
                     if mode == "program":
