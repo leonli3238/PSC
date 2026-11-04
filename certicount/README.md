@@ -24,7 +24,7 @@
 ```bash
 cd /data/workspace/PSC/certicount
 source ../.venv/bin/activate      # 与复现项目共用仓库根目录的虚拟环境；依赖见 requirements.txt（-r ../psc/requirements.txt）
-python -m pytest tests -q          # 187 个测试通过（1 个跳过），全部离线
+python -m pytest tests -q          # 195 个测试通过（1 个跳过），全部离线
 ```
 
 模型设置沿用复现项目的 `../psc/config.toml` 与 `../psc/.env`（密钥与网关地址只放在 `.env*` 中）：
@@ -69,6 +69,7 @@ aggregate: total                        return 0.5 * sum(size(P & N(j)) for j in
 | `utility.py` | 效用测试：无噪声、无截断下与暴力计数比对 |
 | `falsifier.py` | 证伪器：小图上穷举 / 采样 (G′, P, 翻转) 寻找超过 GS 的反例；`check_derivation` 在同一组小参数下推导 GS 并证伪（设计循环与对拍共用） |
 | `fuzz.py` | 推导器对拍：随机生成合法程序（偏向 `P & N(self)` 上的求和与循环变量的行），推导 GS 与证伪器的最大变化比对 |
+| `adaptive.py` | 先发度数的自适应选择：共同随机数执行器、NPMLE 度后验、按公开量模拟打分的选择器、候选空间（见下节） |
 | `library.py` | 参考程序 `PROGRAMS`、手工 GS `HAND_GS`、库外任务的分析者 prompt |
 | `ground_truth.py` | `dp_execute`：纯代码执行任意程序（与 program 模式同 DP 步骤、同随机数顺序）；`gt_dsl`：参考程序的执行，即 GT-DSL |
 | `quality.py` | `design_quality`：设计质量打分（结构、预算拆分、GS 比、独立语义测试、证伪） |
@@ -156,6 +157,37 @@ python scripts/run_dsl_design_eval.py --datasets CU --designs 10 --runs 10 \
 
 一个设计循环拦不住、但这里能发现的例子：`return comb(size(project(P, 2 * D)), 3)` 能通过语法、"上界过松"和效用测试，
 但 `gs_ratio = C(19,2)/C(9,2) ≈ 4.75`，配对误差随之变大（`tests/test_dsl_eval.py`）。
+
+## 先发度数的自适应选择（`dsl/adaptive.py`）
+
+PSC 预先固定 (ε1, ε2, ε3)，并投影到带噪最大度 D。这里先用 ε2 发布带噪度数 y（Alg. 2 第 1–3 行），再由只看公开量
+（n、ε、ε2、y、D）的选择器选一个候选：DSL 程序、代替 D 的界 B（投影与 GS 都用 B）、RR 预算 ε1；其余步骤用 ε3 = ε − ε2 − ε1。
+
+- **隐私**：选择是 y 的后处理，每个候选在剩余步骤上恰好花 ε − ε2，由纯 DP 的自适应顺序组合，总预算仍为 ε；GS 仍由推导器在 B 处推出。
+- **选择**：NPMLE 对 y 去卷积，得到度分布与各节点的经验贝叶斯后验。不读 N(·) 的程序只依赖 |P|，用解释器算出计数表 f(d)，
+  在后验度序列上做蒙特卡洛；读 N(·) 的程序还依赖结构，在三类合成图（Chung–Lu、一维几何 α = 2、一维阈值几何，聚集由低到高）上
+  以已发布的 D 为条件模拟，三类得分取几何平均（结构先验）。`margin`：最优候选的预测得分须比默认低这个比例才切换。
+- **候选**：k-star 为 B ∈ {1, …, D}；三角形为 B = round(f·D)（f ∈ {1, 0.75, 0.5, 0.35}）× ε1 ∈ {0.4, 0.6, …, 1.4}。
+- **共同随机数**：每次运行的度噪声、RR 均匀数、投影种子、Laplace 噪声各一条流（`run_streams`），默认设置、选择结果与全部候选在同一份噪声上配对。
+
+```bash
+python scripts/run_adaptive.py --runs 1000 --workers 8 --tag adaptive_r1000   # 6 图 × {2-star, 3-star, triangle}，8 进程约 47 分钟
+```
+
+结果（`results/adaptive/adaptive_r1000_20261104/`，ε = 2，每格 1000 次，6 图平均相对误差；括号内为相对默认的变化，以及配对差异显著
+（|z| > 1.96）变好 / 变差的数据集个数）：
+
+| 任务 | GT-PSC | 默认（配对） | 自适应（margin 0.1） | 自适应（无 margin） | GT-Tuned（只用 n 调参） | 静态最优（真实图上选，仅参照） | GT-TriTR |
+|---|---|---|---|---|---|---|---|
+| 2-star | 0.1051 | 0.1045 | 0.1016（−2.8%，1/0） | 0.0988（−5.5%，3/0） | 0.0911（−12.9%，3/1） | 0.0872 | 0.2248 |
+| 3-star | 0.3811 | 0.3784 | 0.2870（−24.2%，3/0） | 0.2799（−26.0%，6/0） | 0.2721（−28.1%，3/1） | 0.2352 | 0.2434 |
+| triangle | 0.8851 | 0.9108 | 0.6444（−29.3%，4/0） | 0.6301（−30.8%，4/1） | 0.7448（−18.2%，3/2） | 0.5272 | 0.5437 |
+
+- 默认设置经同一执行器与 GT-PSC 同分布（18 格 |z| 最大 2.71，Bonferroni 校正后不显著）。
+- 带 margin 时 18 格中没有一格显著变差；收益集中在 D 高估严重的小图（CU、Do、CS 的 3-star 与三角形）和 PM 三角形（−50%，选中 B ≈ 0.67D）。
+- GT-Tuned 能调 ε2，在小图上更好，但在 ML、EE、PM 上显著变差（EE 三角形 +64%，PM 3-star +108%）。
+- GT-TriTR（逐节点阈值）在三角形 6 图中 4 图、3-star 的 PM / ML / CS 上仍优于自适应。
+- margin = 0.1 是看过 EE 三角形 30 次试跑后定的，尚未在独立的图上验证；自适应只在纯代码执行器中实现，尚未接入智能体框架。
 
 ## 其他研究内容
 
@@ -255,7 +287,7 @@ scripts/
   run_composite.py          复合查询            run_sensitivity_audit.py   灵敏度审计
   analyze_errors.py         误差分解            analyze_cost.py            成本统计
   md_to_pdf.py              docs/ 下 Markdown 转 PDF
-tests/             test_dsl / test_dsl_eval / test_trust / test_audit / test_eval_cost_composite
+tests/             test_dsl / test_dsl_eval / test_fuzz / test_search / test_adaptive / test_trust / test_audit / test_eval_cost_composite
 docs/              开题报告、答辩讲稿、PPT 提示词、研究笔记
 results/           见 results/README.md
 ```

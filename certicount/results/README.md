@@ -7,6 +7,7 @@
 |---|---|
 | `dsl/dsl_check_20261024/` | 改进二验收：7 个程序 × 5 个 D 的推导 GS 与手工 GS、事实消融、证伪器（对称穷举 / 非对称采样）、效用测试、mock 设计循环（首稿故意不投影） |
 | `dsl/dsl_fuzz_20261103/` | 推导器对拍：1 万个随机程序，n = 5、dmax = 3 全部对称图与 n = 7、dmax = 4 的 200 张随机图，0 个反例、0 个运行错误；`table.md` 末尾为最松的 10 个界 |
+| `adaptive/adaptive_r1000_20261104/` | 先发度数的自适应选择：6 图 × {2-star, 3-star, triangle} × 1000 次，默认 / 自适应（有无 margin）/ GT-Tuned / 静态与逐次最优 / GT-PSC / GT-TriTR；`runs.jsonl` 为逐次结果（含每个静态候选的误差） |
 | `attacks/p5_cu_ee_r10/` | P5：CU、EE × 四类攻击 × 未防御 / 防御，各 10 次；诚实运行的防御代价 |
 | `execution/p4_mock_err005_cu_ee_r10/` | P4：CU、EE × degree / 3-star / triangle / 4-star / 度二阶矩 × 五种执行方式，mock 节点 5% ±1 错误，同噪声配对，10 次；`runs.jsonl` 为逐次结果 |
 | `execution/cu_3star_dsl/` | CU 3-star 的 DSL（program 模式，mock 设计器）10 次 |
