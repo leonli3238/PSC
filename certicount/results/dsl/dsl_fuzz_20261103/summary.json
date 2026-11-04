@@ -1,0 +1,121 @@
+{
+  "settings": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      200
+    ]
+  ],
+  "count": 10000,
+  "elapsed_seconds": 220.1800551135093,
+  "summary": [
+    {
+      "n": 5,
+      "dmax": 3,
+      "graphs": "every",
+      "programs": 10000,
+      "derived": 10000,
+      "rejected_by_deriver": 0,
+      "interpreter_errors": 0,
+      "falsified": 10000,
+      "refuted": 0,
+      "tight": 4142,
+      "median_gs_over_max": 1.5,
+      "max_gs_over_max": 5960.733828671328,
+      "zero_change": 1366
+    },
+    {
+      "n": 7,
+      "dmax": 4,
+      "graphs": "200 random",
+      "programs": 10000,
+      "derived": 10000,
+      "rejected_by_deriver": 0,
+      "interpreter_errors": 0,
+      "falsified": 10000,
+      "refuted": 0,
+      "tight": 4154,
+      "median_gs_over_max": 1.4,
+      "max_gs_over_max": 2108.4809415781315,
+      "zero_change": 1350
+    }
+  ],
+  "failures": 0,
+  "loosest": [
+    {
+      "index": 7959,
+      "gs": 40914477.0,
+      "max_delta": 6864.0,
+      "gs_over_max": 5960.733828671328,
+      "program": "return sum(size(((P & N(j)) & N(self))) * size(N(j) & P) * sum(sum(size(P & N(u)) * size((N(u) & P)) * 3 * size((N(u) & P)) for u in project(P, D)) * comb(size(((P & N(k)) & N(self))), 2) * comb(size(((P & N(k)) & N(self))), 2) * size(N(k) & P) for k in (N(j) & N(self))) * size((N(j) & N(self))) for j in P)"
+    },
+    {
+      "index": 6599,
+      "gs": 402570.0,
+      "max_delta": 576.0,
+      "gs_over_max": 698.90625,
+      "program": "S0 = P & N(self) ; return sum(sum(size(N(k) & P) * comb(size((P & N(k))), 2) * sum(size(((P & N(u)) & N(self))) + size(N(u) & P) for u in (P & N(j))) for k in S0) * comb(size((N(j) & P)), 2) * size(((P & N(j)) & N(self))) * size(N(j) & P) for j in (N(self) & P))"
+    },
+    {
+      "index": 6257,
+      "gs": 20861982.0,
+      "max_delta": 32130.0,
+      "gs_over_max": 649.2991596638656,
+      "program": "return 2 * sum(sum(size((N(k) & P)) * sum(size(((P & N(u)) & N(self))) * size(P & N(u)) * comb(size(((P & N(u)) & N(self))), 2) for u in project(P, D)) * size(N(k) & P) * -1 * size((P & N(k))) for k in (P & N(self))) * size(P & N(j)) * -1 * size((N(j) & P)) * size((N(j) & N(self))) for j in P)"
+    },
+    {
+      "index": 2470,
+      "gs": 223074.0,
+      "max_delta": 632.0,
+      "gs_over_max": 352.9651898734177,
+      "program": "return sum(size(N(j) & P) * comb(size((P & N(j))), 2) * sum(size(((P & N(k)) & N(self))) * sum(size(((P & N(u)) & N(self))) + -1 * size((N(u) & P)) + size(N(u) & P) for u in N(k)) * size(P & N(k)) for k in (P & N(j))) * size((N(j) & N(self))) for j in N(self))"
+    },
+    {
+      "index": 6783,
+      "gs": 8194.5,
+      "max_delta": 26.0,
+      "gs_over_max": 315.1730769230769,
+      "program": "return 0.5 * sum(sum(size(((P & N(k)) & N(self))) * sum(-1 * size((N(u) & N(self))) + size(P & N(u)) for u in (N(self) & P)) * size(P & N(k)) for k in N(j)) * size(P & N(j)) * comb(size((N(j) & N(self))), 2) for j in (P & N(self)))"
+    },
+    {
+      "index": 2076,
+      "gs": 263.0,
+      "max_delta": 1.0,
+      "gs_over_max": 263.0,
+      "program": "S0 = project(P, n - 4) ; return max((sum((size((project(P, D) & N(j))) - size((project(P, D) & N(j)))) for j in (N(self) & P)) * sum(size(P) for j in S0)), min(sum((size(N(self)) * size((N(j) | P))) for j in (N(self) & P)), size(S0)))"
+    },
+    {
+      "index": 8011,
+      "gs": 685476.0,
+      "max_delta": 3456.0,
+      "gs_over_max": 198.34375,
+      "program": "return -1 * sum(sum(2 * size((P & N(k))) * sum(size((N(u) & N(self))) + size(P & N(u)) for u in project(P, D)) * size(P & N(k)) for k in N(self)) * size(N(j) & P) * size((N(j) & P)) * comb(size((P & N(j))), 2) for j in (N(self) & P))"
+    },
+    {
+      "index": 2850,
+      "gs": 540.0,
+      "max_delta": 3.0,
+      "gs_over_max": 180.0,
+      "program": "S0 = (P & N(self)) ; return min(sum((sum((size(N(self)) * size((project(P, D) & N(k)))) for k in N(self)) * size((N(j) | P))) for j in S0), size((S0 & (P & N(self)))))"
+    },
+    {
+      "index": 4482,
+      "gs": 180.0,
+      "max_delta": 1.0,
+      "gs_over_max": 180.0,
+      "program": "return min(comb(sum((size(P) * size((N(j) | P))) for j in P), 0), (sum((size((N(j) - P)) * size((P - N(j)))) for j in (P & N(self))) * size((P & N(self)))))"
+    },
+    {
+      "index": 1975,
+      "gs": 142398.0,
+      "max_delta": 824.0,
+      "gs_over_max": 172.8131067961165,
+      "program": "S0 = P & N(self) ; return sum(size(project((P & N(j)), 2)) * size(N(j) & P) * size(((P & N(j)) & N(self))) * sum(size(P & N(k)) * sum(size(P & N(u)) + -1 * size((N(u) & P)) + 0.5 * size((N(u) & N(self))) for u in project(P, D)) * size(project((P & N(k)), 2)) for k in (P & N(self))) for j in N(self))"
+    }
+  ]
+}

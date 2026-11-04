@@ -88,18 +88,32 @@ def _numbers(text: str) -> list[str]:
 
 
 _PLAIN_FRAC = re.compile(r"(-?\d+(?:\.\d+)?)\s*/\s*(-?\d+(?:\.\d+)?)")
+# Whole part of a mixed number written before a proper fraction: "6 and 10/49", "6 10/49"
+_MIXED_WHOLE = re.compile(r"(?<![\d.,])(-?\d+)\s+(?:and\s+)?$")
+
+
+def _fraction_value(text: str, frac: re.Match) -> float | None:
+    a, b = frac.group(1), frac.group(2)
+    if not float(b):
+        return None
+    value = float(a) / float(b)
+    whole = _MIXED_WHOLE.search(text, 0, frac.start())
+    if whole and a.isdigit() and b.isdigit() and int(a) < int(b):
+        w = int(whole.group(1))
+        return w - value if w < 0 else w + value
+    return value
 
 
 def _last_number(text: str) -> float | None:
-    """The last number, or ``a/b`` when that number is the denominator of a bare fraction."""
+    """The last number, or ``a/b`` when that number is the denominator of a bare
+    fraction (``w and a/b`` / ``w a/b`` read as the mixed number ``w + a/b``)."""
     matches = [m for m in _NUMBER.finditer(text) if not _TERM_SUFFIX.match(text, m.end())]
     if not matches:
         return None
     last = matches[-1]
     for frac in _PLAIN_FRAC.finditer(text):
         if frac.end() == last.end() and frac.start(2) == last.start():
-            b = float(frac.group(2))
-            return float(frac.group(1)) / b if b else None
+            return _fraction_value(text, frac)
     return _to_float(last.group())
 
 

@@ -24,7 +24,7 @@ from .lang import Env, Interpreter, Program
 
 
 def _brute_kstar(g: Graph, k: int) -> float:
-    return float(sum(1 for u in range(g.n) for _ in itertools.combinations(g.neighbors(u), k)))
+    return float(sum(math.comb(len(g.neighbors(u)), k) for u in range(g.n)))
 
 
 def _brute_triangles(g: Graph) -> float:
@@ -49,13 +49,52 @@ def reference_counter(task: str) -> Callable[[Graph], float]:
     raise ValueError(f"no reference counter for {task!r}")
 
 
-def run_exact(program: Program, g: Graph) -> float:
-    """The program's answer without noise or truncation on graph ``g``."""
+def run_exact(program: Program, g: Graph, truncate: bool = True) -> float:
+    """The program's answer without noise on graph ``g`` (``G'`` = ``g``, ``D = dmax = n - 1``).
+
+    ``truncate=False`` also turns ``project`` into the identity, so a program that
+    lowers its threshold below ``D`` on purpose (a bias / noise trade-off) is still
+    checked for computing the right statistic."""
     interp = Interpreter(program)
     rows = {u: frozenset(g.adj[u]) for u in range(g.n)}
     d = max(1, g.n - 1)
-    total = sum(interp.local(Env(frozenset(g.adj[u]), u, rows, g.n, D=d, dmax=d)) for u in range(g.n))
+    kw = {} if truncate else {"projector": _no_projection}
+    total = sum(interp.local(Env(frozenset(g.adj[u]), u, rows, g.n, D=d, dmax=d, **kw)) for u in range(g.n))
     return interp.aggregate(total, g.n)
+
+
+def _no_projection(s: frozenset, k: int) -> frozenset:
+    return s
+
+
+def _graph(n: int, edges) -> Graph:
+    return Graph.from_edges(n, list(edges))
+
+
+def named_graphs() -> list[tuple[str, Graph]]:
+    """Small graphs with a known structure; failures on them read as symptoms."""
+    return [
+        ("an empty graph (no edges)", _graph(5, [])),
+        ("a single edge", _graph(5, [(0, 1)])),
+        ("a path 0-1-2-3-4 (no triangle)", _graph(5, [(0, 1), (1, 2), (2, 3), (3, 4)])),
+        ("a star with center 0 and 5 leaves (no triangle)", _graph(6, [(0, i) for i in range(1, 6)])),
+        ("a 5-cycle (no triangle)", _graph(5, [(0, 1), (1, 2), (2, 3), (3, 4), (0, 4)])),
+        ("a single triangle", _graph(5, [(0, 1), (1, 2), (0, 2)])),
+        ("a triangle with a pendant edge", _graph(5, [(0, 1), (1, 2), (0, 2), (2, 3)])),
+        ("two disjoint triangles", _graph(6, [(0, 1), (1, 2), (0, 2), (3, 4), (4, 5), (3, 5)])),
+        ("a complete graph on 4 nodes", _graph(4, [(u, v) for u in range(4) for v in range(u + 1, 4)])),
+        ("a complete graph on 6 nodes", _graph(6, [(u, v) for u in range(6) for v in range(u + 1, 6)])),
+    ]
+
+
+def sized_graphs(n: int, count: int = 3, seed: int = 1) -> list[Graph]:
+    """Sparse random graphs with the real (public) number of nodes ``n``."""
+    rng = np.random.default_rng(seed)
+    out = []
+    for avg in np.linspace(3.0, 10.0, count):
+        p = min(0.9, float(avg) / max(1, n - 1))
+        out.append(Graph.from_edges(n, [(u, v) for u in range(n) for v in range(u + 1, n) if rng.random() < p]))
+    return out
 
 
 def random_graphs(count: int, seed: int = 0, n_range: tuple[int, int] = (5, 14)) -> list[Graph]:
@@ -77,20 +116,54 @@ class UtilityReport:
     def feedback(self) -> str:
         if self.passed:
             return f"utility test passed on {self.graphs} graphs"
-        f = self.failures[0]
-        return (
-            f"utility test failed on {len(self.failures)}/{self.graphs} random public graphs; e.g. a graph with "
-            f"n={f['n']} and edges {f['edges']}: the program gives {f['program']:g}, the exact answer is {f['reference']:g}"
-        )
+        return f"utility test failed on {len(self.failures)}/{self.graphs} public test graphs. " + symptoms(self.failures)
+
+
+def _describe(f: dict) -> str:
+    where = f.get("name") or f"a random graph with n={f['n']} and edges {f['edges']}"
+    return f"on {where} the program gives {f['program']:g}, the exact answer is {f['reference']:g}"
+
+
+def symptoms(failures: list[dict]) -> str:
+    """What goes wrong, in terms of observable behaviour (never the fix)."""
+    named = [f for f in failures if f.get("name")]
+    shown = (named or failures)[:3]
+    out = ["Examples: " + "; ".join(_describe(f) for f in shown) + "."]
+    zero = [f for f in failures if f["reference"] == 0 and f["program"] != 0]
+    if zero:
+        out.append(f"The program is non-zero on {len(zero)} graph(s) whose exact answer is 0, so it counts "
+                   "something that is not the requested structure.")
+    ratios = [f["program"] / f["reference"] for f in failures if f["reference"]]
+    if ratios and max(ratios) - min(ratios) <= 1e-6 * max(1.0, abs(ratios[0])):
+        out.append(f"On every failing graph the answer is exactly {ratios[0]:g} times the exact answer: "
+                   "a constant factor (local formula or aggregate) is off.")
+    elif failures and all(f["program"] > f["reference"] for f in failures):
+        out.append("The program over-counts on every failing graph.")
+    elif failures and all(f["program"] < f["reference"] for f in failures):
+        out.append("The program under-counts on every failing graph.")
+    sizes = {f["n"] for f in failures}
+    big = [f for f in failures if f.get("sized")]
+    if big and len(big) == len(failures):
+        out.append(f"It is exact on all small graphs but wrong on graphs with n = {sorted(sizes)[0]} nodes: the "
+                   "computation must not change with the number of nodes.")
+    return " ".join(out)
 
 
 def utility_test(program: Program, task: str, count: int = 30, seed: int = 0, rel_tol: float = 1e-9,
-                 n_range: tuple[int, int] = (5, 14)) -> UtilityReport:
+                 n_range: tuple[int, int] = (5, 14), public_n: int | None = None, truncate: bool = True,
+                 named: bool = True) -> UtilityReport:
+    """Differential test against the brute-force counter on named small graphs,
+    ``count`` random graphs and (``public_n``) a few graphs with the real number
+    of nodes -- a program cannot pass by switching its behaviour on ``n``."""
     ref = reference_counter(task)
     failures = []
-    graphs = random_graphs(count, seed, n_range)
-    for g in graphs:
-        got, want = run_exact(program, g), ref(g)
+    cases: list[tuple[str | None, Graph, bool]] = [(name, g, False) for name, g in (named_graphs() if named else [])]
+    cases += [(None, g, False) for g in random_graphs(count, seed, n_range)]
+    if public_n is not None and public_n > n_range[1]:
+        cases += [(None, g, True) for g in sized_graphs(public_n)]
+    for name, g, sized in cases:
+        got, want = run_exact(program, g, truncate), ref(g)
         if not math.isclose(got, want, rel_tol=rel_tol, abs_tol=1e-9):
-            failures.append({"n": g.n, "edges": g.edges[:20], "program": got, "reference": want})
-    return UtilityReport(not failures, len(graphs), failures)
+            failures.append({"n": g.n, "edges": g.edges[:20], "program": got, "reference": want,
+                             "name": name, "sized": sized})
+    return UtilityReport(not failures, len(cases), failures)

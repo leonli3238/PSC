@@ -15,6 +15,12 @@ and can be switched off to show what each one buys:
 * ``self_not_in_private`` -- ``self`` never belongs to ``P``;
 * ``rows_bounded``        -- every row has at most ``dmax`` entries.
 
+``G'`` has no self-loops, so ``self`` is never in ``N(self)`` either. In a sum
+over ``P & N(self)`` the new summand ``j = v`` (the flipped vertex, ``v`` in
+``N(self)``) has ``self`` in its row ``N(v)``: only a set that excludes ``self``
+meets ``N(v)`` in at most ``dmax - 1`` vertices; ``N(v)`` itself may have
+``dmax``.
+
 The certificate is only as strong as the rules below; the falsifier
 (:mod:`certicount.dsl.falsifier`) searches small graphs for counterexamples, and
 the derived values are checked against the hand derivations of the library
@@ -70,6 +76,15 @@ class SetInfo:
     max_size: float
     dsym: float
     dsize: float
+
+
+@dataclass(frozen=True)
+class _Row:
+    """What is known of ``N(j)`` for a loop variable ``j``: ``|N(j)| <= bound``,
+    and (``has_self``) ``self in N(j)``."""
+
+    bound: float
+    has_self: bool = False
 
 
 @dataclass(frozen=True)
@@ -187,8 +202,35 @@ class _Deriver:
             raise SensitivityError(f"{what} must be a public constant expression (e.g. D or 3)")
         return info.lo
 
+    def excludes_self(self, e: Expr) -> bool:
+        """``self`` is never an element of the set ``e``."""
+        e = self.resolve(e)
+        if isinstance(e, Name):
+            return e.id == "P" and self.facts.self_not_in_private
+        if isinstance(e, Call):
+            if e.func == "N":  # no self-loops in G'
+                return isinstance(e.args[0], Name) and e.args[0].id == "self"
+            return e.func == "project" and self.excludes_self(e.args[0])
+        if isinstance(e, BinOp):
+            if e.op == "&":
+                return self.excludes_self(e.left) or self.excludes_self(e.right)
+            if e.op == "|":
+                return self.excludes_self(e.left) and self.excludes_self(e.right)
+            return self.excludes_self(e.left)
+        return False
+
+    def row_without_self(self, e: BinOp, rows: dict[str, _Row]) -> float | None:
+        """Bound of ``S & N(j)`` when ``self`` is in ``N(j)`` but not in ``S``."""
+        for side, other in ((e.left, e.right), (e.right, e.left)):
+            side = self.resolve(side)
+            if isinstance(side, Call) and side.func == "N" and isinstance(side.args[0], Name):
+                row = rows.get(side.args[0].id)
+                if row is not None and row.has_self and self.excludes_self(other):
+                    return max(0.0, row.bound - 1)
+        return None
+
     # -- sets ----------------------------------------------------------------
-    def set(self, e: Expr, rows: dict[str, float]) -> SetInfo:
+    def set(self, e: Expr, rows: dict[str, _Row]) -> SetInfo:
         if isinstance(e, Name):
             if e.id == "P":
                 return SetInfo(True, float(self.p.n - 1), 1.0, 1.0)
@@ -198,20 +240,26 @@ class _Deriver:
             return self.set(sub, rows)
         if isinstance(e, Call) and e.func == "N":
             arg = e.args[0]
-            bound = rows.get(arg.id, self.row_max) if isinstance(arg, Name) else self.row_max
+            row = rows.get(arg.id) if isinstance(arg, Name) else None
+            bound = row.bound if row is not None else self.row_max
             if self.facts.rows_bounded and self.p.dmax is not None:
                 self.facts_used.add("rows_bounded")
             return SetInfo(False, bound, 0.0, 0.0)
         if isinstance(e, Call) and e.func == "project":
             s = self.set(e.args[0], rows)
             k = self.public_value(e.args[1], "the projection threshold")
-            # min(|S|, k) is 1-Lipschitz in |S|; the coupled projections differ by a replacement
-            return SetInfo(s.private, min(s.max_size, k), 2.0 * s.dsym, s.dsize)
+            # the interpreter keeps int(k) elements (none if k < 0); min(|S|, k) is
+            # 1-Lipschitz in |S|; the coupled projections differ by a replacement
+            size = min(s.max_size, max(0.0, float(math.floor(k))))
+            return SetInfo(s.private, size, min(2.0 * s.dsym, 2.0 * size), min(s.dsize, size))
         if isinstance(e, BinOp):
             a, b = self.set(e.left, rows), self.set(e.right, rows)
             dsym = a.dsym + b.dsym
             if e.op == "&":
                 size = min(a.max_size, b.max_size)
+                without_self = self.row_without_self(e, rows)
+                if without_self is not None:
+                    size = min(size, without_self)
             elif e.op == "|":
                 size = min(a.max_size + b.max_size, float(self.p.n))
             else:
@@ -220,7 +268,7 @@ class _Deriver:
         raise SensitivityError(f"cannot analyse set expression {type(e).__name__}")
 
     # -- numbers -------------------------------------------------------------
-    def num(self, e: Expr, rows: dict[str, float]) -> NumInfo:
+    def num(self, e: Expr, rows: dict[str, _Row]) -> NumInfo:
         if isinstance(e, Const):
             v = e.value
             return NumInfo(False, 0.0, v, v, float(v).is_integer())
@@ -243,7 +291,7 @@ class _Deriver:
             return self.call(e, rows)
         raise SensitivityError(f"cannot analyse {type(e).__name__}")
 
-    def binop(self, e: BinOp, rows: dict[str, float]) -> NumInfo:
+    def binop(self, e: BinOp, rows: dict[str, _Row]) -> NumInfo:
         a, b = self.num(e.left, rows), self.num(e.right, rows)
         priv = a.private or b.private
         if e.op in ("+", "-"):
@@ -269,7 +317,7 @@ class _Deriver:
         corners = [x / y for x in (a.lo, a.hi) for y in (b.lo, b.hi)]
         return NumInfo(priv, a.delta / m, min(corners), max(corners), False)
 
-    def call(self, e: Call, rows: dict[str, float]) -> NumInfo:
+    def call(self, e: Call, rows: dict[str, _Row]) -> NumInfo:
         f = e.func
         if f == "size":
             s = self.set(e.args[0], rows)
@@ -311,9 +359,9 @@ class _Deriver:
             return NumInfo(a.private or b.private, max(a.delta, b.delta), fn(a.lo, b.lo), fn(a.hi, b.hi), a.integer and b.integer)
         raise SensitivityError(f"{f}(...) is not a number")
 
-    def sum(self, e: Sum, rows: dict[str, float]) -> NumInfo:
+    def sum(self, e: Sum, rows: dict[str, _Row]) -> NumInfo:
         dom = self.set(e.domain, rows)
-        body = self.num(e.body, {**rows, e.var: self.row_max})
+        body = self.num(e.body, {**rows, e.var: _Row(self.row_max)})
         lo = min(0.0, body.lo * dom.max_size)
         hi = max(0.0, body.hi * dom.max_size)
         if not body.private:
@@ -333,7 +381,8 @@ class _Deriver:
             self.facts_used.add("symmetric_rows")
             if self.facts.self_not_in_private:
                 self.facts_used.add("self_not_in_private")
-                body_v = self.num(e.body, {**rows, e.var: max(0.0, self.row_max - 1)})
+                # the new summand j = v: self is in N(v) (only sets without self lose one vertex)
+                body_v = self.num(e.body, {**rows, e.var: _Row(self.row_max, has_self=True)})
                 inner = max(0.0, changing - 1) if local else changing
             else:
                 body_v, inner = body, changing

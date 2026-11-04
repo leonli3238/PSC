@@ -24,7 +24,7 @@
 ```bash
 cd /data/workspace/PSC/certicount
 source ../.venv/bin/activate      # 与复现项目共用仓库根目录的虚拟环境；依赖见 requirements.txt（-r ../psc/requirements.txt）
-python -m pytest tests -q          # 167 个测试（1 个跳过），全部离线
+python -m pytest tests -q          # 187 个测试通过（1 个跳过），全部离线
 ```
 
 模型设置沿用复现项目的 `../psc/config.toml` 与 `../psc/.env`（密钥与网关地址只放在 `.env*` 中）：
@@ -45,7 +45,7 @@ python -m pytest tests -q          # 167 个测试（1 个跳过），全部离�
 ```
 分析者 prompt ─► designer：LLM 写 DSL ─► lang.parse_program：解析 + 类型检查 ─► Program(AST)
                     ▲                          │
-                    └── 反馈重写（≤3 轮）◄── check_draft：sensitivity.derive 推 GS / utility_test 查语义
+                    └── 反馈重写（≤3 轮）◄── check_draft：sensitivity.derive 推 GS / utility_test 查语义 / 证伪器复核 GS
                                                │ 通过
 预算拆分（由程序决定）─► 带噪图 G′（ε1，程序读 N(·) 时）─► 带噪最大度 d̂max（ε2）─► PublicParams(n, D, dmax)
    ─► certify 出证书 ─► 节点 verify_certificate 自行重推 GS ─► Interpreter.local（节点本地）+ Lap(GS/ε3)
@@ -67,7 +67,8 @@ aggregate: total                        return 0.5 * sum(size(P & N(j)) for j in
 | `sensitivity.py` | 抽象解释推导 GS（集合：最大规模 / 对称差 / 规模变化；数值：变化量 / 取值范围），证书 `certify` / `verify_certificate` |
 | `designer.py` | 设计循环：提示词、回复解析、`check_draft`、离线 `MockDesignerModel` |
 | `utility.py` | 效用测试：无噪声、无截断下与暴力计数比对 |
-| `falsifier.py` | 证伪器：小图上穷举 / 采样 (G′, P, 翻转) 寻找超过 GS 的反例 |
+| `falsifier.py` | 证伪器：小图上穷举 / 采样 (G′, P, 翻转) 寻找超过 GS 的反例；`check_derivation` 在同一组小参数下推导 GS 并证伪（设计循环与对拍共用） |
+| `fuzz.py` | 推导器对拍：随机生成合法程序（偏向 `P & N(self)` 上的求和与循环变量的行），推导 GS 与证伪器的最大变化比对 |
 | `library.py` | 参考程序 `PROGRAMS`、手工 GS `HAND_GS`、库外任务的分析者 prompt |
 | `ground_truth.py` | `dp_execute`：纯代码执行任意程序（与 program 模式同 DP 步骤、同随机数顺序）；`gt_dsl`：参考程序的执行，即 GT-DSL |
 | `quality.py` | `design_quality`：设计质量打分（结构、预算拆分、GS 比、独立语义测试、证伪） |
@@ -76,6 +77,13 @@ aggregate: total                        return 0.5 * sum(size(P & N(j)) for j in
 4-star C(D−1,3)、5-star C(D−1,4)、度二阶矩 2D−1）；证伪器在 n = 5 的全部对称图上找到的最大变化恰好等于推导 GS（推导是紧的）；
 去掉"G′ 对称"或"self ∉ P"任一事实，三角形只能得到 d̂max；未投影的 k-star 被判"上界过松"退回改写，除以私有量被拒绝，
 漏掉 0.5 的三角形被效用测试拒绝；不做 GS 优化时三角形推导为 n−2，与论文一致。
+
+设计循环在接受程序前还用证伪器复核推导（`designer.FALSIFIER_CHECKS`：n = 5、dmax = 3 的全部对称图，n = 7、dmax = 4 的
+500 张随机对称图），GS 被反例推翻、或在测试图上运行出错的程序一律退回。推导器本身用随机程序对拍检验（`tests/test_fuzz.py`
+120 个，`scripts/run_dsl_fuzz.py` 大规模）：`results/dsl/dsl_fuzz_20261103/` 中 1 万个随机程序 0 个反例。2026-11-03 之前，
+`P & N(self)` 上求和的新增项 j = v 的所有 N(v) 都按 dmax − 1 计，漏了 self ∈ N(v)，`sum(size(P & N(j)) + size(N(j)) for j in S)`
+一类程序的 GS 被低估（同一批 1 万个程序中 328 个被推翻）；现在只对不含 self 的集合与 N(v) 的交集减 1。库内程序与已有结果
+（`results/execution/` 中的全部 DSL 运行）的 GS 不变。
 
 ## DSL 评估
 
@@ -166,6 +174,7 @@ python scripts/run_dsl_design_eval.py --datasets CU --designs 10 --runs 10 \
 ```bash
 # 以下命令都不调用付费模型（mock / 纯代码）
 python scripts/run_dsl_check.py --flawed-first --tag dsl_check                    # DSL 验收：推导 GS = 手工 GS、证伪器、效用测试、设计循环
+python scripts/run_dsl_fuzz.py --count 10000 --workers 8 --tag dsl_fuzz          # 推导器对拍：随机程序的推导 GS vs 证伪器
 python scripts/run_attacks.py --datasets CU,EE --runs 10 --tag p5                 # P5：四类攻击 × 未开启/开启防御
 python scripts/run_execution_compare.py --datasets CU,EE --runs 10 \
     --tasks degree,3-star,triangle,4-star,degree-moment2 --mock-error-rate 0.05 --tag p4_mock   # P4：同噪声下各执行方式

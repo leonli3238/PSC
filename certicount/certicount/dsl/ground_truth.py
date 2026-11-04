@@ -38,9 +38,24 @@ class DSLTrace:
     d_hat_max: int | None
     counts: list[float] = field(default_factory=list, repr=False)
     reports: list[float] = field(default_factory=list, repr=False)
+    aggregate_coefficient: float = 1.0
+
+    @property
+    def final_noise_scale(self) -> float:
+        """Laplace scale of one report as seen in the estimate: ``|c| · GS / ε3``."""
+        return final_noise_scale(self.aggregate_coefficient, self.gs, self.split[2])
 
     def to_dict(self) -> dict:
-        return {"estimate": self.estimate, "split": list(self.split), "gs": self.gs, "d_hat_max": self.d_hat_max}
+        return {"estimate": self.estimate, "split": list(self.split), "gs": self.gs, "d_hat_max": self.d_hat_max,
+                "aggregate_coefficient": self.aggregate_coefficient, "final_noise_scale": self.final_noise_scale}
+
+
+def final_noise_scale(coefficient: float, gs: float | None, eps3: float) -> float | None:
+    if gs is None:
+        return None
+    if not eps3:
+        return 0.0 if gs == 0 else math.inf
+    return abs(coefficient) * gs / eps3
 
 
 def degree_class(task: str | None, program: Program) -> str:
@@ -54,10 +69,14 @@ def dp_execute(
     graph: Graph, program: Program, eps: float, rng: np.random.Generator, task: str | None = None,
     mechanism: str | MechanismProfile = DEFAULT_MECHANISM, r1: float = 0.5, r2: float = 0.2,
 ) -> DSLTrace:
-    """One DP run of ``program`` on ``graph`` (GS derived from the program)."""
+    """One DP run of ``program`` on ``graph`` (GS derived from the program).
+
+    ``r1`` / ``r2`` are the default budget fractions; a program that sets its own
+    ``budget`` uses that instead (as the framework does)."""
     n = graph.n
     mech = get_mechanism(mechanism)
     cls = degree_class(task, program)
+    r1, r2 = program.budget_fractions(r1, r2)
     split = split_budget(eps, program.uses_rows, program.needs_degree_bound, r1, r2)
     real = [sorted(int(x) for x in graph.adj[i]) for i in range(n)]
 
@@ -98,7 +117,7 @@ def dp_execute(
     counts = [interp.local(Env(frozenset(real[i]), i, rows, n, D=D, dmax=D, projector=projector_of(i))) for i in range(n)]
     reports_out = [c + laplace_noise(gs, split.eps3, rng) for c in counts]
     estimate = interp.aggregate(float(sum(reports_out)), n)
-    return DSLTrace(estimate, split.as_tuple(), gs, d_hat, counts, reports_out)
+    return DSLTrace(estimate, split.as_tuple(), gs, d_hat, counts, reports_out, interp.aggregate_coefficient(n))
 
 
 def reference_program(task: str) -> Program:
@@ -124,8 +143,15 @@ def hand_gs(task: str, d_hat: int | None, n: int) -> float | None:
 
 
 def gs_ratio(gs: float | None, reference: float | None) -> float | None:
+    """GS / reference GS. Ignores the aggregation coefficient and the budget split:
+    use :func:`noise_ratio` to compare the noise that reaches the estimate."""
     if gs is None or reference is None:
         return None
     if reference == 0:
         return 1.0 if gs == 0 else math.inf
     return gs / reference
+
+
+def noise_ratio(scale: float | None, reference: float | None) -> float | None:
+    """Final noise scale ``|c| · GS / ε3`` of a design over the reference's (1 = same noise)."""
+    return gs_ratio(scale, reference)

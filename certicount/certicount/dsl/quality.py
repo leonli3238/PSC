@@ -56,8 +56,10 @@ def same_structure(a: Program, b: Program) -> bool:
 def design_quality(
     program: Program, task: str, n: int, reference_bound: int, bounds: tuple[int, ...] = (5, 10, 20),
     utility_graphs: int = 100, utility_seed: int = 1, utility_n: tuple[int, int] = (5, 16),
-    falsify_program: bool = True, falsify_n: int = 5, falsify_dmax: int = 3,
+    falsify_program: bool = True, falsify_n: int = 5, falsify_dmax: int = 3, truncate: bool = True,
 ) -> DesignQuality:
+    """``truncate=False``: semantic test with ``project`` as the identity (designs
+    that lower the threshold on purpose, as in the accuracy search)."""
     ref = reference_program(task)
     problems: list[str] = []
     ratios: dict[int, float | None] = {}
@@ -68,7 +70,7 @@ def design_quality(
         except SensitivityError as exc:
             ratios[b] = None
             problems.append(f"D={b}: {exc}")
-    rep = utility_test(program, task, count=utility_graphs, seed=utility_seed, n_range=utility_n)
+    rep = utility_test(program, task, count=utility_graphs, seed=utility_seed, n_range=utility_n, truncate=truncate)
     if not rep.passed:
         problems.append(rep.feedback())
     sound, delta = None, None

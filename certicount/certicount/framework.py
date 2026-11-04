@@ -21,6 +21,7 @@ modes are compared on identical noise.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import math
 import time
@@ -42,9 +43,11 @@ from psc.progress import note_phase
 
 from .agents import EXECUTIONS, TrustedNodeAgent
 from .binding import BindingViolation, check_algorithm, check_gs, check_program, get_binding, node_gs
-from .dsl.designer import DesignResult, MockDesignerModel, design_program, design_reference_params
+from .dsl.designer import DesignResult, MockDesignerModel, design_reference_params, design_with_restarts
+from .dsl.ground_truth import final_noise_scale
 from .dsl.lang import Interpreter, Program
 from .dsl.library import PROGRAMS
+from .dsl.search import SearchOptions, search_program
 from .dsl.sensitivity import PublicParams, certify
 
 logger = logging.getLogger(__name__)
@@ -63,10 +66,17 @@ class TrustOptions:
     on_violation: str = "fallback"  # "fallback" to the bound algorithm, or "reject" the run
     program_source: str = "design"  # program mode: "design" (curator LLM) or "library"
     max_design_iterations: int = 3
+    # independent design loops (fresh history each) until one is accepted
+    design_restarts: int = 1
+    # "exact": accept the first draft that passes the exactness test (paper-style);
+    # "search": accuracy-driven self-improving search (certicount.dsl.search)
+    design_mode: str = "exact"
+    search: dict | None = None  # keyword arguments of certicount.dsl.search.SearchOptions
 
     @property
     def label(self) -> str:
-        if self.execution == "llm" and not self.binding and not self.validate:
+        if (self.execution == "llm" and not self.binding and not self.validate
+                and not self.send_by_code and not self.aggregate_by_code):
             return "PSC"
         parts = [self.execution]
         if self.execution != "program":
@@ -224,7 +234,8 @@ class TrustedPSCFramework:
         # DP framework from the program's requirements (degree class decides the rounding)
         degree_class = record.task if record.task in TASKS else ("triangle" if program.uses_rows else "3-star")
         spec = get_dp_framework(degree_class)
-        split = split_budget(eps, program.uses_rows, program.needs_degree_bound, self.r1, self.r2)
+        r1, r2 = program.budget_fractions(self.r1, self.r2)
+        split = split_budget(eps, program.uses_rows, program.needs_degree_bound, r1, r2)
         noisy_graph = controller.build_noisy_graph(nodes, split.eps1) if split.eps1 > 0 else None
         d_hat_max = None
         if split.eps2 > 0:
@@ -247,42 +258,63 @@ class TrustedPSCFramework:
         for node in nodes:
             node.count = node.run_program()
         reports = [node.protected_count(gs, split.eps3, rng) for node in nodes]
-        estimate = Interpreter(program).aggregate(float(sum(reports)), n)
+        interp = Interpreter(program)
+        estimate = interp.aggregate(float(sum(reports)), n)
 
-        if record.task in TASKS:
+        # No LLM executes anything here: the paired "rule" value is the program itself,
+        # so the execution error is 0 by construction (a different but correct design
+        # is not an execution error; its effect is measured against GT-DSL instead).
+        count_sum = sum(x.count for x in nodes)
+        validation = {
+            "nodes": n, "send_checked": 0, "send_exact": 0, "update_exact": n, "e2e_exact": n,
+            "llm_count_sum": count_sum, "rule_count_sum": count_sum, "count_rel_diff": 0.0,
+            "aggregate_exact": True, "rule_estimate": estimate, "mismatches": [], "checked_against": "program",
+        }
+        if record.task in TASKS:  # for the record: how far the design is from the library algorithm
             algo = get_algorithm(record.task)
             for node in nodes:  # the node reads the public rows directly; record them as its messages
                 if algo.needs_messages:
                     node.sent_payload = rules.send_message(node.node_id, node.noisy_neighbors)
                     node.inbox = [rules.send_message(j, node.public_rows.get(j, ())) for j in node.noisy_neighbors]
-            validation = _validate_psc(nodes, algo, reports, estimate, n)
-        else:
-            validation = {
-                "nodes": n, "send_checked": 0, "send_exact": 0, "update_exact": n, "e2e_exact": n,
-                "llm_count_sum": sum(x.count for x in nodes), "rule_count_sum": sum(x.count for x in nodes),
-                "count_rel_diff": 0.0, "aggregate_exact": True, "rule_estimate": estimate, "mismatches": [],
-            }
+            lib = _validate_psc(nodes, algo, reports, estimate, n)
+            validation["library"] = {k: lib[k] for k in ("e2e_exact", "rule_count_sum", "count_rel_diff", "rule_estimate")}
         validation.update(controller_task=record.task, curator_task=record.task, task_correct=True)
         trust["certificate"] = cert.to_dict()
         trust["design"] = design.to_dict() if design is not None else None
-        return self._result(record, eps, split, gs, d_hat_max, noisy_graph, nodes, None, controller,
-                            reports, estimate, validation, trust, t0, design_calls=design.llm_calls if design else 0)
+        coef = interp.aggregate_coefficient(n)
+        res = self._result(record, eps, split, gs, d_hat_max, noisy_graph, nodes, None, controller,
+                           reports, estimate, validation, trust, t0, design_calls=design.llm_calls if design else 0)
+        res.extra["mechanism_trace"].update(
+            aggregate_coefficient=coef, final_noise_scale=final_noise_scale(coef, gs, split.eps3),
+            budget_fractions=[r1, r2],
+        )
+        return res
 
     async def _program(self, record: TaskRecord) -> tuple[Program | None, DesignResult | None]:
         if self.opts.program_source == "library":
             return PROGRAMS[record.task].parse(), None
-        key = (id(self.designer_model), record.input_prompt, self.opts.max_design_iterations)
+        o = self.opts
+        search = SearchOptions.from_dict(o.search) if o.design_mode == "search" else None
+        key = (id(self.designer_model), record.input_prompt, o.max_design_iterations, o.design_restarts,
+               o.design_mode, repr(search))
         cached = key in _DESIGN_CACHE
         if not cached:
             n = record.vertex_num
-            ref = design_reference_params(n)
-            _DESIGN_CACHE[key] = await design_program(
-                self.designer_model, self.formatter, record.input_prompt, n, ref,
-                task=record.task, max_iterations=self.opts.max_design_iterations,
-            )
+            if o.design_mode == "search":
+                if record.task is None or record.task not in PROGRAMS:
+                    raise ValueError("design_mode='search' needs a task with a brute-force reference counter")
+                _DESIGN_CACHE[key] = await search_program(self.designer_model, self.formatter, record.input_prompt,
+                                                          n, record.task, search)
+            elif o.design_mode == "exact":
+                _DESIGN_CACHE[key] = await design_with_restarts(
+                    self.designer_model, self.formatter, record.input_prompt, n, design_reference_params(n),
+                    task=record.task, max_iterations=o.max_design_iterations, restarts=o.design_restarts,
+                )
+            else:
+                raise ValueError(f"unknown design_mode {o.design_mode!r} (exact, search)")
         res = _DESIGN_CACHE[key]
         if cached:  # design is public and reused: no new model call in this run
-            res = DesignResult(res.program, res.task, res.iterations, res.accepted, res.gs_reference, res.history, 0)
+            res = dataclasses.replace(res, llm_calls=0)
         return res.program, res
 
     # ------------------------------------------------------------------

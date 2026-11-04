@@ -243,6 +243,11 @@ def test_extract_number_reads_the_final_answer_of_free_text_replies():
     assert extract_number("454/49") == pytest.approx(454 / 49)
     assert extract_number("average degree = 354 / 31") == pytest.approx(354 / 31)
     assert extract_number("354/31 ≈ 11.42") == 11.42
+    # mixed numbers: the whole part is not dropped (GLM: "or exactly 6 and 10/49")
+    assert extract_number("304 / 49 ≈ **6.20** (or exactly 6 and 10/49).") == pytest.approx(304 / 49)
+    assert extract_number("it is 318/49, or 6 24/49") == pytest.approx(318 / 49)
+    assert extract_number("count 7, ratio 10/49") == pytest.approx(10 / 49)
+    assert extract_number("12 and 50/49") == pytest.approx(50 / 49)
 
 
 def test_paper_naive_prompt_drops_answer_instruction_and_stays_exact():

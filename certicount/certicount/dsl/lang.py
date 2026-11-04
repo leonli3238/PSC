@@ -37,6 +37,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import math
+import re
 from dataclasses import dataclass, field
 from typing import Callable, Mapping
 
@@ -103,10 +104,14 @@ class Program:
     aggregate: Expr = Name("total")
     clamp_nonnegative: bool = True
     types: Mapping[str, str] = field(default_factory=dict, compare=False, repr=False)
+    # Optional budget fractions (r1, r2) of split_budget chosen by the designer; None -> framework default
+    budget: tuple[float, float] | None = None
 
     @property
     def digest(self) -> str:
         text = f"{self.source.strip()}\n--aggregate--\n{self.aggregate_source.strip()}\n{self.clamp_nonnegative}"
+        if self.budget is not None:
+            text += f"\n--budget--\n{self.budget[0]:g},{self.budget[1]:g}"
         return hashlib.sha256(text.encode()).hexdigest()[:16]
 
     def lookup(self, name: str) -> Expr | None:
@@ -138,7 +143,14 @@ class Program:
         return self.uses_threshold or self.uses_rows
 
     def text(self) -> str:
-        return f"{self.source.strip()}\naggregate: {self.aggregate_source.strip()}"
+        out = f"{self.source.strip()}\naggregate: {self.aggregate_source.strip()}"
+        if self.budget is not None:
+            out += f"\nbudget: r1={self.budget[0]:g}, r2={self.budget[1]:g}"
+        return out
+
+    def budget_fractions(self, r1: float, r2: float) -> tuple[float, float]:
+        """``(r1, r2)`` of the budget split: the program's own choice, else the defaults."""
+        return self.budget if self.budget is not None else (r1, r2)
 
 
 def _names(e: Expr) -> set[str]:
@@ -252,8 +264,38 @@ def _strip_fence(source: str) -> str:
     return "\n".join(lines)
 
 
-def parse_program(source: str, aggregate: str = "total", clamp_nonnegative: bool = True) -> Program:
-    """Parse and type-check a local program and its aggregation expression."""
+def parse_budget(text: str | None) -> tuple[float, float] | None:
+    """``"r1=0.3, r2=0.2"`` -> ``(0.3, 0.2)``; ``None`` / empty -> ``None``.
+
+    ``r1``: share of ε for the RR noisy graph (if the program reads ``N``);
+    ``r2``: share of the rest for the noisy degree bound (if it needs one).
+    """
+    if text is None or not text.strip():
+        return None
+    vals: dict[str, float] = {}
+    for part in re.split(r"[,;\s]+", text.strip().strip("`")):
+        if not part:
+            continue
+        m = re.fullmatch(r"(r1|r2)\s*=\s*([0-9]*\.?[0-9]+)", part)
+        if not m:
+            raise DSLError(f"budget: expected 'r1=<x>, r2=<y>', got {text.strip()!r}")
+        vals[m.group(1)] = float(m.group(2))
+    if set(vals) != {"r1", "r2"}:
+        raise DSLError("budget: give both r1 and r2, e.g. 'budget: r1=0.5, r2=0.2'")
+    for k, v in vals.items():
+        if not 0.05 <= v <= 0.95:
+            raise DSLError(f"budget: {k} must be in [0.05, 0.95], got {v:g}")
+    return vals["r1"], vals["r2"]
+
+
+def parse_program(source: str, aggregate: str = "total", clamp_nonnegative: bool = True,
+                  budget: tuple[float, float] | str | None = None) -> Program:
+    """Parse and type-check a local program, its aggregation expression and
+    (optionally) its budget fractions."""
+    if isinstance(budget, str) or budget is None:
+        budget = parse_budget(budget)
+    else:
+        budget = parse_budget(f"r1={budget[0]}, r2={budget[1]}")
     source = _strip_fence(source)
     try:
         tree = ast.parse(source)
@@ -283,7 +325,7 @@ def parse_program(source: str, aggregate: str = "total", clamp_nonnegative: bool
     if ret is None:
         raise DSLError("the program must end with 'return <expr>'")
     agg = _parse_aggregate(aggregate)
-    return Program(source, tuple(assigns), ret, aggregate.strip(), agg, clamp_nonnegative, dict(checker.scope))
+    return Program(source, tuple(assigns), ret, aggregate.strip(), agg, clamp_nonnegative, dict(checker.scope), budget)
 
 
 def _parse_aggregate(text: str) -> Expr:
@@ -404,8 +446,17 @@ class Interpreter:
         return float(self._ret(scope, env))
 
     def aggregate(self, total: float, n: int) -> float:
-        value = float(self._agg({"total": total}, _AggEnv(n)))
+        value = self.aggregate_raw(total, n)
         return max(0.0, value) if self.program.clamp_nonnegative else value
+
+    def aggregate_raw(self, total: float, n: int) -> float:
+        """The aggregation expression before the clamp at 0."""
+        return float(self._agg({"total": total}, _AggEnv(n)))
+
+    def aggregate_coefficient(self, n: int) -> float:
+        """Slope of the aggregation in ``total`` (``estimate ≈ c · total + b``):
+        the final Laplace noise is the report noise scaled by ``|c|``."""
+        return self.aggregate_raw(1.0, n) - self.aggregate_raw(0.0, n)
 
 
 class _AggEnv:
