@@ -48,6 +48,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import dataclasses
+import json
 import sys
 import time
 from pathlib import Path
@@ -83,6 +84,7 @@ MODES = {
     "bind": lambda: TrustOptions(execution="llm"),
     "guard": lambda: TrustOptions(execution="guard"),
     "program": lambda: TrustOptions(execution="program"),
+    "adaptive": lambda: TrustOptions(execution="program", adaptive=True),
     "codeagg": lambda: TrustOptions(execution="llm", binding=False, validate=False, aggregate_by_code=True),
     "codecost": lambda: TrustOptions(execution="llm", send_by_code=True, aggregate_by_code=True),
 }
@@ -96,7 +98,7 @@ record_for = task_record
 
 
 def supported(mode: str, task: str) -> bool:
-    if mode in ("program", "gt-dsl", "gt-tuned"):
+    if mode in ("program", "adaptive", "gt-dsl", "gt-tuned"):
         return task in PROGRAMS
     return task in TASKS
 
@@ -113,10 +115,22 @@ def program_options(args, eps: float) -> TrustOptions:
                         design_restarts=args.design_restarts, design_mode=args.design_mode, search=search)
 
 
+def adaptive_options(args, eps: float) -> TrustOptions:
+    pool = args.pool_options if isinstance(args.pool_options, dict) else json.loads(args.pool_options)
+    select = args.select_options if isinstance(args.select_options, dict) else json.loads(args.select_options)
+    if args.pool_source == "design":
+        pool = {"eps": eps, **pool}
+    return TrustOptions(execution="program", adaptive=True, pool_source=args.pool_source,
+                        pool_file=args.pool_file, pool_designer=args.pool_designer, pool=pool, select=select)
+
+
 def make_framework(mode: str, cfg: ModelConfig, args=None, eps: float = 2.0, designer_model=None):
     if mode == "naive":
         return NaiveFramework(cfg)
-    opts = program_options(args, eps) if (mode == "program" and args is not None) else MODES[mode]()
+    if mode == "adaptive" and args is not None:
+        opts = adaptive_options(args, eps)
+    else:
+        opts = program_options(args, eps) if (mode == "program" and args is not None) else MODES[mode]()
     r1, r2 = (args.r1, args.r2) if args is not None else (0.5, 0.2)
     return TrustedPSCFramework(cfg, opts, r1=r1, r2=r2, designer_model=designer_model)
 
@@ -160,6 +174,10 @@ def planned_calls(mode: str, task: str, n: int, runs: int, args=None) -> int:
         return 0
     if mode == "naive":
         return 2 * runs  # task selection + answer
+    if mode == "adaptive":
+        # the selector runs in code: no per-run model call, the pool design (if any) is cached per task
+        pool = args.pool_options if isinstance(args.pool_options, dict) else json.loads(args.pool_options)
+        return int(pool.get("rounds", 3)) if args is not None and args.pool_source == "design" else 0
     o = MODES[mode]()
     msgs = get_algorithm(task).needs_messages if task in TASKS else False
     per = calls_per_run(msgs, n, o.execution, o.send_by_code, o.aggregate_by_code, design_calls=0)
@@ -199,6 +217,14 @@ def main() -> None:
     g.add_argument("--search-patience", type=int, default=2)
     g.add_argument("--search-sims", type=int, default=50, help="DP simulations per synthetic graph")
     g.add_argument("--search-fixed-budget", action="store_true", help="do not let the designer choose r1 / r2")
+    a = ap.add_argument_group("adaptive program mode (degree-first selection)")
+    a.add_argument("--pool-source", default="library", choices=("library", "design", "file"),
+                   help="programs of the selector: the library program, a pool designed by the curator LLM, "
+                        "or a pool file of scripts/run_pool.py")
+    a.add_argument("--pool-file", default=None, help="pools.json written by scripts/run_pool.py")
+    a.add_argument("--pool-designer", default="llm", help="which pool of the file (llm, random, hand)")
+    a.add_argument("--pool-options", default="{}", help="JSON of certicount.dsl.pool.PoolOptions")
+    a.add_argument("--select-options", default="{}", help="JSON of certicount.dsl.adaptive.SelectOptions")
     ap.add_argument("--dry-run", action="store_true", help="print the planned model calls and exit")
     ap.add_argument("--tag", default=None)
     args = ap.parse_args()
@@ -210,6 +236,19 @@ def main() -> None:
                                    node_model=args.node_model, curator_model=args.curator_model)
     datasets, tasks, modes = args.datasets.split(","), args.tasks.split(","), args.modes.split(",")
     eps_list = [float(x) for x in args.eps.split(",")]
+    for flag in ("pool_options", "select_options"):
+        try:
+            setattr(args, flag, dict(json.loads(getattr(args, flag)) or {}))
+        except json.JSONDecodeError as exc:
+            ap.error(f"--{flag.replace('_', '-')}: {exc}")
+    if args.pool_source == "file":
+        if not args.pool_file:
+            ap.error("--pool-source file needs --pool-file")
+        pools = json.loads(Path(args.pool_file).read_text(encoding="utf-8")).get("pools", {})
+        missing = [t for t in tasks if t not in pools.get(args.pool_designer, {})]
+        if missing:
+            ap.error(f"{args.pool_file} has no pool {args.pool_designer!r} for task(s) {missing}; "
+                     f"available: {sorted(pools.get(args.pool_designer, {}))}")
     unknown = [m for m in modes if m not in ALL_MODES]
     if unknown:
         ap.error(f"unknown mode(s) {unknown}; choose from {', '.join(ALL_MODES)}")

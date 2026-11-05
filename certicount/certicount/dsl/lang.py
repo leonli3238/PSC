@@ -468,3 +468,15 @@ class _AggEnv:
 
 def format_program(program: Program) -> str:
     return program.text()
+
+
+def parse_program_text(text: str) -> Program:
+    """Inverse of :meth:`Program.text`: the local program, an ``aggregate:`` line and
+    an optional ``budget:`` line."""
+    lines = text.strip().splitlines()
+    agg = [i for i, ln in enumerate(lines) if ln.startswith("aggregate: ")]
+    if not agg:
+        raise DSLError("no 'aggregate:' line")
+    a = agg[-1]
+    budget = next((ln[len("budget: "):] for ln in lines[a + 1:] if ln.startswith("budget: ")), None)
+    return parse_program("\n".join(lines[:a]), lines[a][len("aggregate: "):], budget=budget)

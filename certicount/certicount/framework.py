@@ -22,10 +22,12 @@ modes are compared on identical noise.
 from __future__ import annotations
 
 import dataclasses
+import json
 import logging
 import math
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 from agentscope.message import Msg
@@ -33,7 +35,7 @@ from agentscope.pipeline import fanout_pipeline
 
 from psc import rules
 from psc.agents import CuratorAgent, PrivacyController
-from psc.dp import BudgetSplit, split_budget
+from psc.dp import BudgetSplit, graph_projection, split_budget
 from psc.framework import RunResult, _validate_psc
 from psc.graph import TASKS, Graph, TaskRecord
 from psc.library import get_algorithm, get_dp_framework
@@ -43,16 +45,18 @@ from psc.progress import note_phase
 
 from .agents import EXECUTIONS, TrustedNodeAgent
 from .binding import BindingViolation, check_algorithm, check_gs, check_program, get_binding, node_gs
+from .dsl.adaptive import Release, SelectOptions, default_index, pool_space, select
 from .dsl.designer import DesignResult, MockDesignerModel, design_reference_params, design_with_restarts
 from .dsl.ground_truth import final_noise_scale
-from .dsl.lang import Interpreter, Program
+from .dsl.lang import Interpreter, Program, parse_program_text
 from .dsl.library import PROGRAMS
+from .dsl.pool import MockPoolModel, PoolDesign, PoolOptions, design_pool, task_setting
 from .dsl.search import SearchOptions, search_program
 from .dsl.sensitivity import PublicParams, certify
 
 logger = logging.getLogger(__name__)
 
-_DESIGN_CACHE: dict[tuple, DesignResult] = {}
+_DESIGN_CACHE: dict[tuple, DesignResult | PoolDesign] = {}
 
 
 @dataclass
@@ -72,13 +76,21 @@ class TrustOptions:
     # "search": accuracy-driven self-improving search (certicount.dsl.search)
     design_mode: str = "exact"
     search: dict | None = None  # keyword arguments of certicount.dsl.search.SearchOptions
+    # program mode, degree-first (certicount.dsl.adaptive): nodes publish their noisy degrees first,
+    # then a public selector picks a program of the pool, its bound and the RR budget
+    adaptive: bool = False
+    pool_source: str = "library"  # "library" (the library program only), "design" (curator LLM), "file"
+    pool_file: str | None = None  # "file": pools.json of scripts/run_pool.py
+    pool_designer: str = "llm"  # "file": which pool of the file ("llm", "random", ...)
+    pool: dict | None = None  # keyword arguments of certicount.dsl.pool.PoolOptions
+    select: dict | None = None  # keyword arguments of certicount.dsl.adaptive.SelectOptions
 
     @property
     def label(self) -> str:
         if (self.execution == "llm" and not self.binding and not self.validate
                 and not self.send_by_code and not self.aggregate_by_code):
             return "PSC"
-        parts = [self.execution]
+        parts = [self.execution] + (["adaptive"] if self.execution == "program" and self.adaptive else [])
         if self.execution != "program":
             parts += (["bind"] if self.binding else []) + (["validate"] if self.validate else [])
         if self.send_by_code and self.execution != "program":
@@ -114,7 +126,7 @@ class TrustedPSCFramework:
         self.curator_model = create_model(self.cfg, "curator")
         self.formatter = create_formatter(self.cfg)
         if designer_model is None and self.cfg.provider == "mock":
-            designer_model = MockDesignerModel()
+            designer_model = MockPoolModel() if self.opts.adaptive else MockDesignerModel()
         self.designer_model = designer_model or self.curator_model
         TrustedNodeAgent.set_max_concurrency(self.cfg.max_concurrency)
 
@@ -134,6 +146,8 @@ class TrustedPSCFramework:
     async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
         rng = rng if rng is not None else np.random.default_rng(0)
         if self.opts.execution == "program":
+            if self.opts.adaptive:
+                return await self._run_adaptive(record, eps, rng)
             return await self._run_program(record, eps, rng)
         return await self._run_rules(record, eps, rng)
 
@@ -289,6 +303,100 @@ class TrustedPSCFramework:
             budget_fractions=[r1, r2],
         )
         return res
+
+    async def _run_adaptive(self, record: TaskRecord, eps: float, rng: np.random.Generator) -> RunResult:
+        """Degree-first program mode: (1) every node publishes its noisy degree (ε2); (2) from these
+        public values a selector picks a program of the pool, the bound ``B`` that replaces the noisy
+        maximum degree and the RR budget ε1; (3) the RR graph is built with ε1 and projected to ``B``,
+        the certificate is issued at ``B`` and verified by every node, and every node reports its
+        program's count plus ``Lap(GS / ε3)``, ε3 = ε − ε2 − ε1. The choice is post-processing of
+        step 1 and every choice spends exactly ε − ε2 in step 3."""
+        t0 = time.perf_counter()
+        graph = record.graph()
+        n = graph.n
+        nodes = self._nodes(graph)
+        controller = PrivacyController(self.curator_model, self.formatter, rng, self.r1, self.r2, mechanism=self.mechanism)
+        trust: dict = {"violations": []}
+
+        note_phase("design")
+        programs, design = await self._pool(record)
+        setting = task_setting(record.task, eps, self.r1, self.r2)
+
+        y = [node.report_noisy_degree(setting.eps2, rng) for node in nodes]  # Algorithm 2, lines 1-3
+        rel = Release(np.asarray(y, dtype=float), self.mechanism.degree_bound(y, setting.degree_class).projection_degree,
+                      setting.eps2)
+        note_phase("select")
+        cands = pool_space(programs, rel.D, eps, setting.eps2)
+        default = default_index(cands, rel.D, setting.eps1_default)
+        sel = select(rel, n, eps, cands, programs[0], np.random.default_rng(int(rng.integers(2**62))),
+                     SelectOptions(**(self.opts.select or {})), default)
+        cand = cands[sel.index]
+        program, B = cand.program, cand.bound
+        split = BudgetSplit(cand.eps1, setting.eps2, eps - setting.eps2 - cand.eps1)
+
+        noisy_graph = None
+        if program.uses_rows:
+            noisy_graph = graph_projection(controller.build_noisy_graph(nodes, split.eps1), B, rng)
+            for node in nodes:
+                node.set_noisy_neighbors(noisy_graph.adj[node.node_id])
+        for node in nodes:  # the projection of P used by project(P, D) in the program
+            node.bound_degree(B, rng)
+        params = PublicParams(n, D=B, dmax=B)
+        cert = certify(program, params)
+        try:
+            gs = check_program(program, cert, params)  # every node runs the same public check
+        except BindingViolation as v:
+            trust["violations"].append({"kind": v.kind, "message": str(v)})
+            return self._rejected(record, eps, split, t0, nodes, None, controller, trust)
+        rows = dict(enumerate(noisy_graph.adj)) if noisy_graph is not None else None
+        note_phase("update")
+        for node in nodes:
+            node.configure(n, rows, B, None, program)
+            node.count = node.run_program()
+        reports = [node.protected_count(gs, split.eps3, rng) for node in nodes]
+        interp = Interpreter(program)
+        estimate = interp.aggregate(float(sum(reports)), n)
+
+        count_sum = sum(x.count for x in nodes)
+        validation = {
+            "nodes": n, "send_checked": 0, "send_exact": 0, "update_exact": n, "e2e_exact": n,
+            "llm_count_sum": count_sum, "rule_count_sum": count_sum, "count_rel_diff": 0.0,
+            "aggregate_exact": True, "rule_estimate": estimate, "mismatches": [], "checked_against": "program",
+            "controller_task": record.task, "curator_task": record.task, "task_correct": True,
+        }
+        controller.degree_trace = {"noisy_degree_reports": y, "noisy_max_degree": float(max(y)), "sensitivity_degree": float(B)}
+        trust["certificate"] = cert.to_dict()
+        trust["design"] = design.to_dict() if design is not None else None
+        trust["selection"] = {
+            **sel.to_dict(), "candidates": len(cands), "default": default, "program": program.text(),
+            "program_index": cand.key[1], "bound": B, "D": rel.D, "eps1": split.eps1, "pool": [p.text() for p in programs],
+        }
+        coef = interp.aggregate_coefficient(n)
+        res = self._result(record, eps, split, gs, B, noisy_graph, nodes, None, controller, reports, estimate,
+                           validation, trust, t0, design_calls=design.calls if design is not None else 0)
+        res.extra["mechanism_trace"].update(aggregate_coefficient=coef, final_noise_scale=final_noise_scale(coef, gs, split.eps3))
+        return res
+
+    async def _pool(self, record: TaskRecord) -> tuple[list[Program], PoolDesign | None]:
+        """The programs the selector chooses from; the first one is exact and gives the truth of the
+        selector's synthetic inputs (the library program in every source)."""
+        o = self.opts
+        if o.pool_source == "library":
+            return [PROGRAMS[record.task].parse()], None
+        if o.pool_source == "file":
+            data = json.loads(Path(o.pool_file).read_text(encoding="utf-8"))
+            return [parse_program_text(t) for t in data["pools"][o.pool_designer][record.task]], None
+        if o.pool_source != "design":
+            raise ValueError(f"unknown pool_source {o.pool_source!r} (library, design, file)")
+        key = ("pool", id(self.designer_model), record.task, repr(o.pool))
+        cached = key in _DESIGN_CACHE
+        if not cached:
+            _DESIGN_CACHE[key] = await design_pool(self.designer_model, self.formatter, record.task,
+                                                   PoolOptions.from_dict(o.pool))
+        res = _DESIGN_CACHE[key]
+        if cached:  # the pool is public and reused: no new model call in this run
+            res = dataclasses.replace(res, calls=0)
+        return res.programs, res
 
     async def _program(self, record: TaskRecord) -> tuple[Program | None, DesignResult | None]:
         if self.opts.program_source == "library":

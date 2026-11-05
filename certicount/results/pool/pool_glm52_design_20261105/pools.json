@@ -1,0 +1,362 @@
+{
+  "pools": {
+    "hand": {
+      "2-star": [
+        "return comb(size(project(P, D)), 2)\naggregate: total"
+      ],
+      "3-star": [
+        "return comb(size(project(P, D)), 3)\naggregate: total"
+      ],
+      "triangle": [
+        "S = P & N(self)\nreturn 0.5 * sum(size(P & N(j)) for j in S)\naggregate: total / 3"
+      ],
+      "4-star": [
+        "return comb(size(project(P, D)), 4)\naggregate: total"
+      ]
+    },
+    "llm": {
+      "2-star": [
+        "return comb(size(project(P, D)), 2)\naggregate: total"
+      ],
+      "3-star": [
+        "return comb(size(project(P, D)), 3)\naggregate: total"
+      ],
+      "triangle": [
+        "S = P & N(self)\nreturn 0.5 * sum(size(P & N(j)) for j in S)\naggregate: total / 3",
+        "S = project(P, D)\nreturn 0.5 * sum(size(N(self) & N(j)) for j in S)\naggregate: total / 3"
+      ],
+      "4-star": [
+        "return comb(size(project(P, D)), 4)\naggregate: total"
+      ]
+    },
+    "random": {
+      "2-star": [
+        "return comb(size(project(P, D)), 2)\naggregate: total"
+      ],
+      "3-star": [
+        "return comb(size(project(P, D)), 3)\naggregate: total"
+      ],
+      "triangle": [
+        "S = P & N(self)\nreturn 0.5 * sum(size(P & N(j)) for j in S)\naggregate: total / 3",
+        "return 0.5 * sum(size(P & N(j)) + size(project((P & N(j)), 2)) for j in P)\naggregate: total / 6"
+      ],
+      "4-star": [
+        "return comb(size(project(P, D)), 4)\naggregate: total"
+      ]
+    }
+  },
+  "designs": [
+    {
+      "task": "2-star",
+      "calls": 3,
+      "requests": 3,
+      "stopped": null,
+      "seconds": 31.72290593571961,
+      "scenarios": [
+        "n60-sparse",
+        "n60-dense",
+        "n60-hubs",
+        "n150-sparse",
+        "n150-dense",
+        "n150-hubs"
+      ],
+      "pool": [
+        0
+      ],
+      "pool_programs": [
+        "return comb(size(project(P, D)), 2)\naggregate: total"
+      ],
+      "hand_score": 0.07792147297031639,
+      "pool_score": 0.07792147297031639,
+      "proposed": 12,
+      "certified": 2,
+      "deployed": 0,
+      "rejections": {
+        "sensitivity": 2,
+        "inexact": 5,
+        "duplicate": 3
+      },
+      "stats": {},
+      "designer": "llm"
+    },
+    {
+      "task": "2-star",
+      "calls": 0,
+      "requests": null,
+      "stopped": null,
+      "seconds": 4.6465773321688175,
+      "scenarios": [
+        "n60-sparse",
+        "n60-dense",
+        "n60-hubs",
+        "n150-sparse",
+        "n150-dense",
+        "n150-hubs"
+      ],
+      "pool": [
+        0
+      ],
+      "pool_programs": [
+        "return comb(size(project(P, D)), 2)\naggregate: total"
+      ],
+      "hand_score": 0.07792147297031639,
+      "pool_score": 0.07792147297031639,
+      "proposed": 0,
+      "certified": 0,
+      "deployed": 0,
+      "rejections": {},
+      "stats": {
+        "proposed": 2000,
+        "inexact": 1932,
+        "loose": 68
+      },
+      "designer": "random"
+    },
+    {
+      "task": "3-star",
+      "calls": 3,
+      "requests": 3,
+      "stopped": null,
+      "seconds": 34.22548982873559,
+      "scenarios": [
+        "n60-sparse",
+        "n60-dense",
+        "n60-hubs",
+        "n150-sparse",
+        "n150-dense",
+        "n150-hubs"
+      ],
+      "pool": [
+        0
+      ],
+      "pool_programs": [
+        "return comb(size(project(P, D)), 3)\naggregate: total"
+      ],
+      "hand_score": 0.20736281785965194,
+      "pool_score": 0.20736281785965194,
+      "proposed": 12,
+      "certified": 5,
+      "deployed": 0,
+      "rejections": {
+        "inexact": 2,
+        "sensitivity": 1,
+        "parse": 3,
+        "duplicate": 1
+      },
+      "stats": {},
+      "designer": "llm"
+    },
+    {
+      "task": "3-star",
+      "calls": 0,
+      "requests": null,
+      "stopped": null,
+      "seconds": 4.813388232141733,
+      "scenarios": [
+        "n60-sparse",
+        "n60-dense",
+        "n60-hubs",
+        "n150-sparse",
+        "n150-dense",
+        "n150-hubs"
+      ],
+      "pool": [
+        0
+      ],
+      "pool_programs": [
+        "return comb(size(project(P, D)), 3)\naggregate: total"
+      ],
+      "hand_score": 0.20736281785965194,
+      "pool_score": 0.20736281785965194,
+      "proposed": 1,
+      "certified": 1,
+      "deployed": 0,
+      "rejections": {},
+      "stats": {
+        "proposed": 2000,
+        "inexact": 1931,
+        "loose": 68,
+        "certified": 1
+      },
+      "designer": "random"
+    },
+    {
+      "task": "triangle",
+      "calls": 3,
+      "requests": 3,
+      "stopped": null,
+      "seconds": 33.58200420625508,
+      "scenarios": [
+        "n60-sparse-CL",
+        "n60-sparse-TH",
+        "n60-dense-CL",
+        "n60-dense-TH",
+        "n60-hubs-CL",
+        "n60-hubs-TH",
+        "n150-sparse-CL",
+        "n150-sparse-TH",
+        "n150-dense-CL",
+        "n150-dense-TH",
+        "n150-hubs-CL",
+        "n150-hubs-TH"
+      ],
+      "pool": [
+        0,
+        2
+      ],
+      "pool_programs": [
+        "S = P & N(self)\nreturn 0.5 * sum(size(P & N(j)) for j in S)\naggregate: total / 3",
+        "S = project(P, D)\nreturn 0.5 * sum(size(N(self) & N(j)) for j in S)\naggregate: total / 3"
+      ],
+      "hand_score": 0.7853239098876266,
+      "pool_score": 0.6555394581942677,
+      "proposed": 12,
+      "certified": 5,
+      "deployed": 1,
+      "rejections": {
+        "inexact": 3,
+        "parse": 1,
+        "duplicate": 3
+      },
+      "stats": {},
+      "designer": "llm"
+    },
+    {
+      "task": "triangle",
+      "calls": 0,
+      "requests": null,
+      "stopped": null,
+      "seconds": 11.67158754169941,
+      "scenarios": [
+        "n60-sparse-CL",
+        "n60-sparse-TH",
+        "n60-dense-CL",
+        "n60-dense-TH",
+        "n60-hubs-CL",
+        "n60-hubs-TH",
+        "n150-sparse-CL",
+        "n150-sparse-TH",
+        "n150-dense-CL",
+        "n150-dense-TH",
+        "n150-hubs-CL",
+        "n150-hubs-TH"
+      ],
+      "pool": [
+        0,
+        1
+      ],
+      "pool_programs": [
+        "S = P & N(self)\nreturn 0.5 * sum(size(P & N(j)) for j in S)\naggregate: total / 3",
+        "return 0.5 * sum(size(P & N(j)) + size(project((P & N(j)), 2)) for j in P)\naggregate: total / 6"
+      ],
+      "hand_score": 0.7853239098876266,
+      "pool_score": 0.6455941882251962,
+      "proposed": 6,
+      "certified": 6,
+      "deployed": 1,
+      "rejections": {},
+      "stats": {
+        "proposed": 2000,
+        "inexact": 1925,
+        "loose": 68,
+        "certified": 6,
+        "duplicate": 1
+      },
+      "designer": "random"
+    },
+    {
+      "task": "4-star",
+      "calls": 3,
+      "requests": 3,
+      "stopped": null,
+      "seconds": 33.28229895234108,
+      "scenarios": [
+        "n60-sparse",
+        "n60-dense",
+        "n60-hubs",
+        "n150-sparse",
+        "n150-dense",
+        "n150-hubs"
+      ],
+      "pool": [
+        0
+      ],
+      "pool_programs": [
+        "return comb(size(project(P, D)), 4)\naggregate: total"
+      ],
+      "hand_score": 0.37817409478679465,
+      "pool_score": 0.37817409478679465,
+      "proposed": 12,
+      "certified": 5,
+      "deployed": 0,
+      "rejections": {
+        "parse": 2,
+        "sensitivity": 1,
+        "inexact": 2,
+        "duplicate": 2
+      },
+      "stats": {},
+      "designer": "llm"
+    },
+    {
+      "task": "4-star",
+      "calls": 0,
+      "requests": null,
+      "stopped": null,
+      "seconds": 4.688749892637134,
+      "scenarios": [
+        "n60-sparse",
+        "n60-dense",
+        "n60-hubs",
+        "n150-sparse",
+        "n150-dense",
+        "n150-hubs"
+      ],
+      "pool": [
+        0
+      ],
+      "pool_programs": [
+        "return comb(size(project(P, D)), 4)\naggregate: total"
+      ],
+      "hand_score": 0.37817409478679465,
+      "pool_score": 0.37817409478679465,
+      "proposed": 0,
+      "certified": 0,
+      "deployed": 0,
+      "rejections": {},
+      "stats": {
+        "proposed": 2000,
+        "inexact": 1932,
+        "loose": 68
+      },
+      "designer": "random"
+    }
+  ],
+  "requests": 12,
+  "pool_options": {
+    "rounds": 3,
+    "per_call": 4,
+    "max_pool": 4,
+    "min_gain": 0.03,
+    "sizes": [
+      60,
+      150
+    ],
+    "profiles": [
+      "sparse",
+      "dense",
+      "hubs"
+    ],
+    "families": [
+      "chung-lu",
+      "threshold"
+    ],
+    "sims_rows": 10,
+    "sims_degrees": 300,
+    "eps": 2.0,
+    "seed": 2026,
+    "reference_n": 100,
+    "max_seconds": 0.05,
+    "keep": 6
+  }
+}

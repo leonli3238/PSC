@@ -24,7 +24,7 @@
 ```bash
 cd /data/workspace/PSC/certicount
 source ../.venv/bin/activate      # 与复现项目共用仓库根目录的虚拟环境；依赖见 requirements.txt（-r ../psc/requirements.txt）
-python -m pytest tests -q          # 195 个测试通过（1 个跳过），全部离线
+python -m pytest tests -q          # 206 个测试通过（1 个跳过），全部离线
 ```
 
 模型设置沿用复现项目的 `../psc/config.toml` 与 `../psc/.env`（密钥与网关地址只放在 `.env*` 中）：
@@ -70,6 +70,7 @@ aggregate: total                        return 0.5 * sum(size(P & N(j)) for j in
 | `falsifier.py` | 证伪器：小图上穷举 / 采样 (G′, P, 翻转) 寻找超过 GS 的反例；`check_derivation` 在同一组小参数下推导 GS 并证伪（设计循环与对拍共用） |
 | `fuzz.py` | 推导器对拍：随机生成合法程序（偏向 `P & N(self)` 上的求和与循环变量的行），推导 GS 与证伪器的最大变化比对 |
 | `adaptive.py` | 先发度数的自适应选择：共同随机数执行器、NPMLE 度后验、按公开量模拟打分的选择器、候选空间（见下节） |
+| `pool.py` | LLM 设计程序池：调用计数与硬上限（`BudgetedModel`）、认证闸门、估计量去重、公开合成图打分、贪心入池、随机基线、离线 mock |
 | `library.py` | 参考程序 `PROGRAMS`、手工 GS `HAND_GS`、库外任务的分析者 prompt |
 | `ground_truth.py` | `dp_execute`：纯代码执行任意程序（与 program 模式同 DP 步骤、同随机数顺序）；`gt_dsl`：参考程序的执行，即 GT-DSL |
 | `quality.py` | `design_quality`：设计质量打分（结构、预算拆分、GS 比、独立语义测试、证伪） |
@@ -187,7 +188,77 @@ python scripts/run_adaptive.py --runs 1000 --workers 8 --tag adaptive_r1000   # 
 - 带 margin 时 18 格中没有一格显著变差；收益集中在 D 高估严重的小图（CU、Do、CS 的 3-star 与三角形）和 PM 三角形（−50%，选中 B ≈ 0.67D）。
 - GT-Tuned 能调 ε2，在小图上更好，但在 ML、EE、PM 上显著变差（EE 三角形 +64%，PM 3-star +108%）。
 - GT-TriTR（逐节点阈值）在三角形 6 图中 4 图、3-star 的 PM / ML / CS 上仍优于自适应。
-- margin = 0.1 是看过 EE 三角形 30 次试跑后定的，尚未在独立的图上验证；自适应只在纯代码执行器中实现，尚未接入智能体框架。
+- margin = 0.1 是看过 EE 三角形 30 次试跑后定的，尚未在独立的图上验证。智能体框架的接入见下节（`TrustOptions(adaptive=True)`）。
+
+## LLM 设计程序池（`dsl/pool.py`）
+
+LLM 回到设计环节：curator LLM 只看公开信息（任务、DSL、公开合成图上的得分），每次调用提出若干本地程序；系统逐个认证，
+通过的程序组成程序池；运行时由先发度数的选择器在"池中程序 × 界 × ε1"里挑选。提示词里从不出现边，所以设计者可以是远程 API。
+
+1. **认证**（与设计循环相同的闸门）：解析与类型检查、推导 GS 且不过松、无噪声无截断时精确（`project` 视为恒等）、证伪器复核；
+   聚合须是 total 的仿射函数（选择器要模拟它）。
+2. **去重**：在固定公开输入上的估计量指纹（各节点局部值 × 聚合斜率）与已认证程序相同、且认证噪声不更小，即拒收（改写公式不是新估计量）。
+3. **打分**：在公开合成图（n ∈ {60, 150} × 度分布 {稀疏, 稠密, 重尾} × 聚集 {Chung–Lu, 阈值几何}，k-star 只用前者）上跑完整私有流程，
+   每张图取该程序最优设置的误差；所有程序用同一份噪声。
+4. **入池**：库程序始终在池中且排第一（默认设置也来自它）；其余按"使池得分（每张图取池中最优程序，再取几何平均）下降 ≥ 3%"贪心加入，最多 4 个。
+   模型下一轮看到池、逐图得分和上一轮的拒绝原因。
+- 调用控制：`BudgetedModel` 对每个请求（含重试）计数，超过 `--max-requests` 直接拒绝。非 LLM 基线 `random_design` 用同一语言的随机程序
+  （`dsl/fuzz.py` 的生成器）过同一套闸门。
+- 框架：`TrustOptions(execution="program", adaptive=True, pool_source="library" | "design" | "file")`：节点先发带噪度数，控制器公开选择，
+  再按选中的 ε1 建噪声图、投影到选中的界，出证书，节点核验后本地执行（节点 LLM 调用为 0；池设计按任务缓存）。
+
+```bash
+python scripts/run_pool.py --tasks 2-star,3-star,triangle --runs 200 --workers 8 --tag pool_mock          # 离线（mock 提议者）
+python scripts/run_pool.py --provider openai --profile glm --curator-model glm-5.2 --max-requests 24 \
+    --max-retries 1 --tasks 2-star,3-star,triangle,4-star --dry-run                                           # 先看调用量
+python scripts/run_pool.py --pools results/pool/<设计目录>/pools.json --runs 200 --workers 8 --tag <tag>   # 复用设计，0 次调用
+```
+
+智能体框架里的同一条流水线由 `run_execution_compare.py --modes adaptive` 运行（每次运行 0 次模型调用；池设计按任务缓存）：
+`--pool-source library` 只选界与 ε1，`--pool-source file --pool-file <pools.json>` 复用已设计的池，
+`--pool-source design` 现场调用 curator（`--pool-options '{"rounds":3}'` 控制调用次数）。
+
+```bash
+python scripts/run_execution_compare.py --datasets CU,Do --tasks 2-star,3-star,4-star,triangle --modes adaptive \
+    --pool-source file --pool-file results/pool/pool_glm52_design_20261105/pools.json --pool-designer llm \
+    --provider mock --runs 200 --tag p5_cu_do_glm52
+```
+
+**GLM-5.2 小规模测试**：设计在 `results/pool/pool_glm52_design_20261105/`（4 个任务 × 3 次调用，共 12 次请求，无重试、无错误，
+`transcripts.jsonl` 为全部提示词与回复），评估在 `results/pool/pool_glm52_r200_20261105/`（6 图 × 200 次，纯代码，约 15 分钟）。
+
+| 任务 | 提议 | 认证 | 入池 | 拒绝原因 |
+|---|---|---|---|---|
+| 2-star | 12 | 2 | 0 | 不精确 5、同一估计量 3、灵敏度（除以私有量）2 |
+| 3-star | 12 | 5 | 0 | 解析 3（如 `min(... for j in S)`）、不精确 2、灵敏度 1、同一估计量 1 |
+| triangle | 12 | 5 | 1 | 不精确 3、同一估计量 3、解析 1 |
+| 4-star | 12 | 5 | 0 | 解析 2、不精确 2、同一估计量 2、灵敏度 1 |
+
+没有一个提议被证伪器推翻。k-star 上 GLM 主要提出"降低阈值"（选择器已覆盖，无增益）和"公开主项 + 私有修正"
+（如 4-star 的 `comb(m,4) − 6·comb(m,2) + 6·comb(c,2)`，D = 40 时噪声为库程序的 1/40，但 m 取自噪声图、偏差过大）；
+三角形入池的是"用噪声图的共同邻居闭合 wedge"：`S = project(P, D); 0.5 * sum(size(N(self) & N(j)) for j in S)`。
+随机基线（每任务 2000 个随机程序）只在三角形上找到可用程序：`0.5 * sum(size(P & N(j)) + size(project(P & N(j), 2)) for j in P)`，聚合 `total / 6`。
+
+三角形（每格 200 次，平均相对误差；括号内为相对仅库程序池的配对差 ± 1.96 SE）：
+
+| 数据集 | PSC 默认 | 仅库程序（自适应） | + GLM 池 | + 随机池 | GT-TriTR |
+|---|---|---|---|---|---|
+| CU | 1.011 | 0.798 | 0.744（−0.054 ± 0.090） | **0.582**（−0.215 ± 0.034） | 0.658 |
+| Do | 0.873 | 0.735 | 0.776（+0.041 ± 0.081） | **0.554**（−0.181 ± 0.037） | 0.620 |
+| ML | 0.423 | 0.435 | **0.364**（−0.070 ± 0.035） | 0.423（−0.012 ± 0.019） | 0.438 |
+| CS | 1.649 | 1.046 | 1.104（+0.058 ± 0.102） | 0.825（−0.222 ± 0.073） | **0.817** |
+| EE | 0.419 | 0.436 | 0.417（−0.019 ± 0.049） | 0.467（+0.032 ± 0.025） | 0.419 |
+| PM | 1.127 | 0.566 | 0.570（+0.004 ± 0.006） | 0.466（−0.101 ± 0.041） | **0.273** |
+| 平均 | 0.917 | 0.669 | 0.663（−1.0%，1 好 / 0 差） | 0.553（−17.4%，4 好 / 1 差） | 0.537 |
+
+- 2-star / 3-star / 4-star 三个池相同（只有库程序），自适应相对默认 −1.8% / −23.5% / −43.4%；4-star 仍远不如 TriTR（0.561 对 0.310）。
+- **这次小测试里 GLM 没有胜过随机搜索**：GLM 的三角形程序在公开打分中把池得分从 0.785 降到 0.656，但在真实图上只有 ML 显著受益；
+  随机池平均 0.553，与 TriTR（0.537）相当，CU、Do 上更好，PM 上差距仍大。随机生成器本来为推导器对拍而写，偏向 `P & N(j)` 形状的求和，
+  不是"无知"的基线；而 GLM 每个任务只有 3 次调用、温度 0。
+- **选择器是瓶颈**：每张图固定用一组最优设置（在真实图上挑，非私有；CU / Do / ML / CS / EE，各 100 次）时，三个池的 5 图平均为
+  仅库程序 0.613、+GLM 0.529（−14%）、+随机 0.470（−23%），GLM 的程序在每张图上都带来更好的固定设置（同 5 图上 TriTR 为 0.590）；
+  但实际自适应选择只拿到 0.690 / 0.681 / 0.570。选择器有 70–84% 的运行选了 GLM 程序，结构先验（三类合成图）对它的偏差判断不准，
+  收益没有兑现。
 
 ## 其他研究内容
 
@@ -287,7 +358,7 @@ scripts/
   run_composite.py          复合查询            run_sensitivity_audit.py   灵敏度审计
   analyze_errors.py         误差分解            analyze_cost.py            成本统计
   md_to_pdf.py              docs/ 下 Markdown 转 PDF
-tests/             test_dsl / test_dsl_eval / test_fuzz / test_search / test_adaptive / test_trust / test_audit / test_eval_cost_composite
+tests/             test_dsl / test_dsl_eval / test_fuzz / test_search / test_adaptive / test_pool / test_trust / test_audit / test_eval_cost_composite
 docs/              开题报告、答辩讲稿、PPT 提示词、研究笔记
 results/           见 results/README.md
 ```

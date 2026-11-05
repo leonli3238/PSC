@@ -143,6 +143,25 @@ def _noisy_rows(graph: Graph, eps1: float, bound: int, st: Streams, cache: dict)
     return cache[eps1, bound]
 
 
+def ranked_projector(st: Streams, n: int) -> Callable[[frozenset, int], frozenset]:
+    """``project(S, k)`` keeps the ``k`` elements of ``S`` that come first in a public
+    random order of the node ids, drawn once per run (from the projection seed).
+
+    Any fixed order keeps the projections of neighbouring sets one replacement
+    apart, as the deriver assumes, and the size of every set a program forms from
+    ``P`` alone still depends on ``|P|`` only (:func:`count_table`). Unlike the
+    smallest ids, the kept neighbours do not depend on how the dataset numbers
+    its nodes."""
+    rank = np.empty(n, dtype=np.int64)
+    rank[np.random.default_rng([st.projection_seed, 1]).permutation(n)] = np.arange(n)
+
+    def projector(s: frozenset, k: int) -> frozenset:
+        k = max(0, int(k))
+        return s if len(s) <= k else frozenset(sorted(s, key=rank.__getitem__)[:k])
+
+    return projector
+
+
 def execute(graph: Graph, cand: Candidate, eps: float, rel: Release, st: Streams, cache: dict | None = None) -> float:
     """Estimate of ``cand`` on ``graph`` after the release ``rel``, with the
     run's streams. ``cache`` (one per graph and streams) shares the RR graph
@@ -154,8 +173,12 @@ def execute(graph: Graph, cand: Candidate, eps: float, rel: Release, st: Streams
     prog = cand.program
     interp = _interpreter(prog)
     if prog.uses_rows:
-        rows = _noisy_rows(graph, cand.eps1, cand.bound, st, {} if cache is None else cache)
-        total = sum(interp.local(Env(frozenset(graph.adj[i]), i, rows, n, D=cand.bound, dmax=cand.bound))
+        cache = {} if cache is None else cache
+        rows = _noisy_rows(graph, cand.eps1, cand.bound, st, cache)
+        if "projector" not in cache:
+            cache["projector"] = ranked_projector(st, n)
+        proj = cache["projector"]
+        total = sum(interp.local(Env(frozenset(graph.adj[i]), i, rows, n, D=cand.bound, dmax=cand.bound, projector=proj))
                     for i in range(n))
     else:  # depends on |P| only
         table = count_table(prog, n, cand.bound)
@@ -388,6 +411,18 @@ def row_space(program: Program, D: int, eps: float, eps2: float, factors: Sequen
             for f in factors for e1 in eps1_grid if eps - eps2 - e1 > 1e-9]
 
 
+def program_space(program: Program, D: int, eps: float, eps2: float) -> list[Candidate]:
+    """The settings the selector may choose for one program."""
+    return row_space(program, D, eps, eps2) if program.uses_rows else bound_space(program, D)
+
+
+def pool_space(programs: Sequence[Program], D: int, eps: float, eps2: float) -> list[Candidate]:
+    """The settings of every program of a pool; the key starts with the program's
+    index, so the first program's settings (the PSC default included) come first."""
+    return [Candidate(c.program, c.bound, c.eps1, ("program", k, *c.key))
+            for k, prog in enumerate(programs) for c in program_space(prog, D, eps, eps2)]
+
+
 @dataclass
 class AdaptiveRun:
     release: Release
@@ -400,6 +435,16 @@ class AdaptiveRun:
 def default_index(cands: Sequence[Candidate], D: int, eps1: float) -> int | None:
     """Index of the PSC setting (bound ``D``, RR budget ``eps1``) in a candidate list."""
     return next((k for k, c in enumerate(cands) if c.bound == D and math.isclose(c.eps1, eps1)), None)
+
+
+def choose(scores: np.ndarray, subset: Sequence[int], default: int | None, margin: float) -> tuple[int, int]:
+    """``(chosen, best)`` within ``subset`` of a scored candidate list, with the margin rule of
+    :func:`select` (candidate scores do not depend on the other candidates, so one selection over a
+    union of pools gives the selection of every pool)."""
+    best = min(subset, key=lambda k: scores[k])
+    if default is not None and scores[best] > (1.0 - margin) * scores[default]:
+        return default, best
+    return best, best
 
 
 def adaptive_run(graph: Graph, program: Program, eps: float, eps2: float, degree_class: str, st: Streams,
