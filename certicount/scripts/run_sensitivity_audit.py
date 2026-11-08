@@ -1,19 +1,23 @@
-"""Empirical sensitivity audit of LLM node agents (ε3 step of PSC).
+"""Black-box privacy audit of LLM node agents (ε3 step of PSC).
 
 For logged PSC runs, the node update prompts are rebuilt from
-``transcripts.jsonl``, one bit of each node's private neighbour list is
-flipped (strategies S1–S4, see :mod:`certicount.audit`), and the node model answers
-both prompts ``--repeats`` times with the same system prompt and parser as
-:class:`psc.agents.node_agent.NodeAgent`.  The privacy loss of
-``L(x) + Lap(GS/ε3)`` against ``L(x') + Lap(GS/ε3)`` is compared with ε3:
+``transcripts.jsonl`` and one bit of each node's private neighbour list is
+flipped (S1 random, S2 worst case of the rule function; see
+:mod:`certicount.audit`).  The node model answers every input with the same
+system prompt and parser as :class:`psc.agents.node_agent.NodeAgent`; every
+answer plus a fresh ``Lap(GS/ε3)`` draw is one trial of the mechanism.
 
-* robust violation: every repeat of x and of x' gives the same value and
-  ``|L(x) - L(x')| > GS``; then ``ε_emp = ε3 |L(x) - L(x')| / GS``;
-* suspect: the repeats differ and the mixture privacy loss exceeds ε3.
+Procedure (Jagielski et al. NeurIPS 2020; Nasr et al. S&P 2021; Ding et al.
+CCS 2018):
 
-Pairs whose loss exceeds ε3 get ``--followup`` extra samples per side, on
-which a Clopper–Pearson lower bound ``ε_lb`` is computed (event chosen on the
-first samples).  Only ``ε_lb > ε3`` counts as a confirmed violation.
+1. ``--select`` trials per input choose a threshold test for every pair;
+2. ``--eval`` independent trials per input evaluate it once: a one-sided
+   Clopper–Pearson bound on each side gives ``ε_lb``;
+3. Bonferroni over all audited pairs (level ``α / m``), so every bound holds
+   together with probability ``1 - α``; ``ε_lb > ε3`` is a violation.
+
+All bounds are conditional on the logged public history (messages, ``d̂_max``)
+of the run.  No total-ε lower bound is reported: ε1 and ε2 are upper bounds.
 
 Examples::
 
@@ -21,12 +25,12 @@ Examples::
     .venv/bin/python scripts/run_sensitivity_audit.py --provider mock \\
         --source ../psc-reproduction/results/exp1/gpt-4.1-mini-node_gpt-4.1-curator/gpt41mini-node_gpt41-curator_exp1_CU_degree_r10_PSC --tag _mock_check
 
-    # P1 pilot: CU, gpt-4.1-mini nodes, 2 runs per task, 4 pairs per node, 3 repeats
+    # CU, gpt-4.1-mini nodes, 2 runs per task, 2 pairs per node, 20 + 200 trials per input
     .venv/bin/python scripts/run_sensitivity_audit.py --provider openai --profile gpt41 --node-model gpt-4.1-mini \\
         --source ../psc-reproduction/results/exp1/gpt-4.1-mini-node_gpt-4.1-curator/gpt41mini-node_gpt41-curator_exp1_CU_degree_r10_PSC \\
         --source ../psc-reproduction/results/exp1/gpt-4.1-mini-node_gpt-4.1-curator/gpt41mini-node_gpt41-curator_exp1_CU_3-star_r10_PSC \\
         --source ../psc-reproduction/results/exp1/gpt-4.1-mini-node_gpt-4.1-curator/gpt41mini-node_gpt41-curator_exp1_CU_triangle_r10_PSC \\
-        --runs 2 --pairs 4 --repeats 3 --tag p1_cu_gpt41mini
+        --runs 2 --pairs 2 --select 20 --eval 200 --tag cu_gpt41mini
 
     # recompute the tables of an existing audit (no model calls)
     .venv/bin/python scripts/run_sensitivity_audit.py --analyze results/audit/sensitivity/p1_cu_gpt41mini
@@ -60,7 +64,6 @@ from certicount import DATA_DIR, REPRO_ROOT  # noqa: E402  (puts ../psc-reproduc
 from psc.agents.node_agent import parse_update_reply  # noqa: E402
 from psc.artifacts import append_run, new_run_directory, write_manifest  # noqa: E402
 from certicount.audit import (  # noqa: E402
-    VALUE_TOL,
     NodeInput,
     PairSpec,
     analyze_pair,
@@ -70,6 +73,8 @@ from certicount.audit import (  # noqa: E402
     select_flips,
     summarize,
 )
+
+PHASES = ("select", "eval")
 from psc.events import collect_errors, set_error_sink, set_transcript_sink  # noqa: E402
 from psc.graph import load_dataset  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig, chat, create_formatter, create_model  # noqa: E402
@@ -262,27 +267,32 @@ def _missing(jobs: list[tuple[str, int, str]], done: list[dict]) -> list[tuple[s
 # ---------------------------------------------------------------------------
 
 
-def analyze(plan: dict, samples: list[dict], model: str, alpha: float) -> list[dict]:
+def _has_both_phases(samples: dict[str, list[dict]], key: str) -> bool:
+    phases = {s["phase"] for s in samples.get(key, ())}
+    return all(p in phases for p in PHASES)
+
+
+def trial_jobs(plan: dict, n_select: int, n_eval: int) -> list[tuple[str, int, str]]:
+    """Every input gets ``n_select`` selection and ``n_eval`` evaluation trials."""
+    return [(k, rep, phase) for k in plan["inputs"]
+            for phase, n in (("select", n_select), ("eval", n_eval)) for rep in range(n)]
+
+
+def analyze(plan: dict, samples: list[dict], model: str, alpha: float, seed: int = 0) -> list[dict]:
+    """Per-pair rows; ``alpha`` is the family level, split over every pair with
+    trials of both phases on both sides (Bonferroni)."""
     by_key: dict[str, list[dict]] = {}
     for s in samples:
         by_key.setdefault(s["key"], []).append(s)
+    pairs = [PairSpec.from_dict(p) for p in plan["pairs"]]
+    pairs = [p for p in pairs if p.x_key in by_key and p.x2_key in by_key]
+    m = sum(_has_both_phases(by_key, p.x_key) and _has_both_phases(by_key, p.x2_key) for p in pairs)
     rows = []
-    for p in plan["pairs"]:
-        spec = PairSpec.from_dict(p)
-        if spec.x_key not in by_key or spec.x2_key not in by_key:
-            continue
-        row = analyze_pair(spec, by_key[spec.x_key], by_key[spec.x2_key], alpha)
-        row["group"] = "random" if spec.strategy == "S1" else "targeted"
+    for spec in pairs:
+        row = analyze_pair(spec, by_key[spec.x_key], by_key[spec.x2_key], alpha / max(1, m), seed)
         row["model"] = model
         rows.append(row)
     return rows
-
-
-def followup_jobs(rows: list[dict], n: int, max_pairs: int) -> list[tuple[str, int, str]]:
-    """Pairs whose point loss exceeds ε3, largest first."""
-    over = sorted((r for r in rows if r["eps_point"] > r["eps"][2] + VALUE_TOL), key=lambda r: -r["eps_point"])[:max_pairs]
-    keys = list(dict.fromkeys(k for r in over for k in (r["x_key"], r["x2_key"])))
-    return [(k, rep, "followup") for k in keys for rep in range(n)]
 
 
 def _fmt(v, digits: int = 3) -> str:
@@ -296,31 +306,34 @@ def _fmt(v, digits: int = 3) -> str:
 
 
 def markdown(rows: list[dict], summary: list[dict], by_strategy: list[dict], plan: dict, settings: dict) -> str:
+    m = sum(r["eps_lb"] is not None for r in rows)
     lines = [
-        "# LLM node sensitivity audit",
+        "# LLM node privacy audit (black box, ε3 step)",
         "",
-        f"- model: `{settings['node_model']}` ({settings['provider']}), temperature {settings['temperature']}, "
-        f"{settings['repeats']} repeats per input, follow-up {settings['followup']} samples on at most "
-        f"{settings['followup_pairs']} pairs, α = {settings['alpha']}",
+        f"- model: `{settings['node_model']}` ({settings['provider']}), temperature {settings['temperature']}; "
+        f"{settings['select']} selection + {settings['eval']} evaluation trials per input",
         f"- sources: {', '.join(f'`{s}`' for s in settings['source_names'])}",
         f"- plan checks: {plan['checks']}",
-        "- robust violation: all repeats agree on both inputs and |L(x) − L(x')| > GS; "
-        "ε_emp = ε3·|L(x) − L(x')|/GS (else the mixture loss of the repeats); "
-        "confirmed: Clopper–Pearson ε_lb > ε3 on the follow-up samples",
+        "- trial = one model call + one fresh Lap(GS/ε3) draw; threshold test chosen on the selection trials "
+        "(Ding et al. CCS 2018), evaluated once on the evaluation trials with one-sided Clopper–Pearson bounds "
+        "(Jagielski et al. NeurIPS 2020; Nasr et al. S&P 2021)",
+        f"- family α = {settings['alpha']}, Bonferroni over {m} pairs (per-pair α = {settings['alpha'] / max(1, m):.2e}): "
+        "every ε_lb holds together with probability 1 − α; violation = ε_lb > ε3",
+        "- all bounds are conditional on the logged public history of the run; zero violations is no evidence of privacy",
+        "- exec err, jitter and max |Δ_LLM|/GS are descriptive only",
         "",
-        "## Summary by task (random = S1, targeted = S2–S4)",
+        "## Summary by task (random = S1, worst-case = S2)",
         "",
-        "| dataset | task | group | pairs | nodes | GS | ε3 | robust viol. | rate (95% CI) | suspect | confirmed / followed | "
-        "max ε_emp/ε3 | P95 ε_emp/ε3 | exec err x / x' | jitter x / x' | parse fail x / x' |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| dataset | task | group | pairs | nodes | GS | ε3 | violations / tested | max ε_lb | median ε_lb | "
+        "max ε_lb/ε3 | max |Δ_LLM|/GS | exec err x / x' | jitter x / x' | parse fail x / x' |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for s in summary:
         gs = _fmt(s["gs_min"], 0) if s["gs_min"] == s["gs_max"] else f"{s['gs_min']:.0f}–{s['gs_max']:.0f}"
-        lo, hi = s["violation_ci"]
         lines.append(
             f"| {s['dataset']} | {s['task']} | {s['group']} | {s['pairs']} | {s['nodes']} | {gs} | {s['eps3']:g} | "
-            f"{s['robust_violations']} | {s['violation_rate']:.3f} ({lo:.3f}–{hi:.3f}) | {s['suspect']} | "
-            f"{s['confirmed']} / {s['followed_up']} | {s['eps_emp_max'] / s['eps3']:.3f} | {s['eps_emp_p95'] / s['eps3']:.3f} | "
+            f"{s['violations']} / {s['tested']} | {_fmt(s['eps_lb_max'])} | {_fmt(s['eps_lb_median'])} | "
+            f"{_fmt(s['max_eps_lb_over_eps3'])} | {s['max_delta_llm_over_gs']:.3f} | "
             f"{s['exec_error_rate_x']:.3f} / {s['exec_error_rate_x2']:.3f} | {s['jitter_rate_x']:.3f} / {s['jitter_rate_x2']:.3f} | "
             f"{s['failure_rate_x']:.3f} / {s['failure_rate_x2']:.3f} |",
         )
@@ -328,57 +341,60 @@ def markdown(rows: list[dict], summary: list[dict], by_strategy: list[dict], pla
         "",
         "## By strategy",
         "",
-        "| dataset | task | strategy | pairs | robust viol. | suspect | max ε_emp/ε3 | mean |Δf|/GS | exec err x' |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| dataset | task | strategy | pairs | violations | max ε_lb/ε3 | mean |Δf|/GS | exec err x' |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for s in by_strategy:
         rs = [r for r in rows if (r["dataset"], r["task"], r["strategy"]) == (s["dataset"], s["task"], s["strategy"])]
         mean_rule = float(np.mean([r["delta_rule"] / r["gs"] for r in rs]))
         lines.append(
-            f"| {s['dataset']} | {s['task']} | {s['strategy']} | {s['pairs']} | {s['robust_violations']} | {s['suspect']} | "
-            f"{s['eps_emp_max'] / s['eps3']:.3f} | {mean_rule:.3f} | {s['exec_error_rate_x2']:.3f} |",
+            f"| {s['dataset']} | {s['task']} | {s['strategy']} | {s['pairs']} | {s['violations']} | "
+            f"{_fmt(s['max_eps_lb_over_eps3'])} | {mean_rule:.3f} | {s['exec_error_rate_x2']:.3f} |",
         )
-    top = sorted(rows, key=lambda r: -r["eps_emp"] / r["eps"][2])[:15]
+    tested = [r for r in rows if r["eps_lb"] is not None]
+    top = sorted(tested, key=lambda r: -r["eps_lb"] / r["eps"][2])[:15]
     lines += [
         "",
-        "## Largest ε_emp / ε3",
+        "## Largest ε_lb / ε3",
         "",
-        "| task | run | node | strategy | flip | |P| → |P'| | GS | f(x) → f(x') | L(x) | L(x') | ε_emp/ε3 | ε_lb | robust |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| task | run | node | strategy | flip | |P| → |P'| | GS | f(x) → f(x') | test | k/n (num) | k/n (den) | ε_lb | ε_lb/ε3 | violation |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in top:
-        flip = r["flip"]
+        flip, t, c = r["flip"], r["test"] or {}, r["counts"] or {}
         what = f"{flip['op']} {flip['vertex']}" + (f" (−{flip['removed']})" if flip["removed"] is not None else "")
+        test = f"{'+' if t.get('sign', 1) > 0 else '−'}z ≥ {t.get('t', 0):.3g} ({t.get('num', '-')})" if t else "-"
         lines.append(
             f"| {r['task']} | {r['run']} | {r['node_id']} | {r['strategy']} | {what} | {r['degree']} → {r['degree2']} | "
-            f"{r['gs']:g} | {r['f_x']:g} → {r['f_x2']:g} | {', '.join(f'{v:g}' for v in r['values'])} | "
-            f"{', '.join(f'{v:g}' for v in r['values2'])} | {r['eps_emp'] / r['eps'][2]:.3f} | {_fmt(r['eps_lb'])} | "
-            f"{_fmt(r['robust_violation'])} |",
+            f"{r['gs']:g} | {r['f_x']:g} → {r['f_x2']:g} | {test} | {c.get('k_num', '-')}/{c.get('n_num', '-')} | "
+            f"{c.get('k_den', '-')}/{c.get('n_den', '-')} | {r['eps_lb']:.3f} | {r['eps_lb'] / r['eps'][2]:.3f} | "
+            f"{_fmt(r['violation'])} |",
         )
     errs = [r for r in rows if r["exec_error"] > 0 or r["exec_error2"] > 0]
     lines += ["", f"## Pairs with an execution error ({len(errs)})", ""]
     if errs:
         lines += [
-            "| task | run | node | strategy | flip | f(x) → f(x') | L(x) | L(x') | |Δ_LLM| − |Δf| |",
-            "|---|---|---|---|---|---|---|---|---|",
+            "| task | run | node | strategy | flip | f(x) → f(x') | exec err x | exec err x' | max |Δ_LLM| | ε_lb |",
+            "|---|---|---|---|---|---|---|---|---|---|",
         ]
         for r in sorted(errs, key=lambda r: (r["task"], r["run"], r["node_id"]))[:60]:
             flip = r["flip"]
             lines.append(
                 f"| {r['task']} | {r['run']} | {r['node_id']} | {r['strategy']} | {flip['op']} {flip['vertex']} | "
-                f"{r['f_x']:g} → {r['f_x2']:g} | {', '.join(f'{v:g}' for v in r['values'])} | "
-                f"{', '.join(f'{v:g}' for v in r['values2'])} | {r['excess']:g} |",
+                f"{r['f_x']:g} → {r['f_x2']:g} | {r['exec_error']:.3f} | {r['exec_error2']:.3f} | "
+                f"{r['delta_llm_max']:g} | {_fmt(r['eps_lb'])} |",
             )
     return "\n".join(lines) + "\n"
 
 
 def write_report(out: Path, plan: dict, settings: dict) -> list[dict]:
-    rows = analyze(plan, _load_samples(out / "samples.jsonl"), settings["node_model"], settings["alpha"])
+    rows = analyze(plan, _load_samples(out / "samples.jsonl"), settings["node_model"], settings["alpha"],
+                   settings.get("seed", 0))
     (out / "pairs.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
     summary = summarize(rows, ("dataset", "task", "group")) + summarize(rows, ("dataset", "task")) if rows else []
     for s in summary:
         s.setdefault("group", "all")
-    summary.sort(key=lambda s: (s["dataset"], s["task"], {"random": 0, "targeted": 1, "all": 2}[s["group"]]))
+    summary.sort(key=lambda s: (s["dataset"], s["task"], {"random": 0, "worst-case": 1, "all": 2}[s["group"]]))
     by_strategy = summarize(rows, ("dataset", "task", "strategy")) if rows else []
     (out / "summary.json").write_text(
         json.dumps({"settings": settings, "checks": plan["checks"], "summary": summary, "by_strategy": by_strategy},
@@ -402,12 +418,11 @@ def main() -> None:
     ap.add_argument("--tasks", default=None, help="comma separated subset")
     ap.add_argument("--runs", type=int, default=2, help="first N logged runs per dataset/task")
     ap.add_argument("--nodes", type=int, default=None, help="nodes per run, spread over the degree order (default: all)")
-    ap.add_argument("--pairs", type=int, default=4, help="neighbouring pairs per node")
-    ap.add_argument("--repeats", type=int, default=3, help="model calls per input")
-    ap.add_argument("--followup", type=int, default=50, help="extra samples per side for pairs whose loss exceeds ε3 (0: none)")
-    ap.add_argument("--followup-pairs", type=int, default=20)
-    ap.add_argument("--alpha", type=float, default=0.05, help="1 - confidence of ε_lb")
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--pairs", type=int, default=2, help="neighbouring pairs per node (S2 + random S1)")
+    ap.add_argument("--select", type=int, default=20, help="selection trials per input (choose the threshold test)")
+    ap.add_argument("--eval", type=int, default=200, help="evaluation trials per input (Clopper–Pearson bound)")
+    ap.add_argument("--alpha", type=float, default=0.05, help="family level: 1 - joint confidence of every ε_lb")
+    ap.add_argument("--seed", type=int, default=0, help="pair selection and Laplace draws")
     ap.add_argument("--config", default=None)
     ap.add_argument("--profile", default=None)
     ap.add_argument("--provider", default=None, choices=PROVIDERS)
@@ -425,6 +440,8 @@ def main() -> None:
         out = Path(args.analyze)
         plan = json.loads((out / "plan.json").read_text())
         settings = json.loads((out / "settings.json").read_text())
+        if "select" not in settings:
+            ap.error(f"{out} was produced by the former screening audit (main / follow-up phases); rerun it")
         write_report(out, plan, settings)
         print((out / "table.md").read_text())
         return
@@ -445,21 +462,21 @@ def main() -> None:
                                    node_model=args.node_model, max_concurrency=args.concurrency,
                                    mock_error_rate=args.mock_error_rate)
         plan = build_plan(args, np.random.default_rng(args.seed))
-        n_calls = len(plan["inputs"]) * args.repeats
-        chars = sum(len(strip_structured(_input_from_dict(d).prompt())) for d in plan["inputs"].values()) * args.repeats
+        per_input = args.select + args.eval
+        n_calls = len(plan["inputs"]) * per_input
+        chars = sum(len(strip_structured(_input_from_dict(d).prompt())) for d in plan["inputs"].values()) * per_input
         print(f"plan: {len(plan['pairs'])} pairs, {len(plan['inputs'])} distinct inputs, {n_calls} calls "
-              f"(~{chars / 4 / 1e6:.2f}M prompt tokens) + follow-up up to "
-              f"{2 * args.followup * args.followup_pairs} calls; checks {plan['checks']}")
+              f"(~{chars / 4 / 1e6:.2f}M prompt tokens); checks {plan['checks']}")
         print("pairs per task/strategy:", dict(Counter((p["task"], p["strategy"]) for p in plan["pairs"])))
         if args.dry_run:
             return
         out = new_run_directory(args.out, args.tag, cfg.node_model.replace("/", "_"))
         settings = {
             "provider": cfg.provider, "profile": cfg.profile, "config": args.config, "node_model": cfg.node_model,
-            "temperature": cfg.temperature, "node_base_url": cfg.endpoint("node"), "repeats": args.repeats,
-            "pairs_per_node": args.pairs, "runs": args.runs, "nodes": args.nodes, "followup": args.followup,
-            "followup_pairs": args.followup_pairs, "alpha": args.alpha, "seed": args.seed,
-            "mock_error_rate": args.mock_error_rate, "source_names": [Path(s).name for s in args.source],
+            "temperature": cfg.temperature, "node_base_url": cfg.endpoint("node"), "select": args.select,
+            "eval": args.eval, "pairs_per_node": args.pairs, "runs": args.runs, "nodes": args.nodes,
+            "alpha": args.alpha, "seed": args.seed, "mock_error_rate": args.mock_error_rate,
+            "source_names": [Path(s).name for s in args.source],
             "sources": [str(resolve_source(s)) for s in args.source],
         }
         (out / "settings.json").write_text(json.dumps(settings, indent=2) + "\n")
@@ -472,13 +489,9 @@ def main() -> None:
     set_error_sink(out / "errors.jsonl", keep=bool(args.resume))
     set_transcript_sink(out / "transcripts.jsonl", keep=bool(args.resume))
 
-    main_jobs = [(k, rep, "main") for k in plan["inputs"] for rep in range(settings["repeats"])]
-    asyncio.run(sample_inputs(cfg, plan, _missing(main_jobs, _load_samples(out / "samples.jsonl")), out, "main"))
-    rows = write_report(out, plan, settings)
-    if settings["followup"] > 0:
-        jobs = followup_jobs(rows, settings["followup"], settings["followup_pairs"])
-        asyncio.run(sample_inputs(cfg, plan, _missing(jobs, _load_samples(out / "samples.jsonl")), out, "follow-up"))
-        write_report(out, plan, settings)
+    jobs = trial_jobs(plan, settings["select"], settings["eval"])
+    asyncio.run(sample_inputs(cfg, plan, _missing(jobs, _load_samples(out / "samples.jsonl")), out, "trials"))
+    write_report(out, plan, settings)
     print((out / "table.md").read_text())
     print(f"results in {out}")
 

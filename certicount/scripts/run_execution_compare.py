@@ -4,13 +4,15 @@ LLM / agent modes:
   ``naive``     the paper's Naive (RR graph with the whole budget, curator LLM answers)
   ``baseline``  the paper's PSC (curator rules, node LLMs)
   ``bind``      LLM + binding + message validation
-  ``guard``     Improvement 1 (prefilter + code guard)
   ``program``   Improvement 2: the curator designs a DSL program, nodes run it (no node LLM)
+  ``nodebound`` ``program`` with per-node degree bounds by edge clipping (Imola et al. USENIX
+                Security 2022; :mod:`certicount.dsl.clipping`, ``--clip-alpha``)
   ``codeagg``   the paper's PSC with the final aggregation done by code (node LLMs still count)
   ``codecost``  bind + code send + code aggregation
 Code-only references (no model call):
   ``gt-naive``  GT-Naive          ``gt-psc``  GT-PSC (same mechanism profile as the agents)
   ``gt-dsl``    GT-DSL: the reference DSL program of the task executed in code
+  ``gt-dsl-node`` GT-DSL with per-node edge clipping (the code reference of ``nodebound``)
   ``gt-tuned``  the reference program with threshold factor / budget split grid-tuned on public
                 synthetic graphs (the "equally tuned PSC" baseline of the DSL search)
 
@@ -48,7 +50,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import dataclasses
-import json
 import sys
 import time
 from pathlib import Path
@@ -82,23 +83,24 @@ from certicount.framework import TrustedPSCFramework, TrustOptions, baseline_opt
 MODES = {
     "baseline": baseline_options,
     "bind": lambda: TrustOptions(execution="llm"),
-    "guard": lambda: TrustOptions(execution="guard"),
     "program": lambda: TrustOptions(execution="program"),
-    "adaptive": lambda: TrustOptions(execution="program", adaptive=True),
+    "nodebound": lambda: TrustOptions(execution="program", node_bounds=True),
     "codeagg": lambda: TrustOptions(execution="llm", binding=False, validate=False, aggregate_by_code=True),
     "codecost": lambda: TrustOptions(execution="llm", send_by_code=True, aggregate_by_code=True),
 }
 AGENT_MODES = (*MODES, "naive")
-CODE_MODES = {"gt-naive": "GT-Naive", "gt-psc": "GT-PSC", "gt-dsl": "GT-DSL", "gt-tuned": "GT-Tuned"}
+CODE_MODES = {"gt-naive": "GT-Naive", "gt-psc": "GT-PSC", "gt-dsl": "GT-DSL", "gt-dsl-node": "GT-DSL-node",
+              "gt-tuned": "GT-Tuned"}
+PROGRAM_MODES = ("program", "nodebound")
 ALL_MODES = (*AGENT_MODES, *CODE_MODES)
-DEFAULT_MODES = "baseline,bind,guard,program,codecost"
+DEFAULT_MODES = "baseline,bind,program,codecost"
 
 # backwards compatible name
 record_for = task_record
 
 
 def supported(mode: str, task: str) -> bool:
-    if mode in ("program", "adaptive", "gt-dsl", "gt-tuned"):
+    if mode in ("program", "nodebound", "gt-dsl", "gt-dsl-node", "gt-tuned"):
         return task in PROGRAMS
     return task in TASKS
 
@@ -109,34 +111,26 @@ def search_options(args, eps: float) -> SearchOptions:
                          allow_budget=not args.search_fixed_budget)
 
 
-def program_options(args, eps: float) -> TrustOptions:
+def program_options(args, eps: float, node_bounds: bool = False) -> TrustOptions:
     search = dataclasses.asdict(search_options(args, eps)) if args.design_mode == "search" else None
     return TrustOptions(execution="program", max_design_iterations=args.design_iterations,
-                        design_restarts=args.design_restarts, design_mode=args.design_mode, search=search)
-
-
-def adaptive_options(args, eps: float) -> TrustOptions:
-    pool = args.pool_options if isinstance(args.pool_options, dict) else json.loads(args.pool_options)
-    select = args.select_options if isinstance(args.select_options, dict) else json.loads(args.select_options)
-    if args.pool_source == "design":
-        pool = {"eps": eps, **pool}
-    return TrustOptions(execution="program", adaptive=True, pool_source=args.pool_source,
-                        pool_file=args.pool_file, pool_designer=args.pool_designer, pool=pool, select=select)
+                        design_restarts=args.design_restarts, design_mode=args.design_mode, search=search,
+                        node_bounds=node_bounds, clip_alpha=args.clip_alpha)
 
 
 def make_framework(mode: str, cfg: ModelConfig, args=None, eps: float = 2.0, designer_model=None):
     if mode == "naive":
         return NaiveFramework(cfg)
-    if mode == "adaptive" and args is not None:
-        opts = adaptive_options(args, eps)
+    if mode in PROGRAM_MODES and args is not None:
+        opts = program_options(args, eps, node_bounds=mode == "nodebound")
     else:
-        opts = program_options(args, eps) if (mode == "program" and args is not None) else MODES[mode]()
+        opts = MODES[mode]()
     r1, r2 = (args.r1, args.r2) if args is not None else (0.5, 0.2)
     return TrustedPSCFramework(cfg, opts, r1=r1, r2=r2, designer_model=designer_model)
 
 
 def run_code(mode: str, rec: TaskRecord, eps: float, rng: np.random.Generator, r1: float = 0.5, r2: float = 0.2,
-             search: SearchOptions | None = None, keep_grid: bool = False) -> RunResult:
+             search: SearchOptions | None = None, keep_grid: bool = False, clip_alpha: float = 0.0) -> RunResult:
     """One run of a code-only reference, as a :class:`RunResult`."""
     t0 = time.perf_counter()
     g = rec.graph()
@@ -153,9 +147,11 @@ def run_code(mode: str, rec: TaskRecord, eps: float, rng: np.random.Generator, r
                  "tuning_reference_score": tuned.reference_score["score"],
                  **({"tuning_grid": tuned.grid} if keep_grid else {})}
     else:
-        tr = gt_dsl(g, rec.task, eps, rng, mechanism=DEFAULT_MECHANISM, r1=r1, r2=r2)
+        node = mode == "gt-dsl-node"
+        tr = gt_dsl(g, rec.task, eps, rng, mechanism=DEFAULT_MECHANISM, r1=r1, r2=r2, node_bounds=node, alpha=clip_alpha)
         est, split, gs, d_hat = tr.estimate, tr.split, tr.gs, tr.d_hat_max
-        extra = {"program": PROGRAMS[rec.task].parse().text()}
+        extra = {"program": PROGRAMS[rec.task].parse().text(),
+                 **({"clip_alpha": clip_alpha, **tr.to_dict()} if node else {})}
     return RunResult(
         method=CODE_MODES[mode], dataset=rec.dataset, task=rec.task, eps=eps, estimate=float(est), truth=rec.answer,
         split=tuple(split), sensitivity=gs, d_hat_max=d_hat, noisy_edges=None, llm_calls=0, parse_failures=0,
@@ -174,10 +170,6 @@ def planned_calls(mode: str, task: str, n: int, runs: int, args=None) -> int:
         return 0
     if mode == "naive":
         return 2 * runs  # task selection + answer
-    if mode == "adaptive":
-        # the selector runs in code: no per-run model call, the pool design (if any) is cached per task
-        pool = args.pool_options if isinstance(args.pool_options, dict) else json.loads(args.pool_options)
-        return int(pool.get("rounds", 3)) if args is not None and args.pool_source == "design" else 0
     o = MODES[mode]()
     msgs = get_algorithm(task).needs_messages if task in TASKS else False
     per = calls_per_run(msgs, n, o.execution, o.send_by_code, o.aggregate_by_code, design_calls=0)
@@ -217,14 +209,8 @@ def main() -> None:
     g.add_argument("--search-patience", type=int, default=2)
     g.add_argument("--search-sims", type=int, default=50, help="DP simulations per synthetic graph")
     g.add_argument("--search-fixed-budget", action="store_true", help="do not let the designer choose r1 / r2")
-    a = ap.add_argument_group("adaptive program mode (degree-first selection)")
-    a.add_argument("--pool-source", default="library", choices=("library", "design", "file"),
-                   help="programs of the selector: the library program, a pool designed by the curator LLM, "
-                        "or a pool file of scripts/run_pool.py")
-    a.add_argument("--pool-file", default=None, help="pools.json written by scripts/run_pool.py")
-    a.add_argument("--pool-designer", default="llm", help="which pool of the file (llm, random, hand)")
-    a.add_argument("--pool-options", default="{}", help="JSON of certicount.dsl.pool.PoolOptions")
-    a.add_argument("--select-options", default="{}", help="JSON of certicount.dsl.adaptive.SelectOptions")
+    g.add_argument("--clip-alpha", type=float, default=0.0,
+                   help="nodebound / gt-dsl-node: public margin α of the edge-clipping bound floor(max(y_i, 0) + α)")
     ap.add_argument("--dry-run", action="store_true", help="print the planned model calls and exit")
     ap.add_argument("--tag", default=None)
     args = ap.parse_args()
@@ -236,19 +222,6 @@ def main() -> None:
                                    node_model=args.node_model, curator_model=args.curator_model)
     datasets, tasks, modes = args.datasets.split(","), args.tasks.split(","), args.modes.split(",")
     eps_list = [float(x) for x in args.eps.split(",")]
-    for flag in ("pool_options", "select_options"):
-        try:
-            setattr(args, flag, dict(json.loads(getattr(args, flag)) or {}))
-        except json.JSONDecodeError as exc:
-            ap.error(f"--{flag.replace('_', '-')}: {exc}")
-    if args.pool_source == "file":
-        if not args.pool_file:
-            ap.error("--pool-source file needs --pool-file")
-        pools = json.loads(Path(args.pool_file).read_text(encoding="utf-8")).get("pools", {})
-        missing = [t for t in tasks if t not in pools.get(args.pool_designer, {})]
-        if missing:
-            ap.error(f"{args.pool_file} has no pool {args.pool_designer!r} for task(s) {missing}; "
-                     f"available: {sorted(pools.get(args.pool_designer, {}))}")
     unknown = [m for m in modes if m not in ALL_MODES]
     if unknown:
         ap.error(f"unknown mode(s) {unknown}; choose from {', '.join(ALL_MODES)}")
@@ -258,7 +231,7 @@ def main() -> None:
     cells = [(ds, t, m, e) for e in eps_list for ds in datasets for t in tasks for m in modes if supported(m, t)]
 
     def runs_of(mode: str) -> int:
-        return gt_runs if mode in CODE_MODES else program_runs if mode == "program" else args.runs
+        return gt_runs if mode in CODE_MODES else program_runs if mode in PROGRAM_MODES else args.runs
 
     planned = sum(planned_calls(m, t, loaded[ds]["degree"].vertex_num, runs_of(m), args) for ds, t, m, _ in cells)
     print(f"{len(cells)} cells (ε = {', '.join(f'{e:g}' for e in eps_list)}), at most {planned} model calls ({args.provider})")
@@ -271,7 +244,8 @@ def main() -> None:
     set_transcript_sink(out / "transcripts.jsonl")
     designer = None
     if args.provider != "mock" and args.design_temperature is not None:
-        designer = create_model(dataclasses.replace(cfg, temperature=args.design_temperature), "curator")
+        dcfg = dataclasses.replace(cfg, temperature=args.design_temperature) if args.design_temperature is not None else cfg
+        designer = create_model(dcfg, "curator")
 
     async def run_all() -> list[dict]:
         rows = []
@@ -279,7 +253,7 @@ def main() -> None:
             for c, (ds, task, mode, eps) in enumerate(cells, 1):
                 rec = task_record(loaded[ds], ds, task)
                 fw = None if mode in CODE_MODES else make_framework(mode, cfg, args, eps, designer)
-                method = CODE_MODES.get(mode) or ("DSL" if mode == "program" else fw.name)
+                method = CODE_MODES.get(mode) or {"program": "DSL", "nodebound": "DSL-node"}.get(mode) or fw.name
                 search = search_options(args, eps)
                 results: list[RunResult] = []
                 dicts: list[dict] = []
@@ -288,16 +262,17 @@ def main() -> None:
                 for i in range(n_runs):
                     bar.set_description(f"cell {c}/{len(cells)} {ds} {task} ε={eps:g} {method} run {i + 1}/{n_runs}", refresh=False)
                     if fw is None:
-                        res = run_code(mode, rec, eps, run_rng(args.seed, i), args.r1, args.r2, search, keep_grid=i == 0)
+                        res = run_code(mode, rec, eps, run_rng(args.seed, i), args.r1, args.r2, search,
+                                       keep_grid=i == 0, clip_alpha=args.clip_alpha)
                     else:
                         with collect_errors(dataset=ds, task=task, mode=mode, method=method, eps=eps, run=i) as errors:
                             res = await fw.run(rec, eps, rng=run_rng(args.seed, i))
                         res.extra["errors"] = errors
                     d = res.to_dict()
                     d["mode"], d["run"] = mode, i
-                    if mode == "program":
+                    if mode in PROGRAM_MODES:
                         gt = gt_dsl(rec.graph(), task, eps, run_rng(args.seed, i), mechanism=DEFAULT_MECHANISM,
-                                    r1=args.r1, r2=args.r2)
+                                    r1=args.r1, r2=args.r2, node_bounds=mode == "nodebound", alpha=args.clip_alpha)
                         d["paired_gt_dsl"] = gt.to_dict()
                         if not res.extra.get("rejected"):
                             d["design_gs_ratio"] = gs_ratio(res.sensitivity, gt.gs)
@@ -322,7 +297,7 @@ def main() -> None:
         + (f" ({args.design_iterations} draft(s) x {args.design_restarts} restart(s))" if args.design_mode == "exact" else
            f" ({args.search_rounds} round(s) x {args.search_proposals} proposal(s), {args.search_sims} sims/graph)")
         + f", designer temperature = {args.design_temperature if args.design_temperature is not None else cfg.temperature}."
-        f" Out-of-library tasks: {', '.join(OUT_OF_LIBRARY)}."
+        f" Edge-clipping α = {args.clip_alpha:g}. Out-of-library tasks: {', '.join(OUT_OF_LIBRARY)}."
     )
     md = markdown(rows, header, gt_runs)
     (out / "table.md").write_text(md, encoding="utf-8")

@@ -25,7 +25,8 @@ from psc.dp import graph_projection, laplace_noise, node_noisy_lower_row, projec
 from psc.graph import TASKS, Graph
 from psc.mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
 
-from .lang import Env, Interpreter, Program, smallest_projector
+from .clipping import edge_clipping_bounds
+from .lang import Env, Interpreter, Program, node_projector, smallest_projector
 from .library import HAND_GS, PROGRAMS
 from .sensitivity import PublicParams, derive
 
@@ -39,15 +40,19 @@ class DSLTrace:
     counts: list[float] = field(default_factory=list, repr=False)
     reports: list[float] = field(default_factory=list, repr=False)
     aggregate_coefficient: float = 1.0
+    node_gs: list[float] | None = field(default=None, repr=False)  # per-node bounds only; ``gs`` is their max
 
     @property
     def final_noise_scale(self) -> float:
-        """Laplace scale of one report as seen in the estimate: ``|c| · GS / ε3``."""
+        """Laplace scale of one report as seen in the estimate: ``|c| · GS / ε3`` (largest GS)."""
         return final_noise_scale(self.aggregate_coefficient, self.gs, self.split[2])
 
     def to_dict(self) -> dict:
-        return {"estimate": self.estimate, "split": list(self.split), "gs": self.gs, "d_hat_max": self.d_hat_max,
-                "aggregate_coefficient": self.aggregate_coefficient, "final_noise_scale": self.final_noise_scale}
+        d = {"estimate": self.estimate, "split": list(self.split), "gs": self.gs, "d_hat_max": self.d_hat_max,
+             "aggregate_coefficient": self.aggregate_coefficient, "final_noise_scale": self.final_noise_scale}
+        if self.node_gs is not None:
+            d["node_gs_mean"] = float(np.mean(self.node_gs))
+        return d
 
 
 def final_noise_scale(coefficient: float, gs: float | None, eps3: float) -> float | None:
@@ -68,11 +73,14 @@ def degree_class(task: str | None, program: Program) -> str:
 def dp_execute(
     graph: Graph, program: Program, eps: float, rng: np.random.Generator, task: str | None = None,
     mechanism: str | MechanismProfile = DEFAULT_MECHANISM, r1: float = 0.5, r2: float = 0.2,
+    node_bounds: bool = False, alpha: float = 0.0,
 ) -> DSLTrace:
     """One DP run of ``program`` on ``graph`` (GS derived from the program).
 
     ``r1`` / ``r2`` are the default budget fractions; a program that sets its own
-    ``budget`` uses that instead (as the framework does)."""
+    ``budget`` uses that instead (as the framework does). ``node_bounds``: every
+    node clips its list to its own bound ``D_i`` (edge clipping, Imola et al.
+    2022, :mod:`certicount.dsl.clipping`) and reports with the GS at ``D_i``."""
     n = graph.n
     mech = get_mechanism(mechanism)
     cls = degree_class(task, program)
@@ -86,38 +94,39 @@ def dp_execute(
         noisy = Graph.from_edges(n, released)
 
     d_hat = None
-    update = [list(r) for r in real]
-    limits: list[int | None] = [None] * n
+    # one projection order per node (TrustedNodeAgent.bound_degree); identity without a bound
+    projectors = [smallest_projector] * n
+    limits: list[int] | None = None
     if split.eps2 > 0:  # Algorithm 2
         reports = [len(real[i]) + laplace_noise(1.0, split.eps2, rng) for i in range(n)]
         d_hat = mech.degree_bound(reports, cls).projection_degree
         if noisy is not None:
             noisy = graph_projection(noisy, d_hat, rng)
-        else:
+        if node_bounds:
+            limits = edge_clipping_bounds(reports, alpha)
+        elif noisy is None:
             per_node = mech.node_projection_degrees(reports, d_hat, cls, split.eps2)
             limits = [d_hat] * n if per_node is None else [int(x) for x in per_node]
-            update = [project_neighbor_list(real[i], limits[i], rng) for i in range(n)]
+        if limits is not None:
+            for i in range(n):
+                kept = project_neighbor_list(real[i], limits[i], rng)
+                projectors[i] = node_projector(n, real[i], kept, rng)
 
-    params = PublicParams(n, D=d_hat, dmax=d_hat)
-    gs = derive(program, params).gs
     rows = {i: frozenset(noisy.adj[i]) for i in range(n)} if noisy is not None else {}
-    D = int(d_hat or 0)
+    dmax = int(d_hat or 0)
+    node_D = limits if node_bounds and limits is not None else [dmax] * n
+    gs_of: dict[int, float] = {}
+    for D in set(node_D):
+        gs_of[D] = derive(program, PublicParams(n, D=D if d_hat is not None else None,
+                                                dmax=d_hat)).gs
+    node_gs = [gs_of[D] for D in node_D]
     interp = Interpreter(program)
-
-    def projector_of(i: int):
-        own, kept, limit = frozenset(real[i]), frozenset(update[i]), limits[i]
-
-        def projector(s: frozenset, k: int) -> frozenset:
-            if s == own and k == limit:  # the projection drawn above (TrustedNodeAgent._projector)
-                return kept
-            return smallest_projector(s, k)
-
-        return projector
-
-    counts = [interp.local(Env(frozenset(real[i]), i, rows, n, D=D, dmax=D, projector=projector_of(i))) for i in range(n)]
-    reports_out = [c + laplace_noise(gs, split.eps3, rng) for c in counts]
+    counts = [interp.local(Env(frozenset(real[i]), i, rows, n, D=node_D[i], dmax=dmax, projector=projectors[i]))
+              for i in range(n)]
+    reports_out = [c + laplace_noise(g, split.eps3, rng) for c, g in zip(counts, node_gs)]
     estimate = interp.aggregate(float(sum(reports_out)), n)
-    return DSLTrace(estimate, split.as_tuple(), gs, d_hat, counts, reports_out, interp.aggregate_coefficient(n))
+    return DSLTrace(estimate, split.as_tuple(), max(node_gs), d_hat, counts, reports_out,
+                    interp.aggregate_coefficient(n), node_gs if node_bounds else None)
 
 
 def reference_program(task: str) -> Program:
@@ -127,9 +136,11 @@ def reference_program(task: str) -> Program:
 
 
 def gt_dsl(graph: Graph, task: str, eps: float, rng: np.random.Generator,
-           mechanism: str | MechanismProfile = DEFAULT_MECHANISM, r1: float = 0.5, r2: float = 0.2) -> DSLTrace:
-    """GT-DSL: the reference program of ``task`` executed in code."""
-    return dp_execute(graph, reference_program(task), eps, rng, task, mechanism, r1, r2)
+           mechanism: str | MechanismProfile = DEFAULT_MECHANISM, r1: float = 0.5, r2: float = 0.2,
+           node_bounds: bool = False, alpha: float = 0.0) -> DSLTrace:
+    """GT-DSL: the reference program of ``task`` executed in code (``node_bounds``:
+    with per-node edge clipping, :mod:`certicount.dsl.clipping`)."""
+    return dp_execute(graph, reference_program(task), eps, rng, task, mechanism, r1, r2, node_bounds, alpha)
 
 
 def hand_gs(task: str, d_hat: int | None, n: int) -> float | None:

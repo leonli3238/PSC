@@ -6,9 +6,11 @@ projection, Laplace) and adds, as options:
 
 * ``binding``  -- task, rules and GS bound on the node side (:mod:`certicount.binding`);
 * ``validate`` -- strict message validation (:mod:`certicount.messages`);
-* ``execution`` -- ``llm`` (paper), ``guard`` (Improvement 1) or ``program``
-  (Improvement 2: curator designs a DSL program, nodes verify the certificate and
-  execute it, no node LLM call);
+* ``execution`` -- ``llm`` (paper) or ``program`` (curator designs a DSL program,
+  nodes verify the certificate and execute it, no node LLM call);
+* ``node_bounds`` -- program mode with per-node degree bounds by edge clipping
+  (Imola et al. USENIX Security 2022, :mod:`certicount.dsl.clipping`) instead of
+  the global noisy maximum degree;
 * ``send_by_code`` / ``aggregate_by_code`` -- cost options; both steps only
   post-process published data;
 * ``adversary`` -- attack hooks (:mod:`certicount.attacks`).
@@ -22,12 +24,10 @@ modes are compared on identical noise.
 from __future__ import annotations
 
 import dataclasses
-import json
 import logging
 import math
 import time
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 from agentscope.message import Msg
@@ -45,18 +45,17 @@ from psc.progress import note_phase
 
 from .agents import EXECUTIONS, TrustedNodeAgent
 from .binding import BindingViolation, check_algorithm, check_gs, check_program, get_binding, node_gs
-from .dsl.adaptive import Release, SelectOptions, default_index, pool_space, select
+from .dsl.clipping import edge_clipping_bounds
 from .dsl.designer import DesignResult, MockDesignerModel, design_reference_params, design_with_restarts
 from .dsl.ground_truth import final_noise_scale
-from .dsl.lang import Interpreter, Program, parse_program_text
+from .dsl.lang import Interpreter, Program
 from .dsl.library import PROGRAMS
-from .dsl.pool import MockPoolModel, PoolDesign, PoolOptions, design_pool, task_setting
 from .dsl.search import SearchOptions, search_program
 from .dsl.sensitivity import PublicParams, certify
 
 logger = logging.getLogger(__name__)
 
-_DESIGN_CACHE: dict[tuple, DesignResult | PoolDesign] = {}
+_DESIGN_CACHE: dict[tuple, DesignResult] = {}
 
 
 @dataclass
@@ -76,21 +75,17 @@ class TrustOptions:
     # "search": accuracy-driven self-improving search (certicount.dsl.search)
     design_mode: str = "exact"
     search: dict | None = None  # keyword arguments of certicount.dsl.search.SearchOptions
-    # program mode, degree-first (certicount.dsl.adaptive): nodes publish their noisy degrees first,
-    # then a public selector picks a program of the pool, its bound and the RR budget
-    adaptive: bool = False
-    pool_source: str = "library"  # "library" (the library program only), "design" (curator LLM), "file"
-    pool_file: str | None = None  # "file": pools.json of scripts/run_pool.py
-    pool_designer: str = "llm"  # "file": which pool of the file ("llm", "random", ...)
-    pool: dict | None = None  # keyword arguments of certicount.dsl.pool.PoolOptions
-    select: dict | None = None  # keyword arguments of certicount.dsl.adaptive.SelectOptions
+    # program mode with per-node degree bounds (edge clipping, Imola et al. USENIX Security 2022;
+    # certicount.dsl.clipping): node i clips P to floor(max(d_i + Lap(1/eps2), 0) + clip_alpha)
+    node_bounds: bool = False
+    clip_alpha: float = 0.0  # public, data-independent
 
     @property
     def label(self) -> str:
         if (self.execution == "llm" and not self.binding and not self.validate
                 and not self.send_by_code and not self.aggregate_by_code):
             return "PSC"
-        parts = [self.execution] + (["adaptive"] if self.execution == "program" and self.adaptive else [])
+        parts = [self.execution] + (["nodebound"] if self.execution == "program" and self.node_bounds else [])
         if self.execution != "program":
             parts += (["bind"] if self.binding else []) + (["validate"] if self.validate else [])
         if self.send_by_code and self.execution != "program":
@@ -126,7 +121,7 @@ class TrustedPSCFramework:
         self.curator_model = create_model(self.cfg, "curator")
         self.formatter = create_formatter(self.cfg)
         if designer_model is None and self.cfg.provider == "mock":
-            designer_model = MockPoolModel() if self.opts.adaptive else MockDesignerModel()
+            designer_model = MockDesignerModel()
         self.designer_model = designer_model or self.curator_model
         TrustedNodeAgent.set_max_concurrency(self.cfg.max_concurrency)
 
@@ -138,7 +133,7 @@ class TrustedPSCFramework:
         o = self.opts
         return [
             TrustedNodeAgent(i, graph.adj[i], self.node_model, self.formatter, execution=o.execution,
-                             validate=o.validate, strict=o.strict, send_by_code=o.send_by_code)
+                             validate=o.validate, strict=o.strict, send_by_code=o.send_by_code, n_nodes=graph.n)
             for i in range(graph.n)
         ]
 
@@ -146,8 +141,6 @@ class TrustedPSCFramework:
     async def run(self, record: TaskRecord, eps: float, rng: np.random.Generator | None = None) -> RunResult:
         rng = rng if rng is not None else np.random.default_rng(0)
         if self.opts.execution == "program":
-            if self.opts.adaptive:
-                return await self._run_adaptive(record, eps, rng)
             return await self._run_program(record, eps, rng)
         return await self._run_rules(record, eps, rng)
 
@@ -252,26 +245,41 @@ class TrustedPSCFramework:
         split = split_budget(eps, program.uses_rows, program.needs_degree_bound, r1, r2)
         noisy_graph = controller.build_noisy_graph(nodes, split.eps1) if split.eps1 > 0 else None
         d_hat_max = None
+        limits: list[int] | None = None
         if split.eps2 > 0:
-            _, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
-        params = PublicParams(n, D=d_hat_max, dmax=d_hat_max)
+            if self.opts.node_bounds:
+                d_hat_max, noisy_graph, limits = self._edge_clipping(nodes, noisy_graph, split.eps2, spec, controller, rng)
+            else:
+                _, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
+        # bound of project(P, D) per node: the global d̂max, or the node's own clipping bound
+        node_D = limits if limits is not None else [d_hat_max] * n
 
-        cert = certify(program, params)
-        if self.adversary is not None:
-            cert = self.adversary.tamper_certificate(cert)
-        try:
-            gs = check_program(program, cert, params)  # every node runs the same public check
-        except BindingViolation as v:
-            trust["violations"].append({"kind": v.kind, "message": str(v)})
-            return self._rejected(record, eps, split, t0, nodes, None, controller, trust, design)
+        certs, node_gs_list = {}, []
+        for D in node_D:
+            if D not in certs:
+                params = PublicParams(n, D=D, dmax=d_hat_max)
+                cert = certify(program, params)
+                if self.adversary is not None:
+                    cert = self.adversary.tamper_certificate(cert)
+                try:
+                    certs[D] = (cert, check_program(program, cert, params))  # the node's own public check
+                except BindingViolation as v:
+                    trust["violations"].append({"kind": v.kind, "message": str(v)})
+                    return self._rejected(record, eps, split, t0, nodes, None, controller, trust, design)
+            node_gs_list.append(certs[D][1])
+        cert, gs = certs[node_D[0]][0], max(node_gs_list)
+        trust["certified_bounds"] = len(certs)
 
         rows = dict(enumerate(noisy_graph.adj)) if noisy_graph is not None else None
-        for node in nodes:
-            node.configure(n, rows, d_hat_max, None, program)
+        for node, D in zip(nodes, node_D):
+            node.configure(n, rows, D, None, program, dmax=d_hat_max)
         note_phase("update")
         for node in nodes:
             node.count = node.run_program()
-        reports = [node.protected_count(gs, split.eps3, rng) for node in nodes]
+        reports = [node.protected_count(g, split.eps3, rng) for node, g in zip(nodes, node_gs_list)]
+        if limits is not None:
+            controller.degree_trace.update(node_projection_degrees=limits, node_sensitivities=node_gs_list,
+                                           clip_alpha=self.opts.clip_alpha)
         interp = Interpreter(program)
         estimate = interp.aggregate(float(sum(reports)), n)
 
@@ -304,99 +312,24 @@ class TrustedPSCFramework:
         )
         return res
 
-    async def _run_adaptive(self, record: TaskRecord, eps: float, rng: np.random.Generator) -> RunResult:
-        """Degree-first program mode: (1) every node publishes its noisy degree (ε2); (2) from these
-        public values a selector picks a program of the pool, the bound ``B`` that replaces the noisy
-        maximum degree and the RR budget ε1; (3) the RR graph is built with ε1 and projected to ``B``,
-        the certificate is issued at ``B`` and verified by every node, and every node reports its
-        program's count plus ``Lap(GS / ε3)``, ε3 = ε − ε2 − ε1. The choice is post-processing of
-        step 1 and every choice spends exactly ε − ε2 in step 3."""
-        t0 = time.perf_counter()
-        graph = record.graph()
-        n = graph.n
-        nodes = self._nodes(graph)
-        controller = PrivacyController(self.curator_model, self.formatter, rng, self.r1, self.r2, mechanism=self.mechanism)
-        trust: dict = {"violations": []}
-
-        note_phase("design")
-        programs, design = await self._pool(record)
-        setting = task_setting(record.task, eps, self.r1, self.r2)
-
-        y = [node.report_noisy_degree(setting.eps2, rng) for node in nodes]  # Algorithm 2, lines 1-3
-        rel = Release(np.asarray(y, dtype=float), self.mechanism.degree_bound(y, setting.degree_class).projection_degree,
-                      setting.eps2)
-        note_phase("select")
-        cands = pool_space(programs, rel.D, eps, setting.eps2)
-        default = default_index(cands, rel.D, setting.eps1_default)
-        sel = select(rel, n, eps, cands, programs[0], np.random.default_rng(int(rng.integers(2**62))),
-                     SelectOptions(**(self.opts.select or {})), default)
-        cand = cands[sel.index]
-        program, B = cand.program, cand.bound
-        split = BudgetSplit(cand.eps1, setting.eps2, eps - setting.eps2 - cand.eps1)
-
-        noisy_graph = None
-        if program.uses_rows:
-            noisy_graph = graph_projection(controller.build_noisy_graph(nodes, split.eps1), B, rng)
+    def _edge_clipping(self, nodes, noisy_graph, eps2: float, spec, controller, rng):
+        """Edge clipping (Imola et al. USENIX Security 2022; :mod:`certicount.dsl.clipping`): every node
+        publishes ``y_i = d_i + Lap(1/eps2)`` and clips its list to ``floor(max(y_i, 0) + alpha)``. The
+        public rows keep PSC's global bound ``d̂max`` computed from the same reports (post-processing).
+        Consumes the random numbers in the order of :func:`certicount.dsl.ground_truth.dp_execute`."""
+        reports = [node.report_noisy_degree(eps2, rng) for node in nodes]
+        bound = self.mechanism.degree_bound(reports, spec.task)
+        d_hat_max = bound.projection_degree
+        controller.degree_trace = {"noisy_degree_reports": reports, "noisy_max_degree": bound.raw_max,
+                                   "sensitivity_degree": bound.sensitivity_degree}
+        if noisy_graph is not None:
+            noisy_graph = graph_projection(noisy_graph, d_hat_max, rng)
             for node in nodes:
                 node.set_noisy_neighbors(noisy_graph.adj[node.node_id])
-        for node in nodes:  # the projection of P used by project(P, D) in the program
-            node.bound_degree(B, rng)
-        params = PublicParams(n, D=B, dmax=B)
-        cert = certify(program, params)
-        try:
-            gs = check_program(program, cert, params)  # every node runs the same public check
-        except BindingViolation as v:
-            trust["violations"].append({"kind": v.kind, "message": str(v)})
-            return self._rejected(record, eps, split, t0, nodes, None, controller, trust)
-        rows = dict(enumerate(noisy_graph.adj)) if noisy_graph is not None else None
-        note_phase("update")
-        for node in nodes:
-            node.configure(n, rows, B, None, program)
-            node.count = node.run_program()
-        reports = [node.protected_count(gs, split.eps3, rng) for node in nodes]
-        interp = Interpreter(program)
-        estimate = interp.aggregate(float(sum(reports)), n)
-
-        count_sum = sum(x.count for x in nodes)
-        validation = {
-            "nodes": n, "send_checked": 0, "send_exact": 0, "update_exact": n, "e2e_exact": n,
-            "llm_count_sum": count_sum, "rule_count_sum": count_sum, "count_rel_diff": 0.0,
-            "aggregate_exact": True, "rule_estimate": estimate, "mismatches": [], "checked_against": "program",
-            "controller_task": record.task, "curator_task": record.task, "task_correct": True,
-        }
-        controller.degree_trace = {"noisy_degree_reports": y, "noisy_max_degree": float(max(y)), "sensitivity_degree": float(B)}
-        trust["certificate"] = cert.to_dict()
-        trust["design"] = design.to_dict() if design is not None else None
-        trust["selection"] = {
-            **sel.to_dict(), "candidates": len(cands), "default": default, "program": program.text(),
-            "program_index": cand.key[1], "bound": B, "D": rel.D, "eps1": split.eps1, "pool": [p.text() for p in programs],
-        }
-        coef = interp.aggregate_coefficient(n)
-        res = self._result(record, eps, split, gs, B, noisy_graph, nodes, None, controller, reports, estimate,
-                           validation, trust, t0, design_calls=design.calls if design is not None else 0)
-        res.extra["mechanism_trace"].update(aggregate_coefficient=coef, final_noise_scale=final_noise_scale(coef, gs, split.eps3))
-        return res
-
-    async def _pool(self, record: TaskRecord) -> tuple[list[Program], PoolDesign | None]:
-        """The programs the selector chooses from; the first one is exact and gives the truth of the
-        selector's synthetic inputs (the library program in every source)."""
-        o = self.opts
-        if o.pool_source == "library":
-            return [PROGRAMS[record.task].parse()], None
-        if o.pool_source == "file":
-            data = json.loads(Path(o.pool_file).read_text(encoding="utf-8"))
-            return [parse_program_text(t) for t in data["pools"][o.pool_designer][record.task]], None
-        if o.pool_source != "design":
-            raise ValueError(f"unknown pool_source {o.pool_source!r} (library, design, file)")
-        key = ("pool", id(self.designer_model), record.task, repr(o.pool))
-        cached = key in _DESIGN_CACHE
-        if not cached:
-            _DESIGN_CACHE[key] = await design_pool(self.designer_model, self.formatter, record.task,
-                                                   PoolOptions.from_dict(o.pool))
-        res = _DESIGN_CACHE[key]
-        if cached:  # the pool is public and reused: no new model call in this run
-            res = dataclasses.replace(res, calls=0)
-        return res.programs, res
+        limits = edge_clipping_bounds(reports, self.opts.clip_alpha)
+        for node, limit in zip(nodes, limits):
+            node.bound_degree(limit, rng)
+        return d_hat_max, noisy_graph, limits
 
     async def _program(self, record: TaskRecord) -> tuple[Program | None, DesignResult | None]:
         if self.opts.program_source == "library":
@@ -437,8 +370,6 @@ class TrustedPSCFramework:
             "messages_received": received,
             "messages_rejected": sum(rejected.values()),
             "rejected_by_reason": rejected,
-            "guard_fallbacks": sum(node.guard_fallbacks for node in nodes),
-            "guard_deviation": sum(node.guard_deviation for node in nodes),
             "options": {k: v for k, v in vars(self.opts).items()},
         }
 

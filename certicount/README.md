@@ -24,7 +24,7 @@
 ```bash
 cd /data/workspace/PSC/certicount
 source ../.venv/bin/activate      # 与复现项目共用仓库根目录的虚拟环境；依赖见 requirements.txt（-r ../psc/requirements.txt）
-python -m pytest tests -q          # 206 个测试通过（1 个跳过），全部离线
+python -m pytest tests -q          # 208 个测试通过（1 个跳过），全部离线
 ```
 
 模型设置沿用复现项目的 `../psc/config.toml` 与 `../psc/.env`（密钥与网关地址只放在 `.env*` 中）：
@@ -39,6 +39,30 @@ python -m pytest tests -q          # 206 个测试通过（1 个跳过），全�
 
 模型用 `--node-model`（节点）与 `--curator-model`（curator、隐私控制器、DSL 设计器）指定；`--config` 可换配置文件。
 **任何真实模型运行前先加 `--dry-run` 查看计划调用量，确认预算后再去掉。**
+
+## 隐私模型
+
+本项目的所有隐私声明都按下面的定义理解（与 PSC 原文 Definition 1 一致）。
+
+- **保护对象与相邻关系（按节点）**：节点 i 的私有数据是它的邻接向量 A_i ∈ {0,1}^n（真实邻居表 P）。节点 i 在一次运行中
+  发布的全部内容（RR 行、带噪度数、加噪计数）构成随机化器 R_i；对只差一位的 A_i、A_i′ 与任意输出集合 S，
+  P[R_i(A_i) ∈ S] ≤ e^ε · P[R_i(A_i′) ∈ S]。其他节点的数据视为固定；第二轮用到的公开历史（噪声图 G′、d̂max、消息、
+  逐节点界 D_i）是公开量或其他节点输出的后处理，按自适应顺序组合计入。
+- **信任边界与攻击者**：curator 与汇总端不可信，可见全部公开交互；节点运行在可信本地服务器上（真实邻居表、解释器、
+  投影顺序、Laplace 噪声都在本地）；节点间信道带发送方身份（伪造与重复由消息校验处理）。`llm` 模式下节点 LLM
+  会读到私有表，只有节点模型部署在本地可信边界内时才满足这一假设。
+- **保证（program 模式）**：若 (1) 推导的 GS 对 DSL 语义成立，(2) 节点按该语义执行——每次运行一个与 P 无关的投影顺序，
+  程序里所有 `project` 调用共用（`lang.order_projector`、`TrustedNodeAgent.bound_degree`），则每个节点满足
+  (ε1 + ε2 + ε3)-edge LDP；`nodebound` 模式的逐节点界 D_i 是 ε2 发布的后处理（Imola et al. 2022 的 edge clipping），
+  ε1 + ε2 + ε3 = ε 不变。(1) 目前由手工核对、证伪器穷举
+  （覆盖全部投影顺序）与随机程序对拍支撑，**尚无形式证明**。
+- **LLM 模式**：加噪的是 LLM 的输出，GS 只对规则函数成立，上述保证不成立；内容二的审计度量的就是这一缺口。审计按
+  黑盒 DP 审计的标准流程（见下文"灵敏度审计"）在记录的公开历史下度量第三步的条件损失，只有 Clopper–Pearson 下界
+  （Bonferroni 校正）ε_lb > ε3 才算越界；ε1、ε2 是上界，不与之相加成"总 ε 下界"（见 `audit.py` 模块说明）。
+- **关系级口径**（一条无向边 (u, v)，攻击者看到全部节点的发布）：这条边同时出现在 u、v 的向量里。RR 只由一个端点发布
+  （下三角），带噪度数与计数报告两端都会变，所以每次运行的边级预算是 ε1 + 2ε2 + 2ε3：三角形默认拆分在 ε = 2 时为 3，
+  无 RR 的 k-star / degree 为 2ε = 4。本项目主张按节点的定义；若要声明关系级 ε，需要把 ε2、ε3 减半，并在同一口径下
+  重跑全部基线。
 
 ## DSL 方法（`certicount/dsl/`）
 
@@ -69,8 +93,7 @@ aggregate: total                        return 0.5 * sum(size(P & N(j)) for j in
 | `utility.py` | 效用测试：无噪声、无截断下与暴力计数比对 |
 | `falsifier.py` | 证伪器：小图上穷举 / 采样 (G′, P, 翻转) 寻找超过 GS 的反例；`check_derivation` 在同一组小参数下推导 GS 并证伪（设计循环与对拍共用） |
 | `fuzz.py` | 推导器对拍：随机生成合法程序（偏向 `P & N(self)` 上的求和与循环变量的行），推导 GS 与证伪器的最大变化比对 |
-| `adaptive.py` | 先发度数的自适应选择：共同随机数执行器、NPMLE 度后验、按公开量模拟打分的选择器、候选空间（见下节） |
-| `pool.py` | LLM 设计程序池：调用计数与硬上限（`BudgetedModel`）、认证闸门、估计量去重、公开合成图打分、贪心入池、随机基线、离线 mock |
+| `clipping.py` | 逐节点度界 `edge_clipping_bounds`：D_i = ⌊max(d_i + Lap(1/ε2), 0) + α⌋（Imola et al. USENIX Security 2022，见下文） |
 | `library.py` | 参考程序 `PROGRAMS`、手工 GS `HAND_GS`、库外任务的分析者 prompt |
 | `ground_truth.py` | `dp_execute`：纯代码执行任意程序（与 program 模式同 DP 步骤、同随机数顺序）；`gt_dsl`：参考程序的执行，即 GT-DSL |
 | `quality.py` | `design_quality`：设计质量打分（结构、预算拆分、GS 比、独立语义测试、证伪） |
@@ -86,6 +109,15 @@ aggregate: total                        return 0.5 * sum(size(P & N(j)) for j in
 `P & N(self)` 上求和的新增项 j = v 的所有 N(v) 都按 dmax − 1 计，漏了 self ∈ N(v)，`sum(size(P & N(j)) + size(N(j)) for j in S)`
 一类程序的 GS 被低估（同一批 1 万个程序中 328 个被推翻）；现在只对不含 self 的集合与 N(v) 的交集减 1。库内程序与已有结果
 （`results/execution/` 中的全部 DSL 运行）的 GS 不变。
+
+投影语义（2026-11-07 统一）：推导器假设一次运行里所有 `project` 调用共用一个与 P 无关的顺序。此前节点对
+`project(P, D)` 返回控制器另抽的随机子集、其余调用取最小编号，二者混用会让 `size(project(P, D) - project(project(P, 2 * D), D))`
+（推导 GS = 6）在 D = 10 时实际变化约 5、最大 9（`tests/test_trust.py` 回归测试）；`dp_execute` 与复合查询同样如此。
+现在节点保留 PSC 抽出的投影表（随机数不变，与复现同噪声相等的测试照旧通过），再用独立子流把它补成一个均匀随机顺序，
+程序的全部投影都用这个顺序；证伪器对每张小图枚举节点 0 在顺序中的全部位置（按顶点改名对称，覆盖所有顺序），
+对拍因此慢约 5 倍。库内参考程序只调用一次 `project(P, D)`（或只用其大小），结果不变。
+旧的 program 模式运行里含多个 / 嵌套 `project` 的设计程序按旧语义执行，
+不应再引用。
 
 ## DSL 评估
 
@@ -117,15 +149,16 @@ python scripts/run_execution_compare.py --datasets CU --tasks degree,3-star,tria
 | `gt-naive` / `gt-psc` / `gt-dsl` | GT-Naive / GT-PSC / GT-DSL | 纯代码参照，不调模型；次数由 `--gt-runs` 决定 |
 | `naive` | Naive | 全部预算给 RR，curator LLM 在带噪图上作答 |
 | `baseline` | PSC | 论文原方法：curator 规则 + 节点 LLM |
-| `bind` / `guard` / `codecost` | PSC + 防护 | 三元绑定与消息校验 / 改进一（代码守卫）/ 代码发送与聚合 |
+| `bind` / `codecost` | PSC + 防护 | 三元绑定与消息校验 / 代码发送与聚合 |
 | `program` | **DSL** | curator LLM 设计程序，节点解释执行（节点 LLM 调用为 0，设计结果跨运行缓存） |
+| `nodebound` / `gt-dsl-node` | DSL-node / GT-DSL-node | 同上，但每个节点用自己的界 D_i（edge clipping，见下节；`--clip-alpha` 设 α） |
 
 库外任务只运行 `program` 与 `gt-dsl`（其余模式自动跳过）。`table.md` 有三张表：
 
 - **Goal 1**：`relative_error`；`rule_relative_error` 为同一份噪声下的纯代码值（Naive→GT-Naive、PSC→GT-PSC、DSL→程序自身）；
   `llm_error` = 二者之差，即 LLM 在执行环节带来的误差；`llm_calls` / `node_llm_calls`。
 - **Goal 2**：DSL 行与 GT-DSL 逐次配对的 `design_error`、`design_exact`、`gs_ratio`、`split_match` 与实际使用的程序。
-- **Details**：节点正确率、守卫回退、被拒消息、违规次数、置信区间覆盖率等。
+- **Details**：节点正确率、被拒消息、违规次数、置信区间覆盖率等。
 
 GT-Naive / GT-PSC 是复现包的实现，RR 抽噪声的顺序与智能体不同，只能**按分布**比较；逐次配对看 `rule_relative_error`。
 
@@ -159,106 +192,76 @@ python scripts/run_dsl_design_eval.py --datasets CU --designs 10 --runs 10 \
 一个设计循环拦不住、但这里能发现的例子：`return comb(size(project(P, 2 * D)), 3)` 能通过语法、"上界过松"和效用测试，
 但 `gs_ratio = C(19,2)/C(9,2) ≈ 4.75`，配对误差随之变大（`tests/test_dsl_eval.py`）。
 
-## 先发度数的自适应选择（`dsl/adaptive.py`）
+## 逐节点度界：edge clipping（`dsl/clipping.py`，`nodebound` 模式）
 
-PSC 预先固定 (ε1, ε2, ε3)，并投影到带噪最大度 D。这里先用 ε2 发布带噪度数 y（Alg. 2 第 1–3 行），再由只看公开量
-（n、ε、ε2、y、D）的选择器选一个候选：DSL 程序、代替 D 的界 B（投影与 GS 都用 B）、RR 预算 ε1；其余步骤用 ε3 = ε − ε2 − ε1。
+PSC 把每个节点的邻居表都投影到同一个公开界 d̂max（n 个带噪度数的最大值，Imola et al. 2021 的做法），大多数节点的
+度远小于 d̂max，而 k-star 的 GS = C(D−1, k−1) 随界迅速增长。这里改用 Imola, Murakami, Chaudhuri（USENIX Security 2022）
+提出的 **edge clipping**：
 
-- **隐私**：选择是 y 的后处理，每个候选在剩余步骤上恰好花 ε − ε2，由纯 DP 的自适应顺序组合，总预算仍为 ε；GS 仍由推导器在 B 处推出。
-- **选择**：NPMLE 对 y 去卷积，得到度分布与各节点的经验贝叶斯后验。不读 N(·) 的程序只依赖 |P|，用解释器算出计数表 f(d)，
-  在后验度序列上做蒙特卡洛；读 N(·) 的程序还依赖结构，在三类合成图（Chung–Lu、一维几何 α = 2、一维阈值几何，聚集由低到高）上
-  以已发布的 D 为条件模拟，三类得分取几何平均（结构先验）。`margin`：最优候选的预测得分须比默认低这个比例才切换。
-- **候选**：k-star 为 B ∈ {1, …, D}；三角形为 B = round(f·D)（f ∈ {1, 0.75, 0.5, 0.35}）× ε1 ∈ {0.4, 0.6, …, 1.4}。
-- **共同随机数**：每次运行的度噪声、RR 均匀数、投影种子、Laplace 噪声各一条流（`run_streams`），默认设置、选择结果与全部候选在同一份噪声上配对。
+- 节点 i 照常用 ε2 发布带噪度数 y_i = d_i + Lap(1/ε2)，并把自己的邻居表截断到 D_i = ⌊max(y_i, 0) + α⌋；
+- 程序在 D = D_i 处推导 GS（同一个推导器、同一张证书，节点核验后执行），报告 `count + Lap(GS(D_i)/ε3)`；
+- 读噪声图的程序仍用公开行界 dmax = d̂max（由同一批 y_i 算出，后处理），只有 D 变为逐节点；库内三角形程序不调用
+  `project(P, D)`，GS = d̂max − 1，估计不受影响。
 
-```bash
-python scripts/run_adaptive.py --runs 1000 --workers 8 --tag adaptive_r1000   # 6 图 × {2-star, 3-star, triangle}，8 进程约 47 分钟
-```
-
-结果（`results/adaptive/adaptive_r1000_20261104/`，ε = 2，每格 1000 次，6 图平均相对误差；括号内为相对默认的变化，以及配对差异显著
-（|z| > 1.96）变好 / 变差的数据集个数）：
-
-| 任务 | GT-PSC | 默认（配对） | 自适应（margin 0.1） | 自适应（无 margin） | GT-Tuned（只用 n 调参） | 静态最优（真实图上选，仅参照） | GT-TriTR |
-|---|---|---|---|---|---|---|---|
-| 2-star | 0.1051 | 0.1045 | 0.1016（−2.8%，1/0） | 0.0988（−5.5%，3/0） | 0.0911（−12.9%，3/1） | 0.0872 | 0.2248 |
-| 3-star | 0.3811 | 0.3784 | 0.2870（−24.2%，3/0） | 0.2799（−26.0%，6/0） | 0.2721（−28.1%，3/1） | 0.2352 | 0.2434 |
-| triangle | 0.8851 | 0.9108 | 0.6444（−29.3%，4/0） | 0.6301（−30.8%，4/1） | 0.7448（−18.2%，3/2） | 0.5272 | 0.5437 |
-
-- 默认设置经同一执行器与 GT-PSC 同分布（18 格 |z| 最大 2.71，Bonferroni 校正后不显著）。
-- 带 margin 时 18 格中没有一格显著变差；收益集中在 D 高估严重的小图（CU、Do、CS 的 3-star 与三角形）和 PM 三角形（−50%，选中 B ≈ 0.67D）。
-- GT-Tuned 能调 ε2，在小图上更好，但在 ML、EE、PM 上显著变差（EE 三角形 +64%，PM 3-star +108%）。
-- GT-TriTR（逐节点阈值）在三角形 6 图中 4 图、3-star 的 PM / ML / CS 上仍优于自适应。
-- margin = 0.1 是看过 EE 三角形 30 次试跑后定的，尚未在独立的图上验证。智能体框架的接入见下节（`TrustOptions(adaptive=True)`）。
-
-## LLM 设计程序池（`dsl/pool.py`）
-
-LLM 回到设计环节：curator LLM 只看公开信息（任务、DSL、公开合成图上的得分），每次调用提出若干本地程序；系统逐个认证，
-通过的程序组成程序池；运行时由先发度数的选择器在"池中程序 × 界 × ε1"里挑选。提示词里从不出现边，所以设计者可以是远程 API。
-
-1. **认证**（与设计循环相同的闸门）：解析与类型检查、推导 GS 且不过松、无噪声无截断时精确（`project` 视为恒等）、证伪器复核；
-   聚合须是 total 的仿射函数（选择器要模拟它）。
-2. **去重**：在固定公开输入上的估计量指纹（各节点局部值 × 聚合斜率）与已认证程序相同、且认证噪声不更小，即拒收（改写公式不是新估计量）。
-3. **打分**：在公开合成图（n ∈ {60, 150} × 度分布 {稀疏, 稠密, 重尾} × 聚集 {Chung–Lu, 阈值几何}，k-star 只用前者）上跑完整私有流程，
-   每张图取该程序最优设置的误差；所有程序用同一份噪声。
-4. **入池**：库程序始终在池中且排第一（默认设置也来自它）；其余按"使池得分（每张图取池中最优程序，再取几何平均）下降 ≥ 3%"贪心加入，最多 4 个。
-   模型下一轮看到池、逐图得分和上一轮的拒绝原因。
-- 调用控制：`BudgetedModel` 对每个请求（含重试）计数，超过 `--max-requests` 直接拒绝。非 LLM 基线 `random_design` 用同一语言的随机程序
-  （`dsl/fuzz.py` 的生成器）过同一套闸门。
-- 框架：`TrustOptions(execution="program", adaptive=True, pool_source="library" | "design" | "file")`：节点先发带噪度数，控制器公开选择，
-  再按选中的 ε1 建噪声图、投影到选中的界，出证书，节点核验后本地执行（节点 LLM 调用为 0；池设计按任务缓存）。
+**隐私**：y_i 是 ε2-DP 的发布（灵敏度 1）；D_i 是它的后处理；给定 D_i，程序在公开 D_i 处的 GS 证书保证计数报告是
+ε3-DP；与 RR（ε1）顺序组合，仍为 ε1 + ε2 + ε3 = ε，预算拆分事先固定，与原 PSC 相同。α ≥ 0 是与数据无关的公开超参数
+（α 越大截断越少、偏差越小，噪声越大）。没有任何基于数据的选择，因而不需要额外的隐私论证。
 
 ```bash
-python scripts/run_pool.py --tasks 2-star,3-star,triangle --runs 200 --workers 8 --tag pool_mock          # 离线（mock 提议者）
-python scripts/run_pool.py --provider openai --profile glm --curator-model glm-5.2 --max-requests 24 \
-    --max-retries 1 --tasks 2-star,3-star,triangle,4-star --dry-run                                           # 先看调用量
-python scripts/run_pool.py --pools results/pool/<设计目录>/pools.json --runs 200 --workers 8 --tag <tag>   # 复用设计，0 次调用
+python scripts/run_execution_compare.py --datasets CU,Do --tasks 2-star,3-star,4-star,triangle \
+    --modes gt-psc,gt-dsl,gt-dsl-node --runs 200 --tag nodebound_smoke                 # 纯代码，0 次模型调用
+python scripts/run_execution_compare.py ... --modes program,nodebound --clip-alpha 2   # 智能体框架中的同一流程
 ```
 
-智能体框架里的同一条流水线由 `run_execution_compare.py --modes adaptive` 运行（每次运行 0 次模型调用；池设计按任务缓存）：
-`--pool-source library` 只选界与 ε1，`--pool-source file --pool-file <pools.json>` 复用已设计的池，
-`--pool-source design` 现场调用 curator（`--pool-options '{"rounds":3}'` 控制调用次数）。
+小规模测试（ε = 2，每格 200 次，平均相对误差；`results/execution/nodebound_smoke/`、`nodebound_alpha{2,5,10}/`）：
+
+| 数据集 | 任务 | GT-DSL（全局 d̂max） | α = 0 | α = 2 | α = 5 | α = 10 |
+|---|---|---|---|---|---|---|
+| CU | 2-star | 0.149 | 0.352 | 0.151 | **0.101** | 0.156 |
+| CU | 3-star | 0.709 | 0.423 | **0.312** | 0.437 | 0.821 |
+| CU | 4-star | 2.884 | **0.743** | 1.055 | 1.683 | 3.617 |
+| Do | 2-star | 0.086 | 0.287 | 0.128 | **0.059** | 0.083 |
+| Do | 3-star | 0.314 | 0.333 | 0.178 | **0.173** | 0.329 |
+| Do | 4-star | 0.846 | 0.388 | **0.337** | 0.537 | 1.036 |
+| CU / Do | triangle | 1.010 / 0.852 | 1.003 / 0.780 | — | — | — |
+
+- k 越大，逐节点界的收益越明显（4-star 误差降到 1/4–1/2）；2-star 的 GS 本来就小，α = 0 时截断偏差占主导反而变差。
+- α 的最佳值随任务与图变化；这里只是在两张小图上的扫描，**不能据此在同一批图上挑 α 后再报告**，正式实验应固定 α
+  （或在独立的图上选定）。三角形的估计量不变，差别只来自随机数顺序（逐节点投影多消耗了随机数）。
+- 三角形的逐节点做法（RR 矩阵无偏校正 + 灵敏度 κ·d̃_i）就是 Imola et al. 2022 的估计器，复现包中为 GT-TriTR。
+
+> 此前这里是"先发度数的自适应选择"（NPMLE 后验 + 合成图打分选择器 + margin 0.1）和"LLM 设计程序池"，
+> 二者均为本项目自拟、未经文献检验的方法，已删除（`dsl/adaptive.py`、`dsl/pool.py`、`scripts/run_adaptive.py`、
+> `scripts/run_pool.py` 及其测试）。`results/adaptive/`、`results/pool/` 只作历史记录，代码已无法重跑。
+
+## 灵敏度审计（`audit.py`，内容二）
+
+LLM 模式下被加噪的是 LLM 的输出 L(x)，而噪声按规则函数 f 的 GS 标定。审计把 M(x) = L(x) + Lap(GS/ε3) 当作黑盒，
+按 DP 审计文献的标准流程求隐私损失的统计下界：
+
+1. **相邻输入**（Jagielski et al. 2020；Nasr et al. 2021）：记录的节点输入 x 与翻转私有邻居表一位的 x′；
+   S1 随机选位，S2 选使规则函数变化最大的位（不看模型的最强相邻对）。
+2. **Monte Carlo 采样**：每次独立调用模型，再抽一次新的 Laplace 噪声。
+3. **在独立的选择样本上定检验事件**（Ding et al. 2018，StatDP）：阈值事件 {s·z ≥ t} 只在 select 样本上选定。
+4. **在评估样本上求 Clopper–Pearson 下界**（Jagielski et al. 2020 算法 2，δ = 0）：
+   ε_lb = log(CP_lower(P[M(x) ∈ S]) / CP_upper(P[M(x′) ∈ S]))，以 1 − α 的概率成立。
+5. **Bonferroni** 校正覆盖全部审计对；ε_lb > ε3 才判越界。审计只能否定隐私声明，ε_lb ≤ ε3 不是隐私成立的证据。
 
 ```bash
-python scripts/run_execution_compare.py --datasets CU,Do --tasks 2-star,3-star,4-star,triangle --modes adaptive \
-    --pool-source file --pool-file results/pool/pool_glm52_design_20261105/pools.json --pool-designer llm \
-    --provider mock --runs 200 --tag p5_cu_do_glm52
+python scripts/run_sensitivity_audit.py --provider mock --select 20 --eval 200 --source <复现结果目录> --tag <tag>
 ```
 
-**GLM-5.2 小规模测试**：设计在 `results/pool/pool_glm52_design_20261105/`（4 个任务 × 3 次调用，共 12 次请求，无重试、无错误，
-`transcripts.jsonl` 为全部提示词与回复），评估在 `results/pool/pool_glm52_r200_20261105/`（6 图 × 200 次，纯代码，约 15 分钟）。
+此前的"代入损失（plug-in）筛查 + 追加采样"和 S3 / S4 选位策略为自拟流程，已删除。`results/audit/sensitivity/` 中的
+P1 试点按旧流程计算，只作历史记录。
 
-| 任务 | 提议 | 认证 | 入池 | 拒绝原因 |
-|---|---|---|---|---|
-| 2-star | 12 | 2 | 0 | 不精确 5、同一估计量 3、灵敏度（除以私有量）2 |
-| 3-star | 12 | 5 | 0 | 解析 3（如 `min(... for j in S)`）、不精确 2、灵敏度 1、同一估计量 1 |
-| triangle | 12 | 5 | 1 | 不精确 3、同一估计量 3、解析 1 |
-| 4-star | 12 | 5 | 0 | 解析 2、不精确 2、同一估计量 2、灵敏度 1 |
+## 参考文献
 
-没有一个提议被证伪器推翻。k-star 上 GLM 主要提出"降低阈值"（选择器已覆盖，无增益）和"公开主项 + 私有修正"
-（如 4-star 的 `comb(m,4) − 6·comb(m,2) + 6·comb(c,2)`，D = 40 时噪声为库程序的 1/40，但 m 取自噪声图、偏差过大）；
-三角形入池的是"用噪声图的共同邻居闭合 wedge"：`S = project(P, D); 0.5 * sum(size(N(self) & N(j)) for j in S)`。
-随机基线（每任务 2000 个随机程序）只在三角形上找到可用程序：`0.5 * sum(size(P & N(j)) + size(project(P & N(j), 2)) for j in P)`，聚合 `total / 6`。
-
-三角形（每格 200 次，平均相对误差；括号内为相对仅库程序池的配对差 ± 1.96 SE）：
-
-| 数据集 | PSC 默认 | 仅库程序（自适应） | + GLM 池 | + 随机池 | GT-TriTR |
-|---|---|---|---|---|---|
-| CU | 1.011 | 0.798 | 0.744（−0.054 ± 0.090） | **0.582**（−0.215 ± 0.034） | 0.658 |
-| Do | 0.873 | 0.735 | 0.776（+0.041 ± 0.081） | **0.554**（−0.181 ± 0.037） | 0.620 |
-| ML | 0.423 | 0.435 | **0.364**（−0.070 ± 0.035） | 0.423（−0.012 ± 0.019） | 0.438 |
-| CS | 1.649 | 1.046 | 1.104（+0.058 ± 0.102） | 0.825（−0.222 ± 0.073） | **0.817** |
-| EE | 0.419 | 0.436 | 0.417（−0.019 ± 0.049） | 0.467（+0.032 ± 0.025） | 0.419 |
-| PM | 1.127 | 0.566 | 0.570（+0.004 ± 0.006） | 0.466（−0.101 ± 0.041） | **0.273** |
-| 平均 | 0.917 | 0.669 | 0.663（−1.0%，1 好 / 0 差） | 0.553（−17.4%，4 好 / 1 差） | 0.537 |
-
-- 2-star / 3-star / 4-star 三个池相同（只有库程序），自适应相对默认 −1.8% / −23.5% / −43.4%；4-star 仍远不如 TriTR（0.561 对 0.310）。
-- **这次小测试里 GLM 没有胜过随机搜索**：GLM 的三角形程序在公开打分中把池得分从 0.785 降到 0.656，但在真实图上只有 ML 显著受益；
-  随机池平均 0.553，与 TriTR（0.537）相当，CU、Do 上更好，PM 上差距仍大。随机生成器本来为推导器对拍而写，偏向 `P & N(j)` 形状的求和，
-  不是"无知"的基线；而 GLM 每个任务只有 3 次调用、温度 0。
-- **选择器是瓶颈**：每张图固定用一组最优设置（在真实图上挑，非私有；CU / Do / ML / CS / EE，各 100 次）时，三个池的 5 图平均为
-  仅库程序 0.613、+GLM 0.529（−14%）、+随机 0.470（−23%），GLM 的程序在每张图上都带来更好的固定设置（同 5 图上 TriTR 为 0.590）；
-  但实际自适应选择只拿到 0.690 / 0.681 / 0.570。选择器有 70–84% 的运行选了 GLM 程序，结构先验（三类合成图）对它的偏差判断不准，
-  收益没有兑现。
+- Imola, Murakami, Chaudhuri. *Locally Differentially Private Analysis of Graph Statistics*. USENIX Security 2021.（PSC 的 d̂max 与投影）
+- Imola, Murakami, Chaudhuri. *Communication-Efficient Triangle Counting under Local Differential Privacy*. USENIX Security 2022.（edge clipping）
+- Jagielski, Ullman, Oprea. *Auditing Differentially Private Machine Learning: How Private is Private SGD?* NeurIPS 2020.
+- Nasr, Song, Thakurta, Papernot, Carlini. *Adversary Instantiation: Lower Bounds for Differentially Private Machine Learning*. IEEE S&P 2021.
+- Ding, Wang, Wang, Zhang, Kifer. *Detecting Violations of Differential Privacy*. ACM CCS 2018.
+- Clopper, Pearson. *The Use of Confidence or Fiducial Limits Illustrated in the Case of the Binomial*. Biometrika 1934.
 
 ## 其他研究内容
 
@@ -269,8 +272,7 @@ python scripts/run_execution_compare.py --datasets CU,Do --tasks 2-star,3-star,4
 | 内容一：机制误差与执行误差分离 + curator 置信区间 | `evaluation.py` | `scripts/analyze_errors.py` | `results/evaluation/` |
 | 内容二：LLM 节点灵敏度审计（RQ1、RQ2；P1–P3） | `audit.py` | `scripts/run_sensitivity_audit.py` | `results/audit/sensitivity/` |
 | 内容三：三元绑定、消息强校验、证书式下发、攻击实验（P5） | `binding.py`、`messages.py`、`attacks.py` | `scripts/run_attacks.py` | `results/attacks/` |
-| 内容四·改进一：预过滤 + 代码守卫 | `agents.py`（`execution="guard"`） | `scripts/run_execution_compare.py` | `results/execution/` |
-| 内容四·改进二：DSL 方法与评估 | `dsl/` | `scripts/run_dsl_check.py`、`run_execution_compare.py`、`run_dsl_design_eval.py` | `results/dsl/`、`results/execution/`、`results/dsl_eval/` |
+| 内容四：DSL 方法与评估（改进二） | `dsl/` | `scripts/run_dsl_check.py`、`run_execution_compare.py`、`run_dsl_design_eval.py` | `results/dsl/`、`results/execution/`、`results/dsl_eval/` |
 | 内容五：精度—隐私—成本（P4）、token 统计 | `framework.py`、`cost.py` | `scripts/run_execution_compare.py`、`scripts/analyze_cost.py` | `results/execution/`、`results/cost/` |
 | 内容六：复合查询与预算记账 | `composite.py` | `scripts/run_composite.py` | `results/composite/` |
 
@@ -299,7 +301,6 @@ python scripts/run_sensitivity_audit.py --provider mock \
 |---|---|---|
 | `baseline_options()` | 论文 PSC：curator 规则直接下发，节点 LLM 计数，无校验 | 仅在 LLM 无错、curator 与消息可信时成立 |
 | `TrustOptions(execution="llm")` | + 三元绑定 + 消息强校验（内容三，强制项） | 闭合断裂点②③；断裂点①仍在 |
-| `TrustOptions(execution="guard")` | + 预过滤非邻居消息 + 代码守卫（改进一） | 被加噪值恒为绑定函数，C2 严格成立 |
 | `TrustOptions(execution="program")` | curator 设计 DSL 程序，节点验证证书后本地解释执行（改进二） | 由程序结构保证，与 LLM 正确性无关；节点 LLM 调用为 0 |
 | `send_by_code` / `aggregate_by_code` | send 消息与聚合由代码完成 | 均为已发布数据的后处理 |
 
@@ -333,8 +334,10 @@ python scripts/run_sensitivity_audit.py --provider mock \
 
 ### P4（mock，节点注入 5% 的 ±1 错误，`results/execution/p4_mock_err005_cu_ee_r10/`）
 
-同噪声下 guard 与 program 的执行正确率均为 1、误差等于同噪声规则值；baseline / bind 的节点正确率约 0.95；
+同噪声下 program 的执行正确率为 1、误差等于同噪声规则值；baseline / bind 的节点正确率约 0.95；
 program 的节点 LLM 调用为 0（设计结果跨运行缓存），`send_by_code` 让 triangle 的调用从 2n+3 降到 n+2。
+（该目录下的 `guard` 行来自已移除的"改进一"（预过滤 + 代码守卫）：它用代码值覆盖 LLM 的计数，执行正确率同样为 1，
+但 LLM 因此变成纯冗余，且仍会读到私有表；该模式已从代码中删除，表格只是历史记录，重跑不会再出现。）
 
 ## 目录
 
@@ -342,13 +345,13 @@ program 的节点 LLM 调用为 0（设计结果跨运行缓存），`send_by_co
 certicount/
   __init__.py      复现目录定位（$PSC_REPRO_ROOT → ../psc → ../psc-reproduction）、DATA_DIR / RESULTS_DIR
   evaluation.py    内容一：误差分解、curator 置信区间（只覆盖 Laplace 部分）
-  audit.py         内容二：相邻输入、S1–S4 选取、混合 Laplace 隐私损失、Clopper–Pearson ε 下界
+  audit.py         内容二：黑盒 DP 审计（相邻输入 S1/S2、select/eval 两阶段阈值检验、Clopper–Pearson ε 下界）
   binding.py       内容三：任务—函数—投影—GS 绑定表、规则/任务/GS/证书检查
   messages.py      内容三：消息强校验
   attacks.py       内容三：四类攻击、服从型执行者、防御代价；框架攻击钩子
-  agents.py        TrustedNodeAgent：llm / guard / program 三种执行、通道身份、代码 send
+  agents.py        TrustedNodeAgent：llm / program 两种执行、通道身份、代码 send
   framework.py     TrustedPSCFramework：在复现的 DP 代码上组合以上选项
-  dsl/             DSL 方法：lang、sensitivity、designer、utility、falsifier、library、ground_truth（GT-DSL）、quality
+  dsl/             DSL 方法：lang、sensitivity、designer、utility、falsifier、library、ground_truth（GT-DSL）、quality、clipping（逐节点度界）
   cost.py          内容五：transcripts 成本统计、各执行方式的调用模型、禁止的优化
   composite.py     内容六：预算账本、复合查询计划、发布结果复用、LLM 分解与校验
   artifacts.py     结果目录、清单与表格
@@ -358,7 +361,7 @@ scripts/
   run_composite.py          复合查询            run_sensitivity_audit.py   灵敏度审计
   analyze_errors.py         误差分解            analyze_cost.py            成本统计
   md_to_pdf.py              docs/ 下 Markdown 转 PDF
-tests/             test_dsl / test_dsl_eval / test_fuzz / test_search / test_adaptive / test_pool / test_trust / test_audit / test_eval_cost_composite
+tests/             test_dsl / test_dsl_eval / test_fuzz / test_search / test_trust / test_audit / test_eval_cost_composite
 docs/              开题报告、答辩讲稿、PPT 提示词、研究笔记
 results/           见 results/README.md
 ```
@@ -376,5 +379,5 @@ results/           见 results/README.md
 - **真实 LLM 的 DSL 评估**：目标一、目标二的脚本已支持真实模型，结果只在 mock 上跑过；DSL 尚缺 wedge / 路径类原语。
 - **审计主实验 P2 / P3**：EE 分层 60 节点、本地 vLLM Qwen 与弱模型（需机时或 API 预算，未运行）；大图（> 1000 节点）节点采样扩展。
 - **真实模型上的 P4**。
-- **改进一的工具调用**（`intersect`、`comb` 等绑定私有表的工具）：当前改进一只有预过滤与守卫两层。
+- ~~改进一的工具调用~~：随"改进一"一并放弃。守卫模式下 LLM 的值最终总被代码值覆盖，再给它加工具只会让 LLM 成为更绕的代码调用者。
 - **文献系统检索**（开题报告 R1）与 2-star 机制口径（见复现档案）。

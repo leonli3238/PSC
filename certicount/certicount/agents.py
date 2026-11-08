@@ -5,21 +5,24 @@
 (RR, noisy degree, projection and Laplace stay the reproduction's code):
 
 * ``execution="llm"``     -- the node LLM applies the update rule (paper baseline);
-* ``execution="guard"``   -- Improvement 1: non-neighbour messages are filtered
-  out in code before the prompt, and the LLM's count is replaced by the code
-  value of the bound function when they differ, so the perturbed value always
-  has sensitivity ``GS`` (the fallback rate measures how often the LLM was wrong);
-* ``execution="program"`` -- Improvement 2: the node's interpreter runs a
-  verified DSL program on the private list; no LLM is involved.
+* ``execution="program"`` -- the node's interpreter runs a verified DSL program
+  on the private list; no LLM is involved.
 
 With a binding the update task and rule text come from the node's binding
 table instead of the curator's instruction; with validation, received messages
 pass :func:`certicount.messages.validate_messages` before the update step.
+
+Projection.  ``bound_degree`` keeps PSC's uniform projected list
+``_update_neighbors`` (same random numbers, used by the LLM mode) and
+completes it to one random priority order of the node ids that is
+independent of ``P`` (:func:`certicount.dsl.lang.node_projector`); every
+``project`` call of a DSL program uses that order, as the deriver assumes, so
+``project(P, d_max)`` is ``_update_neighbors``. Without ``bound_degree`` the
+order is the identity (smallest ids).
 """
 
 from __future__ import annotations
 
-import math
 from typing import Iterable
 
 import numpy as np
@@ -29,15 +32,15 @@ from psc import rules
 from psc.agents.node_agent import NodeAgent
 
 from .binding import Binding
-from .dsl.lang import Env, Interpreter, Program, smallest_projector
+from .dsl.lang import Env, Interpreter, Program, Projector, node_projector, smallest_projector
 from .messages import ChannelMessage, validate_messages
 
-EXECUTIONS = ("llm", "guard", "program")
+EXECUTIONS = ("llm", "program")
 
 
 class TrustedNodeAgent(NodeAgent):
     def __init__(self, *args, execution: str = "llm", validate: bool = True, strict: bool = True,
-                 send_by_code: bool = False, **kwargs) -> None:
+                 send_by_code: bool = False, n_nodes: int | None = None, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if execution not in EXECUTIONS:
             raise ValueError(f"unknown execution {execution!r}; choose from {EXECUTIONS}")
@@ -45,6 +48,7 @@ class TrustedNodeAgent(NodeAgent):
         self.validate = validate
         self.strict = strict
         self.send_by_code = send_by_code
+        self.n_nodes = n_nodes
         self.binding: Binding | None = None
         self.program: Program | None = None
         self.params_D = 0
@@ -53,20 +57,25 @@ class TrustedNodeAgent(NodeAgent):
         self.public_rows: dict[int, frozenset] = {}
         self.raw_inbox: list[ChannelMessage] = []
         self.rejected: list[dict] = []
-        self.guard_fallbacks = 0
-        self.guard_deviation = 0.0
         self._projection_limit: int | None = None
+        self._project: Projector = smallest_projector
 
     # -- set-up by the framework ------------------------------------------------
     def bound_degree(self, d_max: int, rng: np.random.Generator) -> None:
         super().bound_degree(d_max, rng)
+        if self.n_nodes is None:
+            raise RuntimeError("TrustedNodeAgent needs n_nodes to complete its projection order")
+        self._project = node_projector(self.n_nodes, self._real_neighbors, self._update_neighbors, rng)
         self._projection_limit = int(d_max)
 
     def configure(self, n: int, public_rows: dict[int, Iterable[int]] | None, D: int | None,
-                  binding: Binding | None = None, program: Program | None = None) -> None:
+                  binding: Binding | None = None, program: Program | None = None, dmax: int | None = None) -> None:
+        """``D``: the bound of ``project(P, D)``; ``dmax``: the bound of the public rows
+        (default ``D``; differs with per-node bounds, :mod:`certicount.dsl.clipping`)."""
         self.n = n
         self.public_rows = {int(k): frozenset(v) for k, v in (public_rows or {}).items()}
-        self.params_D = self.params_dmax = int(D or 0)
+        self.params_D = int(D or 0)
+        self.params_dmax = int(dmax if dmax is not None else (D or 0))
         self.binding = binding
         self.program = program
 
@@ -114,17 +123,7 @@ class TrustedNodeAgent(NodeAgent):
             self.count = self.run_program()
             return Msg(self.name, f"count={self.count}", "assistant",
                        metadata={"kind": "node_state", "node_id": self.node_id, "count": self.count})
-        if self.execution == "guard":
-            senders = set(self._update_neighbors)
-            self.inbox = [m for m in self.inbox if m.get("Sender_ID") in senders]
-        out = await super()._update(task, rule)
-        if self.execution == "guard":
-            code = self.reference_count(task, self.inbox)
-            if not math.isclose(self.count, code, abs_tol=1e-6):
-                self.guard_fallbacks += 1
-                self.guard_deviation += abs(self.count - code)
-                self.count = code
-        return out
+        return await super()._update(task, rule)
 
     def run_program(self) -> float:
         if self.program is None:
@@ -136,9 +135,6 @@ class TrustedNodeAgent(NodeAgent):
         return Interpreter(self.program).local(env)
 
     def _projector(self, s: frozenset, k: int) -> frozenset:
-        """The projection drawn by the privacy controller for this run (so that
-        program and LLM execution see the same projected list); other sets fall
-        back to a deterministic projection."""
-        if s == frozenset(self._real_neighbors) and k == self._projection_limit:
-            return frozenset(self._update_neighbors)
-        return smallest_projector(s, k)
+        """Every ``project`` call of the program uses the run's single order, so
+        ``project(P, d_max)`` is the projected list of the LLM modes."""
+        return self._project(s, k)

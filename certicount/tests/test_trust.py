@@ -91,7 +91,7 @@ def test_duplicates_are_rejected_and_loose_mode_uses_channel_identity():
 @pytest.mark.parametrize("task", ["degree", "3-star", "triangle"])
 def test_every_mode_equals_the_reproduction_on_identical_noise(task):
     ref = run(PSCFramework(ModelConfig(), mechanism="floor_tight"), task).estimate
-    for opts in (baseline_options(), TrustOptions(), TrustOptions(execution="guard"), TrustOptions(execution="program"),
+    for opts in (baseline_options(), TrustOptions(), TrustOptions(execution="program"),
                  TrustOptions(send_by_code=True, aggregate_by_code=True)):
         res = run(TrustedPSCFramework(ModelConfig(), opts), task)
         assert res.estimate == pytest.approx(ref, abs=1e-9), opts.label
@@ -106,13 +106,13 @@ def test_program_mode_has_no_node_llm_calls_and_caches_the_design():
     assert second.llm_calls == 0 and first.llm_calls <= 1
 
 
-def test_guard_replaces_wrong_llm_counts():
+def test_program_mode_is_unaffected_by_llm_execution_errors():
     cfg = ModelConfig(mock_error_rate=0.2)
-    res = run(TrustedPSCFramework(cfg, TrustOptions(execution="guard")), "degree")
+    res = run(TrustedPSCFramework(cfg, TrustOptions(execution="program")), "degree")
     base = run(TrustedPSCFramework(cfg, baseline_options()), "degree")
-    assert res.extra["trust"]["guard_fallbacks"] > 0
-    assert res.estimate == pytest.approx(res.extra["validation"]["rule_estimate"])
-    assert base.extra["validation"]["e2e_exact"] < 49
+    assert res.extra["validation"]["e2e_exact"] == 49  # the interpreter never errs
+    assert res.extra["node_llm_calls"] == 0
+    assert base.extra["validation"]["e2e_exact"] < 49  # the node LLM does
 
 
 def test_task_mismatch_is_blocked_by_the_binding():
@@ -160,6 +160,50 @@ def test_out_of_library_task_runs_in_program_mode():
     res = asyncio.run(TrustedPSCFramework(ModelConfig(), TrustOptions(execution="program")).run(rec, 2.0, np.random.default_rng(0)))
     assert math.isfinite(res.estimate) and res.split[0] == 0 and res.split[1] > 0
     assert res.sensitivity == math.comb(res.d_hat_max - 1, 3)
+
+
+def _program_node(real, n, D, program, rng):
+    from certicount.agents import TrustedNodeAgent
+
+    node = TrustedNodeAgent(0, real, None, None, execution="program", n_nodes=n)
+    node.bound_degree(D, rng)
+    node.configure(n, None, D, program=program)
+    return node
+
+
+def test_every_projection_of_a_node_uses_one_order():
+    """Regression: ``project(P, D)`` used to return the controller's random subset
+    and every other ``project`` call the smallest ids. Then
+    ``size(project(P, D) - project(project(P, 2 * D), D))`` is 0 at ``|P| = 2D``
+    but about ``D / 2`` one neighbour later, above the derived GS (6) for D = 10.
+    With one order per run the two projections coincide and the count is 0."""
+    from certicount.dsl.lang import parse_program
+    from certicount.dsl.sensitivity import PublicParams, derive
+
+    D, n = 10, 40
+    prog = parse_program("return size(project(P, D) - project(project(P, 2 * D), D))")
+    assert derive(prog, PublicParams(n, D=D, dmax=D)).gs == 6
+    p = list(range(1, 2 * D + 1))
+    for seed in range(100):
+        for real in (p, p + [2 * D + 1]):
+            node = _program_node(real, n, D, prog, np.random.default_rng(seed))
+            assert node.run_program() == 0
+            # the program's project(P, D) is the list the LLM modes see
+            assert node._projector(frozenset(real), D) == frozenset(node._update_neighbors)
+
+
+def test_program_projection_keeps_the_reproduction_draw():
+    """Completing the order changes neither PSC's projected list nor the run's random numbers."""
+    from psc.dp import project_neighbor_list
+    from certicount.dsl.library import PROGRAMS
+
+    prog = PROGRAMS["3-star"].parse()
+    real, n, D = list(range(1, 15)), 20, 5
+    for seed in range(20):
+        rng_node, rng_ref = np.random.default_rng(seed), np.random.default_rng(seed)
+        node = _program_node(real, n, D, prog, rng_node)
+        assert node._update_neighbors == project_neighbor_list(real, D, rng_ref)
+        assert rng_node.random() == rng_ref.random()
 
 
 # -- attack suite ------------------------------------------------------------------

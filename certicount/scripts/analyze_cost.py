@@ -45,7 +45,7 @@ def main() -> None:
         n = load_dataset(REPRO_ROOT / "data", ds)["degree"].vertex_num
         for task, msgs in (("degree", False), ("3-star", False), ("triangle", True)):
             for label, kw in (
-                ("baseline / bind / guard", {}),
+                ("baseline / bind", {}),
                 ("code send + code aggregate", {"send_by_code": True, "aggregate_by_code": True}),
                 ("program (first run)", {"execution": "program", "design_calls": 1}),
                 ("program (design cached)", {"execution": "program", "design_calls": 0}),

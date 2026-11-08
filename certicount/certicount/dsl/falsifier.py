@@ -3,7 +3,8 @@
 Exhaustive mode enumerates, for node ``0`` on ``n`` vertices, every public
 graph with maximum degree ``<= dmax`` (symmetric, or arbitrary rows for the
 asymmetric ablation), every private set ``P`` (``0 not in P``) and every flip of
-one vertex, and reports the largest ``|f(P) - f(P xor {v})|`` with a witness.
+one vertex, under every projection order up to renaming (:func:`self_orders`),
+and reports the largest ``|f(P) - f(P xor {v})|`` with a witness.
 Random mode samples the graphs (with every ``P`` and flip on each) on larger
 graphs. A falsifier can only refute a claimed GS; the bound used for the noise
 comes from the deriver.
@@ -22,7 +23,7 @@ import random
 from dataclasses import asdict, dataclass
 from typing import Iterator
 
-from .lang import Env, Interpreter, Program
+from .lang import Env, Interpreter, Program, order_projector
 from .sensitivity import Facts, PublicParams, SensitivityError, derive
 
 
@@ -79,17 +80,34 @@ def random_symmetric_graphs(n: int, dmax: int, samples: int, seed: int = 0) -> I
         yield [frozenset(a) for a in adj]
 
 
+def self_orders(n: int) -> list[tuple[int, ...]]:
+    """Projection orders that put node ``0`` at every position (the others by id).
+
+    The language only uses node ids as set elements and ``N`` arguments, so a
+    run is invariant under renaming the vertices ``1 .. n-1``; the exhaustive
+    search is closed under such renamings, hence these ``n`` orders cover every
+    fixed projection order (:func:`certicount.dsl.lang.order_projector`) the
+    node may draw. Position 0 is the smallest-id projection."""
+    return [tuple(range(1, p + 1)) + (0,) + tuple(range(p + 1, n)) for p in range(n)]
+
+
 def max_delta(
     program: Program, n: int, dmax: int, graphs, D: int | None = None,
-    privates: int | None = None, seed: int = 0,
+    privates: int | None = None, seed: int = 0, orders: list[tuple[int, ...]] | None = None,
 ) -> Counterexample:
-    """Largest change of the local count of node 0 over ``graphs``.
+    """Largest change of the local count of node 0 over ``graphs`` and
+    projection ``orders`` (default: :func:`self_orders`; one order is used for
+    both sides of a flip, as at run time).
 
     ``privates=None`` enumerates every ``P``; otherwise ``privates`` random
     sets are drawn per graph.
     """
     interp = Interpreter(program)
     D = dmax if D is None else D
+    if orders is None:
+        # sets formed from P alone never hold node 0: one order suffices
+        orders = self_orders(n) if program.uses_rows else self_orders(n)[:1]
+    projectors = [order_projector(o) for o in orders]
     others = list(range(1, n))
     every_set = [frozenset(c) for r in range(n) for c in itertools.combinations(others, r)] if privates is None else []
     rnd = random.Random(seed)
@@ -97,23 +115,23 @@ def max_delta(
     checked = 0
     for rows in graphs:
         table = dict(enumerate(rows))
-
-        def f(p: frozenset) -> float:
-            return interp.local(Env(p, 0, table, n, D=D, dmax=dmax))
-
         if privates is None:
-            values = {p: f(p) for p in every_set}  # each P once; its flips are other P
             sets = every_set
         else:
-            values = None
             sets = [frozenset(v for v in others if rnd.random() < rnd.random()) for _ in range(privates)]
-        for p in sets:
-            y = values[p] if values is not None else f(p)
-            for v in others:
-                d = abs((values[p ^ {v}] if values is not None else f(p ^ {v})) - y)
-                checked += 1
-                if d > best.max_delta + 1e-12:
-                    best = Counterexample(d, tuple(sorted(p)), v, tuple(tuple(sorted(r)) for r in rows))
+        for proj in projectors:
+
+            def f(p: frozenset) -> float:
+                return interp.local(Env(p, 0, table, n, D=D, dmax=dmax, projector=proj))
+
+            values = {p: f(p) for p in every_set} if privates is None else None  # each P once; its flips are other P
+            for p in sets:
+                y = values[p] if values is not None else f(p)
+                for v in others:
+                    d = abs((values[p ^ {v}] if values is not None else f(p ^ {v})) - y)
+                    checked += 1
+                    if d > best.max_delta + 1e-12:
+                        best = Counterexample(d, tuple(sorted(p)), v, tuple(tuple(sorted(r)) for r in rows))
     best.checked = checked
     return best
 

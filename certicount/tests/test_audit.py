@@ -22,12 +22,16 @@ from certicount.audit import (  # noqa: E402
     candidate_flips,
     cp_lower,
     cp_upper,
+    epsilon_from_counts,
     epsilon_lower_bound,
+    laplace_draw,
+    mechanism_outputs,
     parse_update_prompt,
-    privacy_loss,
     projection_bound,
     rule_delta,
     select_flips,
+    select_test,
+    summarize,
 )
 from psc.dp import graph_projection  # noqa: E402
 from psc.graph import Graph  # noqa: E402
@@ -101,7 +105,6 @@ def test_every_neighbouring_input_respects_gs(task):
             assert bound is None or len(after) <= bound
             assert abs(rule_delta(inp, f)) <= gs + 1e-9
 
-
 @pytest.mark.parametrize("task", TASKS)
 def test_selected_flips_are_distinct_valid_and_labelled(task):
     n = 30
@@ -112,10 +115,26 @@ def test_selected_flips_are_distinct_valid_and_labelled(task):
         assert 1 <= len(flips) <= 4
         assert len({f.key for f in flips}) == len(flips)
         assert flips[0].strategy == "S1"
+        assert {f.strategy for f in flips} <= {"S1", "S2"}
+        if task == "degree":
+            assert all(f.strategy == "S1" for f in flips)
         for f in flips:
-            assert f.strategy in ("S1", "S2", "S3", "S4")
-            f.apply(inp.neighbors)
             assert inp.node_id not in f.apply(inp.neighbors)
+
+
+@pytest.mark.parametrize("task", ("3-star", "triangle"))
+def test_worst_case_flip_maximises_the_rule_change(task):
+    n = 30
+    inputs, bound, _ = _inputs(task, n=n)
+    rng = np.random.default_rng(0)
+    for inp in inputs:
+        flips = select_flips(inp, n, bound, 2, rng)
+        s2 = [f for f in flips if f.strategy == "S2"]
+        cands = candidate_flips(inp, n, bound)
+        if not s2 or not cands:
+            continue
+        best = max(abs(rule_delta(inp, f)) for f in cands)
+        assert abs(rule_delta(inp, s2[0])) == pytest.approx(best)
 
 
 def test_kstar_full_list_uses_replacement():
@@ -123,34 +142,9 @@ def test_kstar_full_list_uses_replacement():
     inp = NodeInput("3-star", 0, (1, 2, 3, 4), (), spec.update, spec.state_var, 0.0)
     flips = select_flips(inp, 10, 4, 6, np.random.default_rng(1))
     assert all(f.op in ("remove", "replace") for f in flips)
-    assert any(f.op == "replace" and f.strategy == "S4" for f in flips)
+    assert any(f.op == "replace" for f in flips)
     assert projection_bound("degree", 4) is None and projection_bound("triangle", 4) is None
     assert projection_bound("3-star", 4) == 4
-
-
-def test_privacy_loss_deterministic_and_rule():
-    b = 2.5
-    assert privacy_loss([3.0], [7.0], b) == pytest.approx(4.0 / b)
-    assert privacy_loss([3.0, 3.0], [3.0], b) == pytest.approx(0.0)
-    # mixtures never exceed the loss of their farthest pair and are symmetric
-    ys, ys2 = [0.0, 1.0, 5.0], [2.0, 2.0, 9.0]
-    loss = privacy_loss(ys, ys2, b)
-    assert loss == pytest.approx(privacy_loss(ys2, ys, b))
-    assert loss <= max(abs(a - c) for a in ys for c in ys2) / b + 1e-12
-    # the sup is attained at a support point or a tail: no grid point beats it
-    from certicount.audit import mixture_logpdf
-    grid = np.linspace(-50, 60, 20001)
-    assert max(abs(mixture_logpdf(z, ys, b) - mixture_logpdf(z, ys2, b)) for z in grid) <= loss + 1e-9
-
-
-@pytest.mark.parametrize("task", TASKS)
-def test_rule_function_loss_is_at_most_eps3(task):
-    n, eps3 = 30, 0.8
-    inputs, bound, gs = _inputs(task, n=n)
-    for inp in inputs:
-        for f in candidate_flips(inp, n, bound):
-            y, y2 = inp.rule_value(), inp.with_neighbors(f.apply(inp.neighbors)).rule_value()
-            assert privacy_loss([y], [y2], gs / eps3) <= eps3 + 1e-9
 
 
 def test_clopper_pearson_bounds():
@@ -159,19 +153,52 @@ def test_clopper_pearson_bounds():
     assert cp_lower(0, 10, 0.05) == 0.0 and cp_upper(10, 10, 0.05) == 1.0
     lo, hi = cp_lower(5, 20, 0.025), cp_upper(5, 20, 0.025)
     assert lo < 0.25 < hi
+    # large n: no overflow, exact closed form at k = 0
+    assert cp_upper(0, 5000, 0.05) == pytest.approx(1 - 0.05 ** (1 / 5000), rel=1e-5)
 
 
-def test_epsilon_lower_bound():
-    b = 1.0
-    # identical deterministic outputs: nothing to detect
-    eps, _ = epsilon_lower_bound([4.0] * 3, [4.0] * 3, [4.0] * 200, [4.0] * 200, b)
-    assert eps == 0.0
-    # a large deterministic gap is certified, but never above the true loss
-    eps, ev = epsilon_lower_bound([0.0] * 3, [10.0] * 3, [0.0] * 200, [10.0] * 200, b)
-    assert 2.0 < eps <= 10.0 and ev is not None
-    # more evaluation samples give a tighter bound
-    eps_small, _ = epsilon_lower_bound([0.0] * 3, [10.0] * 3, [0.0] * 30, [10.0] * 30, b)
-    assert eps_small < eps
+def test_epsilon_from_counts_is_jagielski_bound():
+    n, a = 200, 0.05
+    assert epsilon_from_counts(n, n, 0, n, a) == pytest.approx(math.log(cp_lower(n, n, a / 2) / cp_upper(0, n, a / 2)))
+    assert epsilon_from_counts(0, n, 0, n, a) == -math.inf
+    assert epsilon_from_counts(100, n, 100, n, a) < 0
+
+
+def test_laplace_draws_are_reproducible_and_independent():
+    assert laplace_draw("k", "eval", 3) == laplace_draw("k", "eval", 3)
+    draws = [laplace_draw("k", "eval", r) for r in range(4000)]
+    assert len(set(draws)) == len(draws)
+    assert np.mean(np.abs(draws)) == pytest.approx(1.0, abs=0.06)  # E|Lap(1)| = 1
+    assert laplace_draw("k", "select", 3) != laplace_draw("k", "eval", 3)
+
+
+def _trials(values, phase, start=0):
+    return [{"value": v, "status": "json", "phase": phase, "rep": start + i} for i, v in enumerate(values)]
+
+
+def test_bound_never_exceeds_the_true_epsilon_of_an_exact_mechanism():
+    """f(x) = 3, f(x') = 4, GS 1, ε3 2: the mechanism is exactly 2-DP, so ε_lb ≤ 2
+    must fail with probability at most α (here: never over 20 seeds)."""
+    b = 0.5
+    for seed in range(20):
+        z = mechanism_outputs(_trials([3.0] * 20, "select"), "x", b, seed)
+        z2 = mechanism_outputs(_trials([4.0] * 20, "select"), "x2", b, seed)
+        e = mechanism_outputs(_trials([3.0] * 1000, "eval"), "x", b, seed)
+        e2 = mechanism_outputs(_trials([4.0] * 1000, "eval"), "x2", b, seed)
+        eps_lb, test, counts = epsilon_lower_bound(z, z2, e, e2, 0.05)
+        assert 0.0 <= eps_lb <= 2.0 and test is not None and counts["n_num"] == 1000
+
+
+def test_bound_detects_an_edge_dependent_error():
+    """L(x') = f(x') + 2 on the neighbour only: true loss 6 > ε3 = 2."""
+    b = 0.5
+    z = mechanism_outputs(_trials([3.0] * 20, "select"), "x", b)
+    z2 = mechanism_outputs(_trials([6.0] * 20, "select"), "x2", b)
+    e = mechanism_outputs(_trials([3.0] * 500, "eval"), "x", b)
+    e2 = mechanism_outputs(_trials([6.0] * 500, "eval"), "x2", b)
+    eps_lb, test, _ = epsilon_lower_bound(z, z2, e, e2, 0.05)
+    assert 2.0 < eps_lb <= 6.0
+    assert select_test(z, z2, 0.05) == test
 
 
 def _spec(task="degree", gs=1.0, f_x=3.0, f_x2=4.0) -> PairSpec:
@@ -183,21 +210,44 @@ def _spec(task="degree", gs=1.0, f_x=3.0, f_x2=4.0) -> PairSpec:
     )
 
 
-def _samples(values, phase="main", status="json"):
-    return [{"value": v, "status": status, "phase": phase} for v in values]
+def _both(values, values2, n_sel=20, n_eval=400):
+    x = _trials([values[0]] * n_sel, "select") + _trials([values[0]] * n_eval, "eval")
+    x2 = _trials([values2[0]] * n_sel, "select") + _trials([values2[0]] * n_eval, "eval")
+    return x, x2
 
 
-def test_analyze_pair_classification():
-    ok = analyze_pair(_spec(), _samples([3, 3, 3]), _samples([4, 4, 4]))
-    assert not ok["robust_violation"] and not ok["suspect"] and ok["eps_emp"] == pytest.approx(2.0)
-    bad = analyze_pair(_spec(), _samples([3, 3, 3]), _samples([6, 6, 6]))
-    assert bad["robust_violation"] and bad["eps_emp"] == pytest.approx(6.0) and bad["exec_error2"] == 1.0
-    jitter = analyze_pair(_spec(), _samples([3, 3, 3]), _samples([4, 4, 7]))
-    assert not jitter["robust_violation"] and jitter["jitter2"] and jitter["suspect"]
-    followed = analyze_pair(
-        _spec(), _samples([3, 3, 3]) + _samples([3] * 100, "followup"), _samples([6, 6, 6]) + _samples([6] * 100, "followup"),
-    )
-    assert followed["eps_lb"] is not None and followed["confirmed"]
+def test_analyze_pair_requires_both_phases():
+    row = analyze_pair(_spec(), _trials([3, 3, 3], "select"), _trials([4, 4, 4], "select"))
+    assert row["eps_lb"] is None and row["violation"] is None and row["group"] == "random"
+
+
+def test_analyze_pair_exact_and_violating_models():
+    ok = analyze_pair(_spec(), *_both([3.0], [4.0]))
+    assert ok["eps_lb"] is not None and ok["eps_lb"] <= 2.0 and ok["violation"] is False
+    assert ok["exec_error"] == 0 and ok["exec_error2"] == 0 and ok["delta_llm_max"] == 1
+    bad = analyze_pair(_spec(), *_both([3.0], [6.0]))
+    assert bad["violation"] is True and bad["eps_lb"] > 2.0 and bad["exec_error2"] == 1.0
+    assert bad["counts"]["n_num"] == 400 and bad["test"] is not None
+
+
+def test_input_independent_errors_are_not_violations():
+    """L = f + U with U = ±1 independent of the input is post-processing of a
+    2-DP mechanism: the lower bound must stay below ε3."""
+    rng = np.random.default_rng(0)
+    u = lambda n: list(rng.choice([-1.0, 1.0], size=n))  # noqa: E731
+    x = _trials([3.0 + d for d in u(20)], "select") + _trials([3.0 + d for d in u(1000)], "eval")
+    x2 = _trials([4.0 + d for d in u(20)], "select") + _trials([4.0 + d for d in u(1000)], "eval")
+    row = analyze_pair(_spec(), x, x2)
+    assert row["delta_llm_max"] == 3 and row["violation"] is False and row["eps_lb"] <= 2.0
+
+
+def test_summary_counts_violations():
+    rows = [analyze_pair(_spec(), *_both([3.0], [4.0])), analyze_pair(_spec(), *_both([3.0], [6.0])),
+            analyze_pair(_spec(), _trials([3], "select"), _trials([4], "select"))]
+    (s,) = summarize(rows, ("dataset",))
+    assert s["pairs"] == 3 and s["tested"] == 2 and s["violations"] == 1
+    assert s["eps_lb_max"] == rows[1]["eps_lb"]
+    assert "total_eps_lower_bound" not in s
 
 
 def test_parse_update_reply_matches_node_agent():
@@ -206,41 +256,72 @@ def test_parse_update_reply_matches_node_agent():
     assert parse_update_reply("", "Degree") == (None, "failed")
 
 
-def test_mock_audit_end_to_end(tmp_path):
-    """The rule-following mock never violates GS; an error-injecting mock is caught."""
-    import asyncio
-
-    from psc.models import ModelConfig
+def _load_script():
     import importlib.util
 
-    spec_ = importlib.util.spec_from_file_location("audit_script", Path(__file__).resolve().parents[1] / "scripts" / "run_sensitivity_audit.py")
+    spec_ = importlib.util.spec_from_file_location(
+        "audit_script", Path(__file__).resolve().parents[1] / "scripts" / "run_sensitivity_audit.py")
     script = importlib.util.module_from_spec(spec_)
     spec_.loader.exec_module(script)
+    return script
 
-    inputs, _, _ = _inputs("degree", n=12)
+
+def _degree_plan(script, n=12, pairs=2):
+    inputs, _, _ = _inputs("degree", n=n)
     rng = np.random.default_rng(0)
     plan = {"inputs": {}, "pairs": [], "checks": {}}
     for inp in inputs:
         k = script._input_key(inp)
         plan["inputs"][k] = script._input_dict(inp)
-        for j, f in enumerate(select_flips(inp, 12, None, 3, rng)):
+        for j, f in enumerate(select_flips(inp, n, None, pairs, rng)):
             inp2 = inp.with_neighbors(f.apply(inp.neighbors))
             k2 = script._input_key(inp2)
             plan["inputs"][k2] = script._input_dict(inp2)
             s = _spec(f_x=inp.rule_value(), f_x2=inp2.rule_value())
             s.x_key, s.x2_key, s.pair_id, s.node_id, s.strategy = k, k2, f"n{inp.node_id}p{j}", inp.node_id, f.strategy
             plan["pairs"].append(s.to_dict())
-    jobs = [(k, rep, "main") for k in plan["inputs"] for rep in range(2)]
-    for rate, expect_violation in ((0.0, False), (1.0, True)):
-        out = tmp_path / f"rate{rate}"
-        out.mkdir()
-        cfg = ModelConfig(provider="mock", mock_error_rate=rate)
-        asyncio.run(script.sample_inputs(cfg, plan, jobs, out, "test"))
-        rows = script.analyze(plan, script._load_samples(out / "samples.jsonl"), "mock", 0.05)
-        assert len(rows) == len(plan["pairs"])
-        if not expect_violation:
-            assert all(r["exec_error"] == 0 and r["exec_error2"] == 0 for r in rows)
-            assert not any(r["robust_violation"] or r["suspect"] for r in rows)
-            assert all(r["eps_emp"] <= 2.0 + 1e-9 for r in rows)
-        else:
-            assert any(r["robust_violation"] or r["suspect"] for r in rows)
+    return plan
+
+
+@pytest.mark.parametrize("rate", (0.0, 1.0))
+def test_mock_audit_end_to_end_has_no_false_violation(tmp_path, rate):
+    """The rule-following mock and the mock with input-independent ±1 slips are
+    both ε3-DP after the Laplace noise: no pair may be reported as a violation."""
+    import asyncio
+
+    from psc.models import ModelConfig
+
+    script = _load_script()
+    plan = _degree_plan(script)
+    jobs = script.trial_jobs(plan, 10, 60)
+    cfg = ModelConfig(provider="mock", mock_error_rate=rate)
+    asyncio.run(script.sample_inputs(cfg, plan, jobs, tmp_path, "test"))
+    rows = script.analyze(plan, script._load_samples(tmp_path / "samples.jsonl"), "mock", 0.05)
+    assert len(rows) == len(plan["pairs"])
+    assert all(r["alpha_pair"] == pytest.approx(0.05 / len(rows)) for r in rows)
+    assert not any(r["violation"] for r in rows)
+    if rate == 0.0:
+        assert all(r["exec_error"] == 0 and r["exec_error2"] == 0 for r in rows)
+
+
+def test_audit_end_to_end_detects_an_edge_dependent_model(tmp_path, monkeypatch):
+    """A model that reports 3·|P|: every flip moves it by 3 > GS = 1, so the true
+    loss is 6 > ε3 = 2."""
+    import asyncio
+    import json
+
+    from psc.models import ModelConfig
+
+    script = _load_script()
+    plan = _degree_plan(script)
+
+    async def fake_chat(model, formatter, system, prompt, agent=None):
+        inp = parse_update_prompt("degree", strip_structured(prompt))
+        return json.dumps({inp.state_var: 3 * len(inp.neighbors)})
+
+    monkeypatch.setattr(script, "chat", fake_chat)
+    jobs = script.trial_jobs(plan, 10, 300)
+    asyncio.run(script.sample_inputs(ModelConfig(provider="mock"), plan, jobs, tmp_path, "test"))
+    rows = script.analyze(plan, script._load_samples(tmp_path / "samples.jsonl"), "fake", 0.05)
+    assert rows and all(r["violation"] for r in rows)
+    assert all(2.0 < r["eps_lb"] <= 6.0 for r in rows)

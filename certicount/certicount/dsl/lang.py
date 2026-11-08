@@ -347,8 +347,51 @@ Projector = Callable[[frozenset, int], frozenset]
 
 
 def smallest_projector(s: frozenset, k: int) -> frozenset:
-    """Deterministic projection: keep the ``k`` smallest ids."""
+    """Deterministic projection: keep the ``k`` smallest ids (the order projector
+    of the identity order)."""
     return s if len(s) <= k else frozenset(sorted(s)[: max(0, int(k))])
+
+
+def order_projector(order) -> Projector:
+    """``project(S, k)`` keeps the ``k`` elements of ``S`` that come first in
+    ``order`` (a sequence of node ids, e.g. a random permutation; ids not in it
+    come last, by id).
+
+    This is the projection semantics the sensitivity deriver assumes: one
+    priority order per execution, fixed before ``P`` is read and used by every
+    ``project`` call. Then ``project(project(S, a), b) = project(S, b)`` for
+    ``b <= a``, and the projections of neighbouring sets are at most one
+    replacement apart. A random order gives each ``project(P, k)`` the
+    distribution of a uniform ``k``-subset, as PSC's projection does; mixing
+    a separately drawn subset for one call with another rule for the others
+    breaks both properties (``tests/test_trust.py``)."""
+    rank = {int(v): i for i, v in enumerate(order)}
+    last = len(rank)
+
+    def projector(s: frozenset, k: int) -> frozenset:
+        k = max(0, int(k))
+        return s if len(s) <= k else frozenset(sorted(s, key=lambda v: (rank.get(v, last), v))[:k])
+
+    return projector
+
+
+def node_projector(n: int, private, kept, rng) -> Projector:
+    """The projection of one node for one run, consistent with a list ``kept``
+    already drawn as a uniform subset of ``private`` (PSC's projection, so the
+    random numbers of the run do not change).
+
+    The order is a uniform random permutation of ``0 .. n-1`` conditioned on
+    the elements of ``kept`` preceding the rest of ``private``; as ``kept`` is
+    itself the first ``|kept|`` elements of ``private`` under a uniform order,
+    the order is marginally uniform and independent of ``private``, and
+    ``project(private, |kept|) == kept``. The extra randomness comes from a
+    child stream of ``rng`` (``Generator.spawn``), which does not advance ``rng``."""
+    sigma = rng.spawn(1)[0].permutation(n).tolist()
+    p, r = frozenset(private), frozenset(kept)
+    if not r <= p:
+        raise ValueError("the kept list must be a subset of the private set")
+    first = iter([v for v in sigma if v in r] + [v for v in sigma if v in p and v not in r])
+    return order_projector([next(first) if v in p else v for v in sigma])
 
 
 @dataclass

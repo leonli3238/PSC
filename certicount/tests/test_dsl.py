@@ -70,6 +70,42 @@ def test_interpreter_matches_reproduction_rules():
         assert ks.local(env_k) == rules.update_kstar(projected, 3)
 
 
+def test_order_projector_nests_and_couples_neighbours():
+    from certicount.dsl.lang import order_projector
+
+    rng = np.random.default_rng(0)
+    for _ in range(200):
+        proj = order_projector(rng.permutation(12).tolist())
+        s = frozenset(int(x) for x in rng.choice(12, size=int(rng.integers(0, 12)), replace=False))
+        for a in range(8):
+            for b in range(a + 1):
+                assert proj(proj(s, a), b) == proj(s, b)
+            for v in range(12):
+                assert len(proj(s, a) ^ proj(s ^ {v}, a)) <= 2  # at most one replacement
+
+
+def test_node_projector_order_is_uniform_and_independent_of_p():
+    """The completed order is a uniform permutation whatever ``P`` is."""
+    from collections import Counter
+
+    from certicount.dsl.lang import node_projector
+
+    n, samples = 4, 12000
+    full = frozenset(range(n))
+    for private, k in (((1, 2, 3), 1), ((1,), 1), ((0, 2), 1), ((), 0)):
+        rng = np.random.default_rng(len(private))
+        seen = Counter()
+        for _ in range(samples):
+            kept = project_neighbor_list(list(private), k, rng)
+            proj = node_projector(n, private, kept, rng)
+            assert proj(frozenset(private), k) == frozenset(kept)
+            seen[tuple(sorted(range(n), key=lambda v: min(i for i in range(1, n + 1) if v in proj(full, i))))] += 1
+        assert len(seen) == 24
+        expected = samples / 24
+        chi2 = sum((c - expected) ** 2 / expected for c in seen.values())
+        assert chi2 < 60  # 23 degrees of freedom: P(chi2 > 60) < 1e-4
+
+
 @pytest.mark.parametrize("task", list(PROGRAMS))
 def test_falsifier_finds_no_counterexample_and_bound_is_tight(task):
     prog = PROGRAMS[task].parse()

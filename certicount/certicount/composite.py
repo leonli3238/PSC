@@ -33,7 +33,7 @@ from psc.mechanism import DEFAULT_MECHANISM, get_mechanism
 from psc.models import chat
 from psc.prompts import extract_json
 
-from .dsl.lang import Env, Interpreter, Program, smallest_projector
+from .dsl.lang import Env, Interpreter, Program, node_projector, smallest_projector
 from .dsl.library import PROGRAMS
 from .dsl.sensitivity import PublicParams, derive
 from .dsl.utility import reference_counter
@@ -168,8 +168,9 @@ def run_composite(graph: Graph, plan: CompositePlan, eps: float, rng: np.random.
             noisy = graph_projection(noisy, D, rng)
     params = PublicParams(n, D=D, dmax=D)
     rows = dict(enumerate(noisy.adj)) if noisy is not None else {}
-    projected = [frozenset(project_neighbor_list(graph.neighbors(i), D, rng)) if D is not None else frozenset(graph.adj[i])
-                 for i in range(n)]
+    # one projection order per node (PSC's projected list, completed to an order), shared by every subquery
+    projectors = [node_projector(n, graph.adj[i], project_neighbor_list(graph.neighbors(i), D, rng), rng)
+                  if D is not None else smallest_projector for i in range(n)]
 
     estimates: dict[str, float] = {}
     details: dict[str, dict] = {}
@@ -185,10 +186,7 @@ def run_composite(graph: Graph, plan: CompositePlan, eps: float, rng: np.random.
         interp = Interpreter(prog)
         total = 0.0
         for i in range(n):
-            real = frozenset(graph.adj[i])
-            # one projection per node, shared by every subquery (drawn once above)
-            env = Env(real, i, rows, n, D=D or 0, dmax=D or 0,
-                      projector=lambda s, k, i=i, real=real: projected[i] if s == real and k == D else smallest_projector(s, k))
+            env = Env(frozenset(graph.adj[i]), i, rows, n, D=D or 0, dmax=D or 0, projector=projectors[i])
             total += interp.local(env) + laplace_noise(gs, alloc["eps3"], rng)
         estimates[alias] = interp.aggregate(total, n)
         details[alias] = {"task": task, "source": "laplace_report", "eps": alloc["eps3"], "gs": gs}

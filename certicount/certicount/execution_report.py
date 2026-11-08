@@ -59,7 +59,6 @@ def summarize(ds: str, task: str, mode: str, method: str, n: int, eps: float, re
         "llm_calls": float(np.mean([r.llm_calls for r in results])) if results else None,
         "llm_calls_total": int(sum(r.llm_calls for r in results)),
         "node_llm_calls": float(np.mean([r.extra.get("node_llm_calls", 0) for r in ok])) if ok else None,
-        "guard_fallbacks": sum(t["guard_fallbacks"] for t in trust) if trust else None,
         "rejected_messages": sum(t["messages_rejected"] for t in trust) if trust else None,
         "violations": sum(len(t["violations"]) for t in trust) if trust else None,
         "ci_covers_truth": float(np.mean([iv["covers_truth"] for iv in ivs])) if ivs else None,
@@ -110,7 +109,7 @@ def markdown(rows: Sequence[dict], header: str, gt_runs: int | None) -> str:
                 "design_error_se", "design_exact", "both_zero", "noise_ratio", "split_match", "design_mode",
                 "design_restarts", "design_iterations", "llm_calls_total", "search_score", "program"]
     detail_cols = ["dataset", "task", "eps", "mode", "runs", "relative_error", "rule_relative_error", "exec_exact",
-                   "node_e2e_acc", "aggregate_acc", "llm_calls", "node_llm_calls", "guard_fallbacks",
+                   "node_e2e_acc", "aggregate_acc", "llm_calls", "node_llm_calls",
                    "rejected_messages", "violations", "ci_covers_truth"]
     dsl_rows = [r for r in rows if r["mode"] == "program"]
     piv, piv_cols = pivot(rows)

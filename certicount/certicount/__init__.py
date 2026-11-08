@@ -2,7 +2,7 @@
 
 Research code of the thesis proposal (``docs/OPENING_REPORT_FINAL_2026-10-18.md``):
 sensitivity audit of LLM node agents, node-side binding and message validation,
-guarded and programmatic (DSL) execution, cost and composite-query accounting.
+programmatic (DSL) execution, cost and composite-query accounting.
 
 The paper reproduction (sibling directory ``../psc``, formerly
 ``../psc-reproduction``) is a frozen dependency: its ``psc`` package provides
