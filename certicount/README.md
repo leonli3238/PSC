@@ -269,6 +269,10 @@ x 与 x′ 的输出始终相差 ≤ 1 时损失不超过 ε3，越界需要输�
   越界按 eval 样本严格分为 count（两侧全为 JSON）/ number_fallback / failed，真实节点与构造输入分开报告。
 - **迁移**：`--pairs confirmed:<1.7B 的 confirm_main>` 在新模型上逐字重测（新模型没有筛查样本，需 `--select 30`）；
   `--pairs random` 为同一批随机对；`report` 汇总迁移保持率与模型 × 度数区间表。
+- **多样化与节点级**：`--pairs top:40 --per-node 2` 同一节点最多 2 对；`--pairs nodes` 对每个入选真实节点取筛查中
+  |Δ| 最大的一对（无候选的节点计入分母），报告各度数区间“确认越界的节点数 / 入选节点数”（越界节点比例的下界）。
+- **联合校正**：`report --family-alpha 0.05 [--sets a,b] [--family-scope all|model]` 把所选确认集的全部对合并做
+  Bonferroni（α/M），用已存的 eval 计数重算 ε_lb，不需要新调用；联合结论以这一节的数字为准。
 
 ```bash
 python scripts/run_degree_probe.py init --out _probe_mock --provider mock --mock-mode edge   # 负对照：exact / bias / random / edge

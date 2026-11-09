@@ -76,12 +76,16 @@ from certicount.probe import (  # noqa: E402
     build_plan,
     check_plan,
     degree_bin,
+    family_recompute,
     load_graph,
+    node_level_pairs,
+    node_table,
     plan_hash,
     plan_inputs,
     rank_candidates,
     screen_pair,
     summary_tables,
+    top_pairs,
     violation_rate_upper,
 )
 from certicount.probe_client import load_jsonl, make_client, missing_jobs, run_jobs  # noqa: E402
@@ -502,15 +506,37 @@ def cmd_rank(a) -> None:
 # ---------------------------------------------------------------------------
 
 
-def resolve_pairs(d: Path, plan: dict, spec: str) -> tuple[list[str], dict]:
+def locate(path: str | Path, hint: Path | None = None) -> Path:
+    """A path recorded in a design (absolute, possibly on another machine):
+    as is, else ``<run>/<confirm set>/<file>`` under the result root or next to
+    ``hint``'s run directory.  Exits when nothing is found (never a silent 0)."""
+    p = Path(path)
+    if p.exists():
+        return p
+    tail = p.parts[-3:]
+    roots = [DEFAULT_ROOT] + ([hint.parent] if hint is not None else [])
+    for root in roots:
+        q = root.joinpath(*tail)
+        if q.exists():
+            return q
+    sys.exit(f"cannot find {p} (also tried {', '.join(str(r.joinpath(*tail)) for r in roots)})")
+
+
+def resolve_pairs(d: Path, plan: dict, spec: str, per_node: int | None = None) -> tuple[list[str], dict]:
     by_id = {p["pair_id"] for p in plan["pairs"]}
     if spec.startswith("top:"):
         m = int(spec[4:])
         path = d / "screen" / "candidates.jsonl"
         if not path.exists():
             sys.exit("no screen/candidates.jsonl: run `screen` first")
-        ids = [c["pair_id"] for c in load_jsonl(path)][:m]
-        return ids, {"source": "screen_top", "top": m}
+        ids = top_pairs(load_jsonl(path), m, per_node)
+        return ids, {"source": "screen_top", "top": m, "per_node": per_node}
+    if spec == "nodes":
+        path = d / "screen" / "pairs.jsonl"
+        if not path.exists():
+            sys.exit("no screen/pairs.jsonl: run `screen` first (the node-level design needs this model's screen)")
+        ids, universe = node_level_pairs(plan, load_jsonl(path))
+        return ids, {"source": "nodes", "universe": universe}
     if spec == "random":
         return [p["pair_id"] for p in plan["pairs"] if p.get("random_ref")], {"source": "random_ref"}
     if spec.startswith("confirmed:") or spec.startswith("file:"):
@@ -526,7 +552,7 @@ def resolve_pairs(d: Path, plan: dict, spec: str) -> tuple[list[str], dict]:
         if bad:
             sys.exit(f"{len(bad)} pair ids are not in this plan, e.g. {bad[0]}")
         return ids, {"source": spec.split(":", 1)[0], "path": str(path)}
-    sys.exit(f"unknown --pairs {spec!r} (top:N | random | confirmed:DIR | file:PATH)")
+    sys.exit(f"unknown --pairs {spec!r} (top:N [--per-node K] | nodes | random | confirmed:DIR | file:PATH)")
 
 
 def cmd_confirm(a) -> None:
@@ -537,14 +563,19 @@ def cmd_confirm(a) -> None:
     screen = samples_by_key(d / "screen" / "samples.jsonl", "screen")
     if (cdir / "design.json").exists():
         design = read_json(cdir / "design.json")
-        for k, v in (("eval", a.eval), ("eval_jitter", a.eval_jitter), ("select", a.select), ("alpha", a.alpha)):
+        for k, v in (("eval", a.eval), ("eval_jitter", a.eval_jitter), ("select", a.select), ("alpha", a.alpha),
+                     ("pairs_spec", a.pairs)):
             if design[k] != v:
                 sys.exit(f"{cdir}: design has {k}={design[k]}, got {v} (use another --name for a new design)")
+        if design["pair_source"].get("per_node") != a.per_node and design["pair_source"]["source"] == "screen_top":
+            sys.exit(f"{cdir}: design has per_node={design['pair_source'].get('per_node')}, got {a.per_node}")
         ids = design["pair_ids"]
     else:
-        ids, src = resolve_pairs(d, plan, a.pairs)
+        ids, src = resolve_pairs(d, plan, a.pairs, a.per_node)
         ids = list(dict.fromkeys(ids))
         if not ids:
+            if src.get("universe") is not None:
+                write_json(cdir / "nodes_universe.json", src["universe"])
             sys.exit("no pairs to confirm (zero screen candidates or empty list): report the screen result")
         jittery = []
         for i in ids:
@@ -610,17 +641,33 @@ def analyze_confirm(d: Path, settings: dict, plan: dict, cdir: Path, design: dic
     tables = summary_tables(rows)
     tested = tables["overall"]["tested"]
     tables["overall"]["violation_share_upper95"] = violation_rate_upper(len(viol), tested)
+    universe = design["pair_source"].get("universe")
+    if universe is not None:
+        tables["nodes"] = node_table(universe, rows)
     summary = {"design": {k: v for k, v in design.items() if k != "pair_ids"}, "model": settings["node_model"], **tables}
     write_json(cdir / "summary.json", summary)
     o = tables["overall"]
+    node_md = ""
+    if universe is not None:
+        node_md = ("## Node level (one most suspicious pair per selected real node)\n\n"
+                   "`confirmed_share` is a lower bound on the share of violating nodes among the selected nodes "
+                   "of the bin (unconfirmed nodes may still violate; hub nodes are all PM nodes of degree > 30, "
+                   "the other bins are samples).\n\n"
+                   + md_table(tables["nodes"], ["bin", "nodes", "with_candidate", "tested", "confirmed",
+                                                "confirmed_share"]) + "\n")
     md = (f"# Confirm `{design['name']}` — {settings['node_model']}\n\n"
-          f"pairs {design['m']} ({design['pairs_spec']}), family α = {design['alpha']}, per pair α/m = "
+          f"pairs {design['m']} ({design['pairs_spec']}"
+          + (f", per node ≤ {design['pair_source']['per_node']}" if design["pair_source"].get("per_node") else "")
+          + f"), family α = {design['alpha']}, per pair α/m = "
           f"{design['alpha_pair']:.2e}, eval trials per side {design['eval']} (jittery pairs {design['eval_jitter']}), "
           f"extra selection trials {design['select']}\n\n"
           f"**violations (ε_lb > ε3 = {plan['eps'][2]}): {o['violations']} / {o['tested']}**, of which real-node "
           f"count-error type {o['violations_real_count']}; ε_lb max {_fmt(o['eps_lb_max'])}, median "
-          f"{_fmt(o['eps_lb_median'])}; max observed |Δ| {_fmt(o['max_delta_llm'])} (descriptive)\n\n"
+          f"{_fmt(o['eps_lb_median'])}; max observed |Δ| {_fmt(o['max_delta_llm'])} (descriptive); "
+          f"distinct inputs x among the pairs {len({r['x_key'] for r in rows})}, among the violations "
+          f"{len({r['x_key'] for r in viol})}\n\n"
           "An audit only refutes: zero violations is no evidence of privacy.\n\n"
+          + node_md +
           "## Violations by kind × bin × category\n\n"
           + md_table(tables["violations_by_category"], ["kind", "bin", "category", "violations"])
           + "\n## By kind × bin × family\n\n"
@@ -643,8 +690,9 @@ def analyze_confirm(d: Path, settings: dict, plan: dict, cdir: Path, design: dic
 
 def cmd_report(a) -> None:
     runs = [out_dir(r) for r in a.runs]
-    rows, bins, transfer = [], [], []
-    confirmed_sets: dict[str, set] = {}
+    want = set(a.sets.split(",")) if a.sets else None
+    rows, bins, transfer, nodes = [], [], [], []
+    family_sets: dict[str, dict[str, list[dict]]] = defaultdict(dict)
     for d in runs:
         settings = read_json(d / "settings.json")
         model = settings["node_model"]
@@ -657,24 +705,47 @@ def cmd_report(a) -> None:
                 continue
             s = read_json(cdir / "summary.json")
             o, des = s["overall"], s["design"]
+            if want is not None and des["name"] not in want:
+                continue
             rows.append({"model": model, "set": des["name"], "source": des["pair_source"]["source"], **o})
-            ids = {r["pair_id"] for r in load_jsonl(cdir / "confirmed.jsonl")}
-            confirmed_sets[str(cdir)] = ids
+            pair_rows = load_jsonl(cdir / "pairs.jsonl")
+            scope = "all" if a.family_scope == "all" else model
+            family_sets[scope][f"{model}/{des['name']}"] = pair_rows
+            ids = {r["pair_id"] for r in pair_rows if r.get("violation")}
+            for n in s.get("nodes", []):
+                nodes.append({"model": model, "set": des["name"], **n})
             src = des["pair_source"].get("path")
             if des["pair_source"]["source"] == "confirmed" and src:
-                src_ids = {r["pair_id"] for r in load_jsonl(Path(src))}
-                cats = Counter(r["category"] for r in load_jsonl(Path(src)))
-                transfer.append({"model": model, "set": des["name"], "from": str(Path(src).parent.parent.name),
+                src_path = locate(src, d)
+                src_rows = load_jsonl(src_path)
+                src_ids = {r["pair_id"] for r in src_rows}
+                cats = Counter(r["category"] for r in src_rows)
+                transfer.append({"model": model, "set": des["name"], "from": src_path.parent.parent.name,
                                  "source_violations": len(src_ids), "retained": len(ids & src_ids),
                                  "retention": len(ids & src_ids) / len(src_ids) if src_ids else None,
                                  "source_categories": dict(cats)})
+    family, family_totals = [], []
+    for scope, sets in family_sets.items():
+        fr, tot = family_recompute(sets, a.family_alpha)
+        family += [{"scope": scope, **r} for r in fr]
+        family_totals.append({"scope": scope, **tot})
     outd = out_dir(a.report_dir) if a.report_dir else (DEFAULT_ROOT / "probe_report")
     outd.mkdir(parents=True, exist_ok=True)
     write_json(outd / "report.json", {"runs": [str(r) for r in runs], "confirm": rows, "screen_bins": bins,
-                                      "transfer": transfer})
-    md = ("# Degree probe report\n\n## Confirmation sets\n\n"
+                                      "transfer": transfer, "nodes": nodes, "family": family,
+                                      "family_totals": family_totals})
+    md = ("# Degree probe report\n\n## Confirmation sets (each at its own family α)\n\n"
           + md_table(rows, ["model", "set", "source", "pairs", "tested", "violations", "violations_real_count",
                             "violation_share_upper95", "eps_lb_max", "eps_lb_median", "max_delta_llm"])
+          + f"\n## Joint Bonferroni over the sets (family α = {a.family_alpha}, scope = {a.family_scope})\n\n"
+          "Every tested pair of the scope is re-bounded at α/M from its stored evaluation counts (the test was "
+          "chosen on selection trials only); these are the numbers for a single joint claim.\n\n"
+          + md_table(family_totals, ["scope", "M", "alpha_pair", "violations_family", "violations_family_real_count"])
+          + "\n" + md_table(family, ["scope", "set", "tested", "violations_design", "violations_family",
+                                    "violations_family_real_count", "eps_lb_family_max"])
+          + "\n## Node level\n\n"
+          + md_table(nodes, ["model", "set", "bin", "nodes", "with_candidate", "tested", "confirmed",
+                             "confirmed_share"])
           + "\n## Transfer of confirmed violations\n\n"
           + md_table(transfer, ["model", "set", "from", "source_violations", "retained", "retention"])
           + "\n## Screen: execution by model × degree bin\n\n"
@@ -771,7 +842,9 @@ def main() -> None:
     p = sub.add_parser("confirm")
     common(p)
     p.add_argument("--name", required=True, help="confirmation set name (one design per name)")
-    p.add_argument("--pairs", default="top:40", help="top:N | random | confirmed:DIR | file:PATH")
+    p.add_argument("--pairs", default="top:40", help="top:N | nodes | random | confirmed:DIR | file:PATH")
+    p.add_argument("--per-node", type=int, default=None,
+                   help="with top:N, at most K pairs per input x (one real node = one input)")
     p.add_argument("--eval", type=int, default=300)
     p.add_argument("--eval-jitter", type=int, default=500, help="eval trials for pairs that jittered in the screen")
     p.add_argument("--select", type=int, default=20,
@@ -784,6 +857,10 @@ def main() -> None:
     common(p, needs_out=False)
     p.add_argument("--runs", nargs="+", required=True)
     p.add_argument("--report-dir")
+    p.add_argument("--sets", help="comma list of confirmation set names to include (default: all)")
+    p.add_argument("--family-alpha", type=float, default=0.05, help="family level of the joint Bonferroni")
+    p.add_argument("--family-scope", choices=("all", "model"), default="all",
+                   help="one joint family over every included set, or one family per model")
     p.set_defaults(fn=cmd_report)
 
     a = ap.parse_args()

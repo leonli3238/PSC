@@ -9,7 +9,8 @@
 #   scripts/probe_h20.sh main 1.7b                 # screen + confirm main (top 40) + confirm random
 #   scripts/probe_h20.sh transfer 8b               # confirm the 1.7B violations + same random pairs
 #   scripts/probe_h20.sh rescreen 8b [N]           # independent hub screen (N = max pairs per node, default all)
-#   scripts/probe_h20.sh report 1.7b 4b 8b         # cross-model tables
+#   scripts/probe_h20.sh boundary 8b               # screen if missing + diversified top 40 + node-level design
+#   scripts/probe_h20.sh report 1.7b 4b 8b         # cross-model tables, joint Bonferroni over all sets
 #
 # Environment: PY (project python), VLLM_BIN, MODELS (model directories), OUT (result root).
 set -euo pipefail
@@ -77,8 +78,17 @@ case $cmd in
     init_run "$1"; d=$(rundir "$1"); cap=${2:-}
     probe screen --out "$d" --only hub ${cap:+--max-per-node "$cap"}
     if [ -s "$d/screen/candidates.jsonl" ]; then probe confirm --out "$d" --name rescreen --pairs top:40; fi ;;
+  boundary)
+    # full screen of this model if missing, then the diversified top-40 (≤ 2 pairs per node) and the
+    # node-level design (one most suspicious pair per selected node)
+    init_run "$1"; d=$(rundir "$1")
+    [ -s "$d/screen/pairs.jsonl" ] || probe screen --out "$d"
+    if [ -s "$d/screen/candidates.jsonl" ]; then
+      probe confirm --out "$d" --name main_div --pairs top:40 --per-node 2
+      probe confirm --out "$d" --name nodes --pairs nodes
+    else echo "no screen candidate for $1"; fi ;;
   report)
     runs=(); for m in "$@"; do runs+=("$(rundir "$m")"); done
-    probe report --runs "${runs[@]}" --report-dir "$OUT/probe_pm_degree_report" ;;
+    probe report --runs "${runs[@]}" --report-dir "$OUT/probe_pm_degree_report" --family-alpha 0.05 ;;
   *) sed -n '2,15p' "$0"; exit 2 ;;
 esac

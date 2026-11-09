@@ -410,10 +410,115 @@ def screen_pair(pair: Mapping, xs: Sequence[Mapping], x2s: Sequence[Mapping]) ->
     return row
 
 
+def _rank_key(r: Mapping) -> tuple:
+    return (-r["delta_max"], -r["frac_far"], r["pair_id"])
+
+
 def rank_candidates(rows: Sequence[Mapping]) -> list[dict]:
     cands = [dict(r) for r in rows if r.get("candidate")]
-    cands.sort(key=lambda r: (-r["delta_max"], -r["frac_far"], r["pair_id"]))
+    cands.sort(key=_rank_key)
     return cands
+
+
+def top_pairs(cands: Sequence[Mapping], m: int, per_node: int | None = None) -> list[str]:
+    """The first ``m`` ranked candidates, at most ``per_node`` per input ``x``
+    (one real node = one input; a constructed list is its own input)."""
+    taken: Counter = Counter()
+    out: list[str] = []
+    for c in cands:
+        if len(out) >= m:
+            break
+        x = c["pair_id"].split("|", 1)[0]
+        if per_node is not None and taken[x] >= per_node:
+            continue
+        taken[x] += 1
+        out.append(c["pair_id"])
+    return out
+
+
+def node_level_pairs(plan: Mapping, screen_rows: Sequence[Mapping]) -> tuple[list[str], list[dict]]:
+    """Node-level design: for every selected real node of the plan, its most
+    suspicious screened pair (largest observed |Δ|) if that pair is a candidate
+    (|Δ| > GS).  Returns the pair ids and the node universe (every selected
+    node, with or without a candidate: the denominator of the node shares)."""
+    real_x: dict[int, str] = {}
+    for p in plan["pairs"]:
+        if p["kind"] == "real":
+            real_x.setdefault(p["node_id"], p["x_key"])
+    by_node: dict[int, list[Mapping]] = {}
+    for r in screen_rows:
+        if r.get("kind") == "real" and r.get("complete"):
+            by_node.setdefault(r["node_id"], []).append(r)
+    ids, universe = [], []
+    for tier in ("hub", "mid", "low"):
+        for node in plan["nodes"][tier]:
+            x = real_x.get(node)
+            deg = len(plan["inputs"][x]["neighbors"]) if x else None
+            rows = sorted(by_node.get(node, []), key=_rank_key)
+            best = rows[0] if rows else None
+            cand = bool(best and best.get("candidate"))
+            universe.append({
+                "node_id": node, "tier": tier, "degree": deg, "bin": degree_bin(deg or 0),
+                "screened_pairs": len(rows), "candidate": cand,
+                "pair_id": best["pair_id"] if cand else None,
+                "delta_max": best["delta_max"] if best else None,
+            })
+            if cand:
+                ids.append(best["pair_id"])
+    return ids, universe
+
+
+def node_table(universe: Sequence[Mapping], rows: Sequence[Mapping]) -> list[dict]:
+    """Per degree bin: selected nodes, nodes with a candidate, nodes with a
+    confirmed violation.  ``confirmed_share`` is a lower bound on the share of
+    violating nodes among the selected ones (a node that is not confirmed may
+    still violate)."""
+    viol = {r["pair_id"] for r in rows if r.get("violation")}
+    tested = {r["pair_id"] for r in rows if r.get("eps_lb") is not None}
+    order = [degree_bin(lo) for lo, _ in DEGREE_BINS]
+    groups: dict[str, list[Mapping]] = {}
+    for u in universe:
+        groups.setdefault(u["bin"], []).append(u)
+    out = []
+    for b in sorted(groups, key=lambda x: order.index(x) if x in order else 99) + ["all"]:
+        us = list(universe) if b == "all" else groups[b]
+        n = len(us)
+        out.append({
+            "bin": b, "nodes": n, "with_candidate": sum(u["candidate"] for u in us),
+            "tested": sum(u["pair_id"] in tested for u in us),
+            "confirmed": sum(u["pair_id"] in viol for u in us),
+            "confirmed_share": sum(u["pair_id"] in viol for u in us) / n if n else None,
+        })
+    return out
+
+
+def family_recompute(sets: Mapping[str, Sequence[Mapping]], family_alpha: float) -> tuple[list[dict], dict]:
+    """Bonferroni over every tested pair of all ``sets`` together: each pair's
+    bound is recomputed at ``family_alpha / M`` from its stored evaluation counts.
+    The threshold test was chosen on selection trials only, so recomputing the
+    bound at another level stays valid; the bounds only shrink."""
+    from .audit import epsilon_from_counts
+
+    tested = [(name, r) for name, rs in sets.items() for r in rs if r.get("counts")]
+    m = len(tested)
+    alpha = family_alpha / m if m else None
+    out: dict[str, dict] = {}
+    for name, r in tested:
+        c = r["counts"]
+        e = max(0.0, epsilon_from_counts(c["k_num"], c["n_num"], c["k_den"], c["n_den"], alpha))
+        o = out.setdefault(name, {"set": name, "tested": 0, "violations_design": 0, "violations_family": 0,
+                                  "violations_family_real_count": 0, "eps_lb_family_max": 0.0})
+        o["tested"] += 1
+        o["violations_design"] += bool(r.get("violation"))
+        v = e > r["eps"][2]
+        o["violations_family"] += v
+        o["violations_family_real_count"] += v and r.get("kind") == "real" and r.get("category") == "count"
+        o["eps_lb_family_max"] = max(o["eps_lb_family_max"], e)
+    rows = list(out.values())
+    total = {"family_alpha": family_alpha, "M": m, "alpha_pair": alpha,
+             "violations_family": sum(o["violations_family"] for o in rows),
+             "violations_family_real_count": sum(o["violations_family_real_count"] for o in rows)}
+    return rows, total
 
 
 # ---------------------------------------------------------------------------
@@ -498,7 +603,8 @@ def violation_rate_upper(violations: int, tested: int, alpha: float = 0.05) -> f
 
 __all__ = [
     "CATEGORIES", "DEGREE_BINS", "EPS", "FAMILIES", "GS", "TASK", "TIERS", "all_flips", "analyze", "as_trials",
-    "build_plan", "check_plan", "degree_bin", "degree_input", "digit_similar", "digit_variants", "flip_tags",
-    "input_key", "load_graph", "pair_spec", "plan_hash", "plan_inputs", "rank_candidates", "screen_pair",
-    "summary_tables", "targeted_flips", "violation_category", "violation_rate_upper",
+    "build_plan", "check_plan", "degree_bin", "degree_input", "digit_similar", "digit_variants", "family_recompute",
+    "flip_tags", "input_key", "load_graph", "node_level_pairs", "node_table", "pair_spec", "plan_hash", "plan_inputs",
+    "rank_candidates", "screen_pair", "summary_tables", "targeted_flips", "top_pairs", "violation_category",
+    "violation_rate_upper",
 ]

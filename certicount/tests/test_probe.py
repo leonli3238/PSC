@@ -298,3 +298,124 @@ def test_confirm_design_is_frozen(tmp_path):
     r = subprocess.run([sys.executable, str(SCRIPT), "confirm", "--out", str(d), "--name", "r", "--pairs", "random",
                         "--eval", "60", "--select", "5"], capture_output=True, text=True, cwd=ROOT)
     assert r.returncode != 0 and "design has eval=50" in (r.stdout + r.stderr)
+
+
+# ---------------------------------------------------------------------------
+# per-node cap, node-level design, joint Bonferroni
+# ---------------------------------------------------------------------------
+
+
+def test_top_pairs_per_node():
+    from certicount.probe import top_pairs
+
+    cands = [{"pair_id": f"a|add{i}"} for i in range(5)] + [{"pair_id": "b|add1"}, {"pair_id": "c|add2"}]
+    assert top_pairs(cands, 3) == ["a|add0", "a|add1", "a|add2"]
+    assert top_pairs(cands, 3, per_node=2) == ["a|add0", "a|add1", "b|add1"]
+    assert top_pairs(cands, 10, per_node=1) == ["a|add0", "b|add1", "c|add2"]
+
+
+def test_node_level_pairs_and_table(pm):
+    from certicount.probe import node_level_pairs, node_table
+
+    plan = build_plan(pm, "PM", seed=0, mid_nodes=3, low_nodes=2, hub_flips=6, constructed=False)
+    rows = []
+    for p in plan["pairs"]:
+        big = p["node_id"] == plan["nodes"]["hub"][0]
+        d = 5.0 if big and p["flip"]["vertex"] % 2 else (2.0 if big else 1.0)
+        rows.append({"pair_id": p["pair_id"], "node_id": p["node_id"], "kind": p["kind"], "complete": True,
+                     "delta_max": d, "frac_far": 1.0 if d > 1 else 0.0, "candidate": d > 1})
+    ids, universe = node_level_pairs(plan, rows)
+    n_sel = sum(len(v) for v in plan["nodes"].values())
+    assert len(universe) == n_sel and len(ids) == 1
+    best = next(r for r in rows if r["pair_id"] == ids[0])
+    assert best["delta_max"] == 5.0
+    t = node_table(universe, [{"pair_id": ids[0], "violation": True, "eps_lb": 3.0}])
+    allrow = t[-1]
+    assert allrow["bin"] == "all" and allrow["nodes"] == n_sel and allrow["confirmed"] == 1
+    assert allrow["with_candidate"] == 1 and allrow["confirmed_share"] == pytest.approx(1 / n_sel)
+
+
+def test_family_recompute_only_shrinks():
+    from certicount.audit import epsilon_from_counts
+    from certicount.probe import family_recompute
+
+    def row(k, k2, n=300):
+        e = max(0.0, epsilon_from_counts(k, n, k2, n, 0.05 / 2))
+        return {"counts": {"k_num": k, "n_num": n, "k_den": k2, "n_den": n}, "eps": [0, 0, 2.0], "eps_lb": e,
+                "violation": e > 2, "kind": "real", "category": "count" if e > 2 else None}
+
+    sets = {"s1": [row(300, 0), row(150, 30)], "s2": [row(290, 1), row(280, 3)] + [row(200, 100)] * 40}
+    rs, tot = family_recompute(sets, 0.05)
+    assert tot["M"] == 44 and tot["alpha_pair"] == pytest.approx(0.05 / 44)
+    for r in rs:
+        assert r["violations_family"] <= r["violations_design"]
+    assert tot["violations_family"] >= 1  # 300 vs 0 of 300 survives any reasonable M
+
+
+def test_end_to_end_nodes_and_report(tmp_path):
+    d = tmp_path / "edge"
+    _run("init", "--out", d, "--provider", "mock", "--mock-mode", "edge", "--mock-trigger", "7", *SMALL)
+    _run("screen", "--out", d)
+    _run("confirm", "--out", d, "--name", "div", "--pairs", "top:10", "--per-node", "1", "--eval", "200",
+         "--select", "10")
+    rows = load_jsonl(d / "confirm_div" / "pairs.jsonl")
+    xs = [r["x_key"] for r in rows]
+    assert len(xs) == len(set(xs))  # at most one pair per input
+    _run("confirm", "--out", d, "--name", "nodes", "--pairs", "nodes", "--eval", "200", "--select", "10")
+    design = json.loads((d / "confirm_nodes" / "design.json").read_text())
+    universe = design["pair_source"]["universe"]
+    plan = json.loads((d / "plan.json").read_text())
+    assert len(universe) == sum(len(v) for v in plan["nodes"].values())
+    nrows = load_jsonl(d / "confirm_nodes" / "pairs.jsonl")
+    assert len({r["node_id"] for r in nrows}) == len(nrows) == design["m"]
+    assert all(r["flip"]["vertex"] == 7 for r in nrows)  # the edge mock only errs on the trigger vertex
+    summ = json.loads((d / "confirm_nodes" / "summary.json").read_text())
+    assert summ["nodes"][-1]["bin"] == "all" and summ["nodes"][-1]["confirmed"] == design["m"]
+    # rerun with another per-node cap on the same name is refused
+    r = subprocess.run([sys.executable, str(SCRIPT), "confirm", "--out", str(d), "--name", "div", "--pairs", "top:10",
+                        "--per-node", "2", "--eval", "200", "--select", "10"], capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode != 0 and "per_node" in (r.stdout + r.stderr)
+    rep = tmp_path / "rep"
+    _run("report", "--runs", d, "--report-dir", rep, "--family-alpha", "0.05")
+    report = json.loads((rep / "report.json").read_text())
+    tot = report["family_totals"][0]
+    assert tot["M"] == len(rows) + len(nrows)
+    assert tot["violations_family"] <= sum(r["violation"] for r in rows + nrows)
+    assert any(n["set"] == "nodes" and n["bin"] == "all" for n in report["nodes"])
+
+
+def test_nodes_design_exact_mock_has_no_pairs(tmp_path):
+    d = tmp_path / "exact"
+    _run("init", "--out", d, "--provider", "mock", "--mock-mode", "exact", *SMALL)
+    _run("screen", "--out", d)
+    r = subprocess.run([sys.executable, str(SCRIPT), "confirm", "--out", str(d), "--name", "nodes", "--pairs", "nodes"],
+                       capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode != 0 and "no pairs to confirm" in (r.stdout + r.stderr)
+    universe = json.loads((d / "confirm_nodes" / "nodes_universe.json").read_text())
+    assert universe and not any(u["candidate"] for u in universe)
+
+
+def test_report_locates_moved_source(tmp_path):
+    root = tmp_path / "runs"
+    src = root / "m1"
+    _run("init", "--out", src, "--provider", "mock", "--mock-mode", "edge", "--mock-trigger", "7", *SMALL)
+    _run("screen", "--out", src)
+    _run("confirm", "--out", src, "--name", "main", "--pairs", "top:5", "--eval", "100", "--select", "5")
+    t = root / "m2"
+    _run("init", "--out", t, "--plan-from", src, "--provider", "mock", "--mock-mode", "edge", "--mock-trigger", "7")
+    _run("confirm", "--out", t, "--name", "tr", "--pairs", f"confirmed:{src / 'confirm_main'}", "--eval", "100",
+         "--select", "5")
+    des = json.loads((t / "confirm_tr" / "design.json").read_text())
+    des["pair_source"]["path"] = "/elsewhere/results/m1/confirm_main/confirmed.jsonl"
+    (t / "confirm_tr" / "design.json").write_text(json.dumps(des))
+    s = json.loads((t / "confirm_tr" / "summary.json").read_text())
+    s["design"]["pair_source"]["path"] = des["pair_source"]["path"]
+    (t / "confirm_tr" / "summary.json").write_text(json.dumps(s))
+    _run("report", "--runs", src, t, "--report-dir", tmp_path / "rep")
+    report = json.loads((tmp_path / "rep" / "report.json").read_text())
+    tr = report["transfer"][0]
+    assert tr["source_violations"] > 0 and tr["retained"] == tr["source_violations"]
+    (src / "confirm_main" / "confirmed.jsonl").rename(src / "confirm_main" / "moved.jsonl")
+    r = subprocess.run([sys.executable, str(SCRIPT), "report", "--runs", str(src), str(t), "--report-dir",
+                        str(tmp_path / "rep2")], capture_output=True, text=True, cwd=ROOT)
+    assert r.returncode != 0 and "cannot find" in (r.stdout + r.stderr)
