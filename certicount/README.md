@@ -254,6 +254,32 @@ python scripts/run_sensitivity_audit.py --provider mock --select 20 --eval 200 -
 此前的"代入损失（plug-in）筛查 + 追加采样"和 S3 / S4 选位策略为自拟流程，已删除。`results/audit/sensitivity/` 中的
 P1 试点按旧流程计算，只作历史记录。
 
+### degree 越界探针（路线 B，`probe.py` / `probe_client.py` / `scripts/run_degree_probe.py`）
+
+PM 的 degree 任务：GS = 1、ε3 = ε = 2、Lap(0.5)，规则变化恰为 1（余量 0），节点输入只有私有邻居表（无消息、无 d̂max），
+所以直接从图构造输入，提示词、规则文本、初始状态 0.0 与解析器都与 `NodeAgent` 逐字相同（`tests/test_probe.py` 核对）。
+x 与 x′ 的输出始终相差 ≤ 1 时损失不超过 ε3，越界需要输出相差 > 1。
+
+- **计划**（`init`）：度 > 30 的 18 个节点穷举全部 452 个翻转；度 11–30 抽 30 个、1–10 抽 12 个，每节点约 40 个定向翻转
+  （R 随机、P 头中尾、C 连号、S 数字相似）；每个入选节点 1 个固定随机对（`random_ref`，跨模型对比用）；
+  构造输入 L（长度跨 9→10 … 199→200）与 X（150–450 个 id）单列。计划带哈希，其他模型用 `--plan-from` 复用。
+- **筛查**（`screen`）：x 调用 3 次、x′ 2 次，按观察到的 |Δ| 排序（描述性，不作结论）。
+- **确认**（`confirm`）：先冻结 `design.json`（对子、m、α、样本量、噪声盐），再对每侧做全新的 eval 采样（默认 300，筛查有抖动的对 500）；
+  筛查样本与新增 select 样本只用于选阈值事件；Bonferroni 覆盖本设计的 m 对；ε_lb > ε3 才算越界。
+  越界按 eval 样本严格分为 count（两侧全为 JSON）/ number_fallback / failed，真实节点与构造输入分开报告。
+- **迁移**：`--pairs confirmed:<1.7B 的 confirm_main>` 在新模型上逐字重测（新模型没有筛查样本，需 `--select 30`）；
+  `--pairs random` 为同一批随机对；`report` 汇总迁移保持率与模型 × 度数区间表。
+
+```bash
+python scripts/run_degree_probe.py init --out _probe_mock --provider mock --mock-mode edge   # 负对照：exact / bias / random / edge
+python scripts/run_degree_probe.py screen --out _probe_mock
+python scripts/run_degree_probe.py confirm --out _probe_mock --name main --pairs top:40
+scripts/probe_h20.sh offline | pilot 1.7b | main 1.7b | transfer 8b | rescreen 8b | report 1.7b 8b   # 单卡流程
+```
+
+配置在 `configs/vllm_probe_*.toml`（温度 0、关闭思考、max_tokens 4096，与 `../psc/config.vllm.toml` 一致）。
+每个阶段可断点续跑；API 失败记入 `errors.jsonl`，重跑时补齐；服务不可达或模型名不符时立即退出。
+
 ## 参考文献
 
 - Imola, Murakami, Chaudhuri. *Locally Differentially Private Analysis of Graph Statistics*. USENIX Security 2021.（PSC 的 d̂max 与投影）
@@ -346,6 +372,8 @@ certicount/
   __init__.py      复现目录定位（$PSC_REPRO_ROOT → ../psc → ../psc-reproduction）、DATA_DIR / RESULTS_DIR
   evaluation.py    内容一：误差分解、curator 置信区间（只覆盖 Laplace 部分）
   audit.py         内容二：黑盒 DP 审计（相邻输入 S1/S2、select/eval 两阶段阈值检验、Clopper–Pearson ε 下界）
+  probe.py         路线 B：PM degree 越界探针（从图构造输入、翻转族、筛查排序、确认分析）
+  probe_client.py  探针的模型调用（与 PSC 节点同请求；记录 finish_reason / token / 延迟）、mock 负对照、断点续跑
   binding.py       内容三：任务—函数—投影—GS 绑定表、规则/任务/GS/证书检查
   messages.py      内容三：消息强校验
   attacks.py       内容三：四类攻击、服从型执行者、防御代价；框架攻击钩子
@@ -360,6 +388,7 @@ scripts/
   run_dsl_design_eval.py    设计器误差（目标二）  run_attacks.py             攻击实验
   run_composite.py          复合查询            run_sensitivity_audit.py   灵敏度审计
   analyze_errors.py         误差分解            analyze_cost.py            成本统计
+  run_degree_probe.py       degree 越界探针     probe_h20.sh               探针单卡流程（vLLM 部署 + 各阶段）
   md_to_pdf.py              docs/ 下 Markdown 转 PDF
 tests/             test_dsl / test_dsl_eval / test_fuzz / test_search / test_trust / test_audit / test_eval_cost_composite
 docs/              开题报告、答辩讲稿、PPT 提示词、研究笔记

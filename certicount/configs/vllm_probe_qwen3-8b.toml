@@ -1,0 +1,16 @@
+# Degree probe: Qwen3-8B node model (the PSC paper's local node model), same decoding as the 1.7B run.
+
+provider = "vllm"
+temperature = 0.0
+max_concurrency = 128
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-8B"
+curator_model = "Qwen3-8B"  # unused by the probe
+
+[vllm.extra]
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+max_tokens = 4096

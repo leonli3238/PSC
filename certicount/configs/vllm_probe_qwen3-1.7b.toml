@@ -1,0 +1,19 @@
+# Degree probe (scripts/run_degree_probe.py): Qwen3-1.7B node model on a local vLLM server.
+# Same decoding as ../psc/config.vllm.toml (the PSC setting): temperature 0, non-thinking, max_tokens 4096.
+# The endpoint is passed with `init --base-url` (or VLLM_NODE_BASE_URL); the model name must match
+# the --served-model-name of the server.
+
+provider = "vllm"
+temperature = 0.0
+max_concurrency = 128
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-1.7B"
+curator_model = "Qwen3-1.7B"  # unused by the probe
+
+[vllm.extra]
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+max_tokens = 4096
