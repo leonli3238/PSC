@@ -1,0 +1,3 @@
+{"stage": "confirm_transfer", "t": 1794198590.9587877, "base_url": "http://127.0.0.1:8003/v1", "models_error": "APIConnectionError: Connection error.", "version_error": "ConnectError: All connection attempts failed"}
+{"stage": "confirm_transfer", "t": 1794200421.7635994, "base_url": "http://127.0.0.1:8003/v1", "models": [{"id": "Qwen3-8B", "root": "/jizhicfs/leonlanli/models/Qwen3-8B", "max_model_len": 8192, "owned_by": "vllm"}], "server_version": {"version": "0.8.5.post1"}}
+{"stage": "confirm_random", "t": 1794201972.605479, "base_url": "http://127.0.0.1:8003/v1", "models": [{"id": "Qwen3-8B", "root": "/jizhicfs/leonlanli/models/Qwen3-8B", "max_model_len": 8192, "owned_by": "vllm"}], "server_version": {"version": "0.8.5.post1"}}

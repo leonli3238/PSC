@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "scripts/run_degree_probe.py",
+    "init",
+    "--out",
+    "results/audit/sensitivity/probe_pm_degree_qwen3-1.7b",
+    "--provider",
+    "vllm",
+    "--config",
+    "configs/vllm_probe_qwen3-1.7b.toml",
+    "--node-model",
+    "Qwen3-1.7B",
+    "--base-url",
+    "http://127.0.0.1:8001/v1",
+    "--concurrency",
+    "128"
+  ],
+  "created": "2026-11-09 10:33:16",
+  "python": "3.11.11",
+  "host": "ts-8b1d89cea1b06b2e01a1bbbf6adf0d33-launcher",
+  "git_commit": "01101170a70013707a45ecfc6f345dd0425910b4",
+  "git_dirty": true
+}

@@ -1,0 +1,110 @@
+{
+  "model": "Qwen3-1.7B",
+  "calls": 200,
+  "wall_seconds": 8.4,
+  "completion_tokens": 50500,
+  "throughput_tok_s": 6026.3,
+  "note": "pilot throughput at this small load can underestimate the steady state; refine after the first screen hour",
+  "by_bin": [
+    {
+      "bin": "1-10",
+      "trials": 50,
+      "inputs": 10,
+      "exec_error": 0.0,
+      "abs_err_mean": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 70.1,
+      "tok_p50": 75.0,
+      "tok_p95": 128.0,
+      "tok_max": 128,
+      "jitter_inputs": 0.0
+    },
+    {
+      "bin": "11-30",
+      "trials": 50,
+      "inputs": 10,
+      "exec_error": 0.2,
+      "abs_err_mean": 0.2,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 158.5,
+      "tok_p50": 149.0,
+      "tok_p95": 300.0,
+      "tok_max": 300,
+      "jitter_inputs": 0.0
+    },
+    {
+      "bin": "31-60",
+      "trials": 40,
+      "inputs": 8,
+      "exec_error": 0.75,
+      "abs_err_mean": 3.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 373.325,
+      "tok_p50": 382.0,
+      "tok_p95": 444.0,
+      "tok_max": 444,
+      "jitter_inputs": 0.0
+    },
+    {
+      "bin": "61-120",
+      "trials": 40,
+      "inputs": 8,
+      "exec_error": 0.9,
+      "abs_err_mean": 114.25,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 513.8,
+      "tok_p50": 506.5,
+      "tok_p95": 679.0,
+      "tok_max": 679,
+      "jitter_inputs": 0.125
+    },
+    {
+      "bin": ">120",
+      "trials": 20,
+      "inputs": 4,
+      "exec_error": 1.0,
+      "abs_err_mean": 240.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 179.25,
+      "tok_p50": 16.0,
+      "tok_p95": 669.0,
+      "tok_max": 669,
+      "jitter_inputs": 0.0
+    }
+  ],
+  "forecast_screen": {
+    "calls": 20112,
+    "completion_tokens": 7274837,
+    "hours": 0.34
+  },
+  "forecast_confirm_upper": {
+    "calls": 24000,
+    "completion_tokens": 4302000,
+    "hours": 0.2
+  },
+  "json_rate": 1.0,
+  "stats": {
+    "missing": 0,
+    "calls": 200,
+    "infra_errors": 0,
+    "prompt_tokens": 97945,
+    "completion_tokens": 50500,
+    "wall_seconds": 8.38,
+    "jobs": 200
+  }
+}
