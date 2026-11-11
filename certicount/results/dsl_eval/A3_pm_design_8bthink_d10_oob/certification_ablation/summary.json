@@ -1,0 +1,95 @@
+{
+  "run_dir": "results/dsl_eval/A3_pm_design_8bthink_d10_oob",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 51,
+  "designs": 30,
+  "table": [
+    {
+      "task": "4-star",
+      "drafts": 19,
+      "parse": 5,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 5,
+      "semantic": 0,
+      "refuted": 0,
+      "accepted": 9,
+      "rejected_share": 0.5263,
+      "runnable": 14,
+      "uncertified_violations": 5,
+      "uncertified_violation_share": 0.3571,
+      "max_eps_ratio": Infinity,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 0,
+      "semantic_errors_published_without_check": 0
+    },
+    {
+      "task": "5-star",
+      "drafts": 17,
+      "parse": 4,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 4,
+      "semantic": 0,
+      "refuted": 0,
+      "accepted": 9,
+      "rejected_share": 0.4706,
+      "runnable": 13,
+      "uncertified_violations": 4,
+      "uncertified_violation_share": 0.3077,
+      "max_eps_ratio": Infinity,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 0,
+      "semantic_errors_published_without_check": 0
+    },
+    {
+      "task": "degree-moment2",
+      "drafts": 15,
+      "parse": 5,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 0,
+      "refuted": 0,
+      "accepted": 10,
+      "rejected_share": 0.3333,
+      "runnable": 10,
+      "uncertified_violations": 3,
+      "uncertified_violation_share": 0.3,
+      "max_eps_ratio": 1.5714285714285714,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 10,
+      "semantic_errors_published_without_check": 0
+    },
+    {
+      "task": "all",
+      "drafts": 51,
+      "parse": 14,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 9,
+      "semantic": 0,
+      "refuted": 0,
+      "accepted": 28,
+      "rejected_share": 0.451,
+      "runnable": 37,
+      "uncertified_violations": 12,
+      "uncertified_violation_share": 0.3243,
+      "max_eps_ratio": Infinity,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 10,
+      "semantic_errors_published_without_check": 0
+    }
+  ]
+}

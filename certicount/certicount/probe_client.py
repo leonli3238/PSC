@@ -20,6 +20,11 @@ rerun of the stage retries it.
 ``exact`` (rule value), ``bias`` (always one less), ``random`` (input-independent
 ±1 with probability ``rate``) and ``edge`` (``+2`` whenever the list contains the
 ``trigger`` vertex: an error correlated with one bit of the private list).
+
+:class:`ProgramProbeClient` is CertiCount's node (``execution="program"``): it
+reads the node's private list from the ``<structured_input>`` block and runs a
+certified DSL program in the interpreter, so the same probe statistics can be
+applied to PSC's LLM node and to CertiCount's program node on identical pairs.
 """
 
 from __future__ import annotations
@@ -198,8 +203,45 @@ class MockProbeClient:
         return {"mock": {"mode": self.mode, "rate": self.rate, "trigger": self.trigger, "seed": self.seed}}
 
 
+class ProgramProbeClient:
+    """CertiCount's program node: the certified program runs in the interpreter
+    on the node's private list (no model call). Only programs that need neither
+    public rows nor a degree bound are supported, since the probe input holds the
+    private list alone (as PSC's degree update prompt does)."""
+
+    def __init__(self, program_text: str, n: int, state_var: str = "Degree") -> None:
+        from .dsl.lang import Interpreter, parse_program_text
+
+        self.program = parse_program_text(program_text)
+        if self.program.uses_rows or self.program.needs_degree_bound:
+            raise ValueError("the probe node input has no public rows / degree bound: program not supported")
+        self.interp = Interpreter(self.program)
+        self.n, self.state_var = int(n), state_var
+        self.model = "certicount-program"
+
+    def value(self, node_id: int, neighbors: Sequence[int]) -> float:
+        from .dsl.lang import Env
+
+        return self.interp.local(Env(frozenset(int(x) for x in neighbors), int(node_id), {}, self.n))
+
+    async def complete(self, system: str, user: str, ident: str) -> Reply:
+        await asyncio.sleep(0)
+        p = extract_structured(user)
+        if p is None or p.get("phase") != "node_update":
+            raise ValueError("ProgramProbeClient needs the <structured_input> block of a node update prompt")
+        value = self.value(p["node_id"], p["neighbors"])
+        text = f"```json\n{json.dumps({p.get('state_var', self.state_var): value})}\n```"
+        return Reply(text, "stop", None, None, 0.0, 1)
+
+    async def server_info(self) -> dict:
+        return {"program": {"text": self.program.text(), "digest": self.program.digest, "n": self.n}}
+
+
 def make_client(settings: Mapping[str, Any]):
     """The client of a probe directory (``settings.json``)."""
+    if settings["provider"] == "program":
+        prog = settings["program"]
+        return ProgramProbeClient(prog["text"], prog["n"])
     if settings["provider"] == "mock":
         m = settings.get("mock") or {}
         return MockProbeClient(m.get("mode", "exact"), m.get("rate", 0.05), m.get("trigger", 7), settings.get("seed", 0))
@@ -332,6 +374,7 @@ async def run_jobs(
 
 
 __all__ = [
-    "InfraError", "MOCK_MODES", "MockProbeClient", "OpenAIProbeClient", "Reply", "format_messages",
+    "InfraError", "MOCK_MODES", "MockProbeClient", "OpenAIProbeClient", "ProgramProbeClient", "Reply",
+    "format_messages",
     "guided_json_schema", "load_jsonl", "make_client", "missing_jobs", "run_jobs",
 ]

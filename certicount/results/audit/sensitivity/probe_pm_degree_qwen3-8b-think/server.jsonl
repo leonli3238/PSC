@@ -1,0 +1,1 @@
+{"stage": "confirm_nodes", "t": 1794292467.6625218, "base_url": "http://127.0.0.1:8003/v1", "models": [{"id": "Qwen3-8B", "root": "/jizhicfs/leonlanli/models/Qwen3-8B", "max_model_len": 16384, "owned_by": "vllm"}], "server_version": {"version": "0.8.5.post1"}}

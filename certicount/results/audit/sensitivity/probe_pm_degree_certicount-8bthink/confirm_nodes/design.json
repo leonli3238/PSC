@@ -1,0 +1,42 @@
+{
+  "name": "nodes",
+  "pairs_spec": "file:results/audit/sensitivity/probe_pm_degree_qwen3-8b/confirm_nodes/pairs.jsonl",
+  "pair_source": {
+    "source": "file",
+    "path": "/jizhicfs/leonlanli/work/PSC/certicount/results/audit/sensitivity/probe_pm_degree_qwen3-8b/confirm_nodes/pairs.jsonl"
+  },
+  "pair_ids": [
+    "n1-d123-6c2f4d763dd7|add10",
+    "n3-d38-f25134ffb4e0|add434",
+    "n4-d109-54d24c5ea66f|add19",
+    "n6-d75-3928d319423e|remove373",
+    "n8-d75-5331f4d88508|remove372",
+    "n11-d57-d44a81f0ad2b|remove444",
+    "n12-d36-eb15d2acb744|add398",
+    "n14-d237-ef095c6ea966|remove113",
+    "n24-d33-9f55cc6217f1|add22",
+    "n37-d63-5567428bd790|add435",
+    "n46-d59-1a445ec952d4|add412",
+    "n48-d59-b90250eaf8f2|add330",
+    "n50-d64-09502dea74cd|add167",
+    "n51-d35-f3b7b9f44ae0|add1",
+    "n54-d37-d4e00c4184e5|remove296",
+    "n55-d64-b3f9d2395290|add139",
+    "n57-d61-8edac2888720|add172",
+    "n96-d104-0de35713c8cd|add155",
+    "n26-d30-8a5f81f990d9|add11",
+    "n65-d28-4a2742886ac8|add275"
+  ],
+  "m": 20,
+  "alpha": 0.05,
+  "alpha_pair": 0.0025,
+  "eval": 300,
+  "eval_jitter": 500,
+  "jitter_pairs": [],
+  "select": 20,
+  "plan_hash": "ce15f2d2123d738a",
+  "noise_salt": "0|certicount-program|nodes",
+  "model": "certicount-program",
+  "created": "2026-11-10 15:52:37",
+  "note": "fixed before any evaluation trial; Bonferroni over the m pairs of this design"
+}

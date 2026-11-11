@@ -1,0 +1,258 @@
+{
+  "runs": [
+    "/jizhicfs/leonlanli/work/PSC/certicount/results/audit/sensitivity/probe_pm_degree_qwen3-8b",
+    "/jizhicfs/leonlanli/work/PSC/certicount/results/audit/sensitivity/probe_pm_degree_certicount-8bthink"
+  ],
+  "confirm": [
+    {
+      "model": "Qwen3-8B",
+      "set": "main_div",
+      "source": "screen_top",
+      "pairs": 40,
+      "tested": 40,
+      "violations": 24,
+      "violations_real_count": 20,
+      "eps_lb_max": 4.189124392562545,
+      "eps_lb_median": 3.2453605978720876,
+      "max_delta_llm": 406.0,
+      "violation_share_upper95": 0.730596224552506
+    },
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "source": "nodes",
+      "pairs": 20,
+      "tested": 20,
+      "violations": 15,
+      "violations_real_count": 15,
+      "eps_lb_max": 4.303487563297697,
+      "eps_lb_median": 2.93741151135601,
+      "max_delta_llm": 332.0,
+      "violation_share_upper95": 0.8959191640898638
+    },
+    {
+      "model": "certicount-program",
+      "set": "main_div",
+      "source": "file",
+      "pairs": 40,
+      "tested": 40,
+      "violations": 0,
+      "violations_real_count": 0,
+      "eps_lb_max": 1.4696468887541905,
+      "eps_lb_median": 0.9561282808960541,
+      "max_delta_llm": 1.0,
+      "violation_share_upper95": 0.07215752450551458
+    },
+    {
+      "model": "certicount-program",
+      "set": "nodes",
+      "source": "file",
+      "pairs": 20,
+      "tested": 20,
+      "violations": 0,
+      "violations_real_count": 0,
+      "eps_lb_max": 1.3248122433980805,
+      "eps_lb_median": 0.9884603022291549,
+      "max_delta_llm": 1.0,
+      "violation_share_upper95": 0.13910834066826522
+    }
+  ],
+  "screen_bins": [
+    {
+      "model": "Qwen3-8B",
+      "bin": "1-10",
+      "trials": 1112,
+      "inputs": 548,
+      "exec_error": 0.0,
+      "abs_err_mean": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 97.22302158273381,
+      "tok_p50": 96.0,
+      "tok_p95": 120.45000000000005,
+      "tok_max": 154,
+      "jitter_inputs": 0.0
+    },
+    {
+      "model": "Qwen3-8B",
+      "bin": "11-30",
+      "trials": 2430,
+      "inputs": 1198,
+      "exec_error": 0.03168724279835391,
+      "abs_err_mean": 0.03168724279835391,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 149.84938271604938,
+      "tok_p50": 141.0,
+      "tok_p95": 208.0,
+      "tok_max": 241,
+      "jitter_inputs": 0.00333889816360601
+    },
+    {
+      "model": "Qwen3-8B",
+      "bin": "31-60",
+      "trials": 7462,
+      "inputs": 3725,
+      "exec_error": 0.7493969445188957,
+      "abs_err_mean": 2.3496381667113373,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 289.46904315196997,
+      "tok_p50": 260.0,
+      "tok_p95": 379.0,
+      "tok_max": 391,
+      "jitter_inputs": 0.18791946308724833
+    },
+    {
+      "model": "Qwen3-8B",
+      "bin": "61-120",
+      "trials": 7154,
+      "inputs": 3571,
+      "exec_error": 0.9993010902991334,
+      "abs_err_mean": 13.359519150125804,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 450.49035504612806,
+      "tok_p50": 409.0,
+      "tok_p95": 635.0,
+      "tok_max": 643,
+      "jitter_inputs": 0.26491178941472976
+    },
+    {
+      "model": "Qwen3-8B",
+      "bin": ">120",
+      "trials": 1954,
+      "inputs": 970,
+      "exec_error": 0.9989764585465711,
+      "abs_err_mean": 56.12384851586489,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 582.403275332651,
+      "tok_p50": 689.0,
+      "tok_p95": 1224.0,
+      "tok_max": 2225,
+      "jitter_inputs": 0.49690721649484537
+    }
+  ],
+  "transfer": [],
+  "nodes": [
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "bin": "1-10",
+      "nodes": 12,
+      "with_candidate": 0,
+      "tested": 0,
+      "confirmed": 0,
+      "confirmed_share": 0.0
+    },
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "bin": "11-30",
+      "nodes": 30,
+      "with_candidate": 2,
+      "tested": 2,
+      "confirmed": 2,
+      "confirmed_share": 0.06666666666666667
+    },
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "bin": "31-60",
+      "nodes": 8,
+      "with_candidate": 8,
+      "tested": 8,
+      "confirmed": 6,
+      "confirmed_share": 0.75
+    },
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "bin": "61-120",
+      "nodes": 8,
+      "with_candidate": 8,
+      "tested": 8,
+      "confirmed": 6,
+      "confirmed_share": 0.75
+    },
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "bin": ">120",
+      "nodes": 2,
+      "with_candidate": 2,
+      "tested": 2,
+      "confirmed": 1,
+      "confirmed_share": 0.5
+    },
+    {
+      "model": "Qwen3-8B",
+      "set": "nodes",
+      "bin": "all",
+      "nodes": 60,
+      "with_candidate": 20,
+      "tested": 20,
+      "confirmed": 15,
+      "confirmed_share": 0.25
+    }
+  ],
+  "family": [
+    {
+      "scope": "all",
+      "set": "Qwen3-8B/main_div",
+      "tested": 40,
+      "violations_design": 24,
+      "violations_family": 24,
+      "violations_family_real_count": 20,
+      "eps_lb_family_max": 4.0484154326006925
+    },
+    {
+      "scope": "all",
+      "set": "Qwen3-8B/nodes",
+      "tested": 20,
+      "violations_design": 15,
+      "violations_family": 14,
+      "violations_family_real_count": 14,
+      "eps_lb_family_max": 4.06385257118945
+    },
+    {
+      "scope": "all",
+      "set": "certicount-program/main_div",
+      "tested": 40,
+      "violations_design": 0,
+      "violations_family": 0,
+      "violations_family_real_count": 0,
+      "eps_lb_family_max": 1.3950434642410277
+    },
+    {
+      "scope": "all",
+      "set": "certicount-program/nodes",
+      "tested": 20,
+      "violations_design": 0,
+      "violations_family": 0,
+      "violations_family_real_count": 0,
+      "eps_lb_family_max": 1.2299989520547747
+    }
+  ],
+  "family_totals": [
+    {
+      "scope": "all",
+      "family_alpha": 0.05,
+      "M": 120,
+      "alpha_pair": 0.0004166666666666667,
+      "violations_family": 38,
+      "violations_family_real_count": 34
+    }
+  ]
+}

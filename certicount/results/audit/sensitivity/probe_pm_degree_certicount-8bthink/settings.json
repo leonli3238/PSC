@@ -1,0 +1,55 @@
+{
+  "provider": "program",
+  "config": "/jizhicfs/leonlanli/work/PSC/certicount/configs/vllm_psc_qwen3-8b_curator-think.toml",
+  "profile": null,
+  "node_model": "certicount-program",
+  "base_url": null,
+  "concurrency": 128,
+  "seed": 0,
+  "guided_json": false,
+  "mock": null,
+  "plan_hash": "ce15f2d2123d738a",
+  "plan_from": "/jizhicfs/leonlanli/work/PSC/certicount/results/audit/sensitivity/probe_pm_degree_qwen3-8b",
+  "program": {
+    "source": "design",
+    "n": 453,
+    "task": "degree",
+    "designer": "Qwen3-8B",
+    "llm_calls": 1,
+    "iterations": 1,
+    "restarts": 1,
+    "history": [
+      {
+        "program": "degree = size(P)\nreturn degree",
+        "aggregate": "total / n",
+        "budget": null,
+        "feedback": "accepted",
+        "gs": 1.0
+      }
+    ],
+    "attempts": [
+      {
+        "restart": 1,
+        "accepted": true,
+        "iterations": 1,
+        "program": "degree = size(P)\nreturn degree\naggregate: total / n",
+        "history": [
+          {
+            "program": "degree = size(P)\nreturn degree",
+            "aggregate": "total / n",
+            "budget": null,
+            "feedback": "accepted",
+            "gs": 1.0
+          }
+        ]
+      }
+    ],
+    "text": "degree = size(P)\nreturn degree\naggregate: total / n",
+    "digest": "5d1560254aaccfb9",
+    "gs": 1.0,
+    "certificate_trace": [
+      "GS = 1"
+    ],
+    "certificate_check": "GS = 1"
+  }
+}

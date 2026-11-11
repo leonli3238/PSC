@@ -1,0 +1,28 @@
+# End-to-end PSC on PM degree, setting B1: curator (and privacy controller) Qwen3-8B in
+# THINKING mode, node agents Qwen3-8B NON-thinking (same decoding as the 8B probe).
+# Mirrors ../psc/config.vllm-think.toml with an 8B curator. The server runs with
+# --max-model-len 16384: the aggregate prompt (453 noisy reports) is ~5.5k tokens, so the
+# curator's max_tokens must stay below ~10k.
+
+provider = "vllm"
+temperature = 0.0
+max_concurrency = 64
+parallel_runs = 8
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-8B"
+curator_model = "Qwen3-8B"
+
+[vllm.extra]
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+max_tokens = 4096
+
+[vllm.curator_extra]
+# Replaces extra_body of [vllm.extra] as a whole; Qwen3 thinking-mode sampling
+extra_body = { chat_template_kwargs = { enable_thinking = true }, top_k = 20, min_p = 0.0 }
+temperature = 0.6
+top_p = 0.95
+max_tokens = 9500

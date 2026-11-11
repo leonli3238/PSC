@@ -229,6 +229,56 @@ def md_table(rows, cols) -> str:
 # ---------------------------------------------------------------------------
 
 
+def design_probe_program(a, plan: dict) -> dict:
+    """CertiCount node for the probe: the curator designs the program once from public
+    information (``--program-source design``, the analyst prompt of the dataset) or the
+    library program is used; the system derives and certifies GS in code. The probe's
+    test calibrates the noise with the plan's GS, so the certified GS must equal it."""
+    import asyncio
+
+    from certicount.dsl.designer import design_reference_params, design_with_restarts
+    from certicount.dsl.library import PROGRAMS
+    from certicount.dsl.sensitivity import SensitivityError, certify, verify_certificate
+    from psc.graph import load_dataset
+    from psc.models import ModelConfig, create_formatter, create_model
+
+    rec = load_dataset(str(Path(certicount.DATA_DIR)), plan["dataset"])[plan["task"]]
+    n = rec.vertex_num
+    params = design_reference_params(n)
+    info: dict = {"source": a.program_source, "n": n, "task": plan["task"]}
+    if a.program_source == "library":
+        program = PROGRAMS[plan["task"]].parse()
+        info.update(designer=None, llm_calls=0, history=[])
+    else:
+        if not a.config or not a.designer_model:
+            sys.exit("--program-source design needs --config and --designer-model (the curator)")
+        cfg = ModelConfig.from_env(a.designer_provider, config_path=a.config, profile=a.profile,
+                                   curator_model=a.designer_model)
+        model, fmt = create_model(cfg, "curator"), create_formatter(cfg)
+        res = asyncio.run(design_with_restarts(model, fmt, rec.input_prompt, n, params, task=plan["task"],
+                                               max_iterations=a.design_iterations, restarts=a.design_restarts))
+        info.update(designer=a.designer_model, llm_calls=res.llm_calls, iterations=res.iterations,
+                    restarts=res.restarts, history=res.history, attempts=res.attempts)
+        if not res.accepted or res.program is None:
+            sys.exit(f"the designer produced no certified program in {res.llm_calls} call(s): {res.history}")
+        program = res.program
+    if program.uses_rows or program.needs_degree_bound:
+        sys.exit(f"program needs public rows / a degree bound, which the probe input lacks:\n{program.text()}")
+    try:
+        cert = certify(program, params)
+    except SensitivityError as exc:
+        sys.exit(f"certification failed: {exc}")
+    ok, msg = verify_certificate(cert, program, params)
+    if not ok:
+        sys.exit(f"node-side certificate check failed: {msg}")
+    if abs(cert.gs - float(plan["gs"])) > 1e-9:
+        sys.exit(f"certified GS {cert.gs:g} differs from the probe's GS {plan['gs']:g}: the test would be miscalibrated")
+    info.update(text=program.text(), digest=program.digest, gs=cert.gs, certificate_trace=list(cert.trace),
+                certificate_check=msg)
+    print(f"[program] {a.program_source}: certified GS = {cert.gs:g} ({msg})\n{program.text()}")
+    return info
+
+
 def cmd_init(a) -> None:
     d = out_dir(a.out)
     if (d / "settings.json").exists() and not a.force:
@@ -250,13 +300,15 @@ def cmd_init(a) -> None:
                           hub_flips=hub_flips, constructed=not a.no_constructed, random_per_node=a.random_per_node)
         write_json(d / "plan.json", plan)
     check_plan(plan)
-    if a.provider != "mock" and not a.node_model:
+    if a.provider not in ("mock", "program") and not a.node_model:
         sys.exit("--node-model is required for a real model (the --served-model-name of the vLLM server)")
+    program = design_probe_program(a, plan) if a.provider == "program" else None
+    default_name = "certicount-program" if program else f"mock-{a.mock_mode}"
     settings = {
         "provider": a.provider,
         "config": str(Path(a.config).resolve()) if a.config else None,
         "profile": a.profile,
-        "node_model": a.node_model or f"mock-{a.mock_mode}",
+        "node_model": a.node_model or default_name,
         "base_url": a.base_url,
         "concurrency": a.concurrency,
         "seed": a.seed,
@@ -265,7 +317,9 @@ def cmd_init(a) -> None:
         "plan_hash": plan["plan_hash"],
         "plan_from": str(out_dir(a.plan_from)) if a.plan_from else None,
     }
-    if a.provider != "mock":
+    if program is not None:
+        settings["program"] = program
+    if a.provider not in ("mock", "program"):
         from psc.models import ModelConfig
 
         if a.base_url:
@@ -796,8 +850,16 @@ def main() -> None:
 
     p = sub.add_parser("init")
     common(p)
-    p.add_argument("--provider", choices=("mock", "vllm", "openai"), required=True)
-    p.add_argument("--config", help="psc config (e.g. ../psc/config.vllm-1.7b.toml)")
+    p.add_argument("--provider", choices=("mock", "vllm", "openai", "program"), required=True,
+                   help="program: CertiCount node (certified DSL program in the interpreter, no node model)")
+    p.add_argument("--config", help="psc config (e.g. ../psc/config.vllm-1.7b.toml); with --provider program "
+                                    "the curator config of the designer")
+    p.add_argument("--program-source", choices=("design", "library"), default="design",
+                   help="provider program: the curator LLM designs the program, or the library program")
+    p.add_argument("--designer-provider", choices=("vllm", "openai"), default="vllm")
+    p.add_argument("--designer-model", help="provider program: served curator model name")
+    p.add_argument("--design-iterations", type=int, default=3)
+    p.add_argument("--design-restarts", type=int, default=1)
     p.add_argument("--profile")
     p.add_argument("--node-model", help="served model name")
     p.add_argument("--base-url", help="node endpoint, e.g. http://127.0.0.1:8001/v1 (else VLLM_NODE_BASE_URL)")

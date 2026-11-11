@@ -1,0 +1,28 @@
+{
+  "provider": "vllm",
+  "config": "/jizhicfs/leonlanli/work/PSC/certicount/configs/vllm_probe_qwen3-8b-think.toml",
+  "profile": null,
+  "node_model": "Qwen3-8B",
+  "base_url": "http://127.0.0.1:8003/v1",
+  "concurrency": 96,
+  "seed": 0,
+  "guided_json": false,
+  "mock": null,
+  "plan_hash": "ce15f2d2123d738a",
+  "plan_from": "/jizhicfs/leonlanli/work/PSC/certicount/results/audit/sensitivity/probe_pm_degree_qwen3-8b",
+  "decoding": {
+    "temperature": 0.6,
+    "extra": {
+      "extra_body": {
+        "chat_template_kwargs": {
+          "enable_thinking": true
+        },
+        "top_p": 0.95
+      },
+      "max_tokens": 12000
+    },
+    "stream": false,
+    "structured_input": false,
+    "max_retries": 4
+  }
+}

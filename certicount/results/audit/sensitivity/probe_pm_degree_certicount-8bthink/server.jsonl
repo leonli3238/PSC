@@ -1,0 +1,2 @@
+{"stage": "confirm_nodes", "t": 1794297157.6796286, "program": {"text": "degree = size(P)\nreturn degree\naggregate: total / n", "digest": "5d1560254aaccfb9", "n": 453}}
+{"stage": "confirm_main_div", "t": 1794297189.6095164, "program": {"text": "degree = size(P)\nreturn degree\naggregate: total / n", "digest": "5d1560254aaccfb9", "n": 453}}

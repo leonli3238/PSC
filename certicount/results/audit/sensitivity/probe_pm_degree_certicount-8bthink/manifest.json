@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "scripts/run_degree_probe.py",
+    "init",
+    "--out",
+    "results/audit/sensitivity/probe_pm_degree_certicount-8bthink",
+    "--plan-from",
+    "results/audit/sensitivity/probe_pm_degree_qwen3-8b",
+    "--provider",
+    "program",
+    "--program-source",
+    "design",
+    "--config",
+    "configs/vllm_psc_qwen3-8b_curator-think.toml",
+    "--designer-model",
+    "Qwen3-8B",
+    "--concurrency",
+    "128"
+  ],
+  "created": "2026-11-10 15:52:29",
+  "python": "3.11.11",
+  "host": "ts-8b1d890ba1b06af701a1c0a6941c17e6-launcher",
+  "git_commit": "6c5988f49236dd1efd8e99ce845176b68009ed91",
+  "git_dirty": true
+}

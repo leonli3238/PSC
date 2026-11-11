@@ -419,3 +419,42 @@ def test_report_locates_moved_source(tmp_path):
     r = subprocess.run([sys.executable, str(SCRIPT), "report", "--runs", str(src), str(t), "--report-dir",
                         str(tmp_path / "rep2")], capture_output=True, text=True, cwd=ROOT)
     assert r.returncode != 0 and "cannot find" in (r.stdout + r.stderr)
+
+
+# ---------------------------------------------------------------------------
+# CertiCount program node (--provider program)
+# ---------------------------------------------------------------------------
+
+
+def test_program_client_runs_certified_program(pm):
+    from certicount.probe_client import ProgramProbeClient
+
+    client = ProgramProbeClient("return size(P)\naggregate: total / n", pm.n)
+    for node in (1, 3, 25):
+        nb = sorted(pm.neighbors(node))
+        inp = degree_input(node, nb)
+        reply = asyncio.run(client.complete(NODE_SYSTEM.format(node_id=node), inp.prompt(), "k|eval|0"))
+        value, status = na.parse_update_reply(reply.text, inp.state_var)
+        assert status == "json" and value == float(inp.rule_value()) == float(len(nb))
+    with pytest.raises(ValueError):
+        ProgramProbeClient("return size(project(P, D))\naggregate: total / n", pm.n)
+
+
+def test_end_to_end_program_no_violation(tmp_path):
+    src = tmp_path / "src"
+    _run("init", "--out", src, "--provider", "mock", "--mock-mode", "edge", "--mock-trigger", "7", *SMALL)
+    _run("screen", "--out", src)
+    _run("confirm", "--out", src, "--name", "c", "--pairs", "top:10", "--eval", "200", "--select", "10")
+    viol = load_jsonl(src / "confirm_c" / "confirmed.jsonl")
+    assert viol  # the edge-correlated mock violates
+    d = tmp_path / "prog"
+    out = _run("init", "--out", d, "--plan-from", src, "--provider", "program", "--program-source", "library")
+    assert "certified GS = 1" in out
+    settings = json.loads((d / "settings.json").read_text())
+    assert settings["node_model"] == "certicount-program" and settings["program"]["gs"] == 1.0
+    _run("confirm", "--out", d, "--name", "tr", "--pairs", f"confirmed:{src / 'confirm_c'}", "--select", "10",
+         "--eval", "200")
+    rows = load_jsonl(d / "confirm_tr" / "pairs.jsonl")
+    assert len(rows) == len(viol) and load_jsonl(d / "confirm_tr" / "confirmed.jsonl") == []
+    own = load_jsonl(d / "confirm_tr" / "samples.jsonl")
+    assert own and all(s["correct"] and s["status"] == "json" for s in own)

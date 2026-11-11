@@ -1,0 +1,19 @@
+# Degree probe: Qwen3-8B node model in THINKING mode (evaluation of whether CoT fixes the
+# degree counting violations). Same server/port as the non-thinking run; only the request
+# carries enable_thinking=true. Qwen3 thinking-mode sampling (greedy loops in long CoT).
+
+provider = "vllm"
+temperature = 0.6
+max_concurrency = 96
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-8B"
+curator_model = "Qwen3-8B"  # unused by the probe
+
+[vllm.extra]
+# vLLM passes chat_template_kwargs to the tokenizer's chat template
+extra_body = { chat_template_kwargs = { enable_thinking = true }, top_p = 0.95 }
+max_tokens = 12000
