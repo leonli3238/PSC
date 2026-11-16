@@ -5,14 +5,17 @@ LLM / agent modes:
   ``baseline``  the paper's PSC (curator rules, node LLMs)
   ``bind``      LLM + binding + message validation
   ``program``   Improvement 2: the curator designs a DSL program, nodes run it (no node LLM)
-  ``nodebound`` ``program`` with per-node degree bounds by edge clipping (Imola et al. USENIX
-                Security 2022; :mod:`certicount.dsl.clipping`, ``--clip-alpha``)
+  ``nodebound`` ``program`` in the per-node architecture: degree bounds by edge clipping (Imola et al.
+                USENIX Security 2022; :mod:`certicount.dsl.clipping`, ``--clip-alpha``) and, for programs
+                that read ``A``, NAM-DPRD's unbiased matrix of the projected lists (:mod:`certicount.dsl.matrix`)
   ``codeagg``   the paper's PSC with the final aggregation done by code (node LLMs still count)
   ``codecost``  bind + code send + code aggregation
 Code-only references (no model call):
   ``gt-naive``  GT-Naive          ``gt-psc``  GT-PSC (same mechanism profile as the agents)
   ``gt-dsl``    GT-DSL: the reference DSL program of the task executed in code
-  ``gt-dsl-node`` GT-DSL with per-node edge clipping (the code reference of ``nodebound``)
+  ``gt-dsl-node`` GT-DSL in the per-node architecture (the code reference of ``nodebound``;
+                triangle: NAM-DPRD's TriTR statistic with the GS certified by the deriver)
+  ``gt-tritr``  :func:`psc.ground_truth.gt_tritr` (NAM-DPRD with its own hand calibration ``2 κ d~_i``)
   ``gt-tuned``  the reference program with threshold factor / budget split grid-tuned on public
                 synthetic graphs (the "equally tuned PSC" baseline of the DSL search)
 
@@ -65,7 +68,7 @@ from psc.events import collect_errors, set_error_sink, set_transcript_sink  # no
 from psc.experiments import run_rng  # noqa: E402
 from psc.framework import NaiveFramework, RunResult  # noqa: E402
 from psc.graph import TASKS, TaskRecord, load_dataset  # noqa: E402
-from psc.ground_truth import gt_naive, gt_psc  # noqa: E402
+from psc.ground_truth import gt_naive, gt_psc, gt_tritr, tritr_budget  # noqa: E402
 from psc.library import get_algorithm  # noqa: E402
 from psc.mechanism import DEFAULT_MECHANISM  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig, create_model  # noqa: E402
@@ -74,7 +77,7 @@ from certicount import DATA_DIR  # noqa: E402
 from certicount.artifacts import append_jsonl, out_dir, write_json, write_manifest  # noqa: E402
 from certicount.cost import calls_per_run  # noqa: E402
 from certicount.dsl.ground_truth import dp_execute, gs_ratio, gt_dsl, noise_ratio  # noqa: E402
-from certicount.dsl.library import OUT_OF_LIBRARY, PROGRAMS  # noqa: E402
+from certicount.dsl.library import OUT_OF_LIBRARY, PROGRAMS, reference_source  # noqa: E402
 from certicount.dsl.quality import task_record  # noqa: E402
 from certicount.dsl.search import SearchOptions, tune_reference  # noqa: E402
 from certicount.execution_report import markdown, summarize  # noqa: E402
@@ -90,7 +93,7 @@ MODES = {
 }
 AGENT_MODES = (*MODES, "naive")
 CODE_MODES = {"gt-naive": "GT-Naive", "gt-psc": "GT-PSC", "gt-dsl": "GT-DSL", "gt-dsl-node": "GT-DSL-node",
-              "gt-tuned": "GT-Tuned"}
+              "gt-tuned": "GT-Tuned", "gt-tritr": "GT-TriTR"}
 PROGRAM_MODES = ("program", "nodebound")
 ALL_MODES = (*AGENT_MODES, *CODE_MODES)
 DEFAULT_MODES = "baseline,bind,program,codecost"
@@ -139,6 +142,10 @@ def run_code(mode: str, rec: TaskRecord, eps: float, rng: np.random.Generator, r
     elif mode == "gt-psc":
         tr = gt_psc(g, rec.task, eps, rng, r1=r1, r2=r2, return_trace=True, mechanism=DEFAULT_MECHANISM)
         est, split, gs, d_hat, extra = tr.result, tr.split.as_tuple(), tr.sensitivity, tr.d_hat_max, {}
+    elif mode == "gt-tritr":
+        est = gt_tritr(g, rec.task, eps, rng, alpha=clip_alpha, r1=r1, r2=r2)
+        split, gs, d_hat = tritr_budget(eps, rec.task, "psc", r1, r2).as_tuple(), None, None
+        extra = {"clip_alpha": clip_alpha}
     elif mode == "gt-tuned":
         tuned = tune_reference(rec.task, rec.vertex_num, search or SearchOptions(eps=eps, r1=r1, r2=r2))
         tr = dp_execute(g, tuned.program, eps, rng, rec.task, DEFAULT_MECHANISM, r1, r2)
@@ -150,7 +157,7 @@ def run_code(mode: str, rec: TaskRecord, eps: float, rng: np.random.Generator, r
         node = mode == "gt-dsl-node"
         tr = gt_dsl(g, rec.task, eps, rng, mechanism=DEFAULT_MECHANISM, r1=r1, r2=r2, node_bounds=node, alpha=clip_alpha)
         est, split, gs, d_hat = tr.estimate, tr.split, tr.gs, tr.d_hat_max
-        extra = {"program": PROGRAMS[rec.task].parse().text(),
+        extra = {"program": reference_source(rec.task, node).parse().text(),
                  **({"clip_alpha": clip_alpha, **tr.to_dict()} if node else {})}
     return RunResult(
         method=CODE_MODES[mode], dataset=rec.dataset, task=rec.task, eps=eps, estimate=float(est), truth=rec.answer,

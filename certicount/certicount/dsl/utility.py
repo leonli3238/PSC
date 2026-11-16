@@ -21,6 +21,7 @@ import numpy as np
 from psc.graph import Graph
 
 from .lang import Env, Interpreter, Program
+from .matrix import exact_matrix
 
 
 def _brute_kstar(g: Graph, k: int) -> float:
@@ -54,12 +55,15 @@ def run_exact(program: Program, g: Graph, truncate: bool = True) -> float:
 
     ``truncate=False`` also turns ``project`` into the identity, so a program that
     lowers its threshold below ``D`` on purpose (a bias / noise trade-off) is still
-    checked for computing the right statistic."""
+    checked for computing the right statistic. ``A`` is the 0/1 adjacency (the
+    expectation of the unbiased matrix without projection)."""
     interp = Interpreter(program)
     rows = {u: frozenset(g.adj[u]) for u in range(g.n)}
     d = max(1, g.n - 1)
     kw = {} if truncate else {"projector": _no_projection}
-    total = sum(interp.local(Env(frozenset(g.adj[u]), u, rows, g.n, D=d, dmax=d, **kw)) for u in range(g.n))
+    matrix = exact_matrix(g) if program.uses_matrix else None
+    total = sum(interp.local(Env(frozenset(g.adj[u]), u, rows, g.n, D=d, dmax=d, matrix=matrix, **kw))
+                for u in range(g.n))
     return interp.aggregate(total, g.n)
 
 

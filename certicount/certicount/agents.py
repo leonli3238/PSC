@@ -33,6 +33,7 @@ from psc.agents.node_agent import NodeAgent
 
 from .binding import Binding
 from .dsl.lang import Env, Interpreter, Program, Projector, node_projector, smallest_projector
+from .dsl.matrix import Matrix
 from .messages import ChannelMessage, validate_messages
 
 EXECUTIONS = ("llm", "program")
@@ -59,6 +60,7 @@ class TrustedNodeAgent(NodeAgent):
         self.rejected: list[dict] = []
         self._projection_limit: int | None = None
         self._project: Projector = smallest_projector
+        self.public_matrix: Matrix | None = None
 
     # -- set-up by the framework ------------------------------------------------
     def bound_degree(self, d_max: int, rng: np.random.Generator) -> None:
@@ -69,15 +71,18 @@ class TrustedNodeAgent(NodeAgent):
         self._projection_limit = int(d_max)
 
     def configure(self, n: int, public_rows: dict[int, Iterable[int]] | None, D: int | None,
-                  binding: Binding | None = None, program: Program | None = None, dmax: int | None = None) -> None:
+                  binding: Binding | None = None, program: Program | None = None, dmax: int | None = None,
+                  matrix: Matrix | None = None) -> None:
         """``D``: the bound of ``project(P, D)``; ``dmax``: the bound of the public rows
-        (default ``D``; differs with per-node bounds, :mod:`certicount.dsl.clipping`)."""
+        (default ``D``; differs with per-node bounds, :mod:`certicount.dsl.clipping`);
+        ``matrix``: the public unbiased matrix ``A`` (:mod:`certicount.dsl.matrix`)."""
         self.n = n
         self.public_rows = {int(k): frozenset(v) for k, v in (public_rows or {}).items()}
         self.params_D = int(D or 0)
         self.params_dmax = int(dmax if dmax is not None else (D or 0))
         self.binding = binding
         self.program = program
+        self.public_matrix = matrix
 
     # -- messages ---------------------------------------------------------------
     async def observe(self, msg: Msg | list[Msg] | None) -> None:
@@ -130,7 +135,7 @@ class TrustedNodeAgent(NodeAgent):
             raise RuntimeError("program execution without a program")
         env = Env(
             frozenset(self._real_neighbors), self.node_id, self.public_rows, self.n,
-            D=self.params_D, dmax=self.params_dmax, projector=self._projector,
+            D=self.params_D, dmax=self.params_dmax, projector=self._projector, matrix=self.public_matrix,
         )
         return Interpreter(self.program).local(env)
 

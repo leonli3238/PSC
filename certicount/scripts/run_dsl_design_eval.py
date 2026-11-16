@@ -89,6 +89,10 @@ def main() -> None:
     ap.add_argument("--utility-graphs", type=int, default=100)
     ap.add_argument("--utility-max-n", type=int, default=16)
     ap.add_argument("--no-falsify", action="store_true", help="skip the falsifier soundness check")
+    ap.add_argument("--node-bounds", action="store_true",
+                    help="per-node architecture: edge clipping + NAM-DPRD unbiased matrix A (the curator's prompt "
+                         "documents A; designs are paired with GT-DSL-node)")
+    ap.add_argument("--clip-alpha", type=float, default=0.0, help="--node-bounds: public margin α of the clipping bound")
     ap.add_argument("--data", default=str(DATA_DIR))
     ap.add_argument("--provider", default="mock", choices=PROVIDERS)
     ap.add_argument("--profile", default=None)
@@ -134,7 +138,8 @@ def main() -> None:
                 rec = task_record(recs, ds, task)
                 g, n, truth = rec.graph(), rec.vertex_num, rec.answer
                 ref_params = design_reference_params(n)
-                gt = [gt_dsl(g, task, args.eps, run_rng(args.seed, i), mechanism=args.mechanism) for i in range(args.runs)]
+                gt = [gt_dsl(g, task, args.eps, run_rng(args.seed, i), mechanism=args.mechanism,
+                             node_bounds=args.node_bounds, alpha=args.clip_alpha) for i in range(args.runs)]
                 gt_re = [relative_error(t.estimate, truth, n) for t in gt]
                 rows: list[dict] = []
                 for k in range(args.designs):
@@ -145,7 +150,8 @@ def main() -> None:
                         res = await search_program(model, fmt, rec.input_prompt, n, task, opts)
                     else:
                         res = await design_with_restarts(model, fmt, rec.input_prompt, n, ref_params, task=task,
-                                                         max_iterations=args.max_iterations, restarts=args.restarts)
+                                                         max_iterations=args.max_iterations, restarts=args.restarts,
+                                                         matrix=args.node_bounds)
                     row = {
                         "dataset": ds, "task": task, "design": k, "accepted": res.accepted, "iterations": res.iterations,
                         "restarts": res.restarts, "first_loop_accepted": bool(res.attempts and res.attempts[0]["accepted"])
@@ -158,11 +164,12 @@ def main() -> None:
                     if res.program is not None:
                         q = design_quality(res.program, task, n, int(ref_params.D), bounds, args.utility_graphs,
                                            utility_n=(5, args.utility_max_n), falsify_program=not args.no_falsify,
-                                           truncate=args.design_mode == "exact")
+                                           truncate=args.design_mode == "exact", node_bounds=args.node_bounds)
                         row.update(q.to_dict())
                         re_, diffs, exact, ratios, nratios, zeros = [], [], [], [], [], []
                         for i in range(args.runs):
-                            tr = dp_execute(g, res.program, args.eps, run_rng(args.seed, i), task, args.mechanism)
+                            tr = dp_execute(g, res.program, args.eps, run_rng(args.seed, i), task, args.mechanism,
+                                            node_bounds=args.node_bounds, alpha=args.clip_alpha)
                             e = relative_error(tr.estimate, truth, n)
                             re_.append(e)
                             diffs.append(e - gt_re[i])
@@ -234,7 +241,8 @@ def main() -> None:
         f"{' (flawed first draft)' if args.flawed_first and args.provider == 'mock' else ''}, temperature = "
         f"{args.temperature if args.temperature is not None else cfg.temperature}, {args.designs} independent design(s), "
         f"{loop}, ε = {args.eps}, {args.runs} runs per design (noise of run i: seed [{args.seed}, i]), "
-        f"mechanism = {args.mechanism}.", "",
+        f"mechanism = {args.mechanism}, architecture = "
+        f"{'per-node (edge clipping + unbiased matrix A, α = %g)' % args.clip_alpha if args.node_bounds else 'PSC'}.", "",
         "## Design quality", "",
         "`accept_rate`: designs that produced a program; `first_loop_rate`: accepted without a restart; "
         "`first_try_rate`: accepted at the first draft. `gs_ratio`: derived GS / reference GS at the design-time bound "

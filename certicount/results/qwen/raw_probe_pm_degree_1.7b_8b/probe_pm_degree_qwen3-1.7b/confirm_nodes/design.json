@@ -1,0 +1,661 @@
+{
+  "name": "nodes",
+  "pairs_spec": "nodes",
+  "pair_source": {
+    "source": "nodes",
+    "universe": [
+      {
+        "node_id": 1,
+        "tier": "hub",
+        "degree": 123,
+        "bin": ">120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n1-d123-6c2f4d763dd7|add128",
+        "delta_max": 100.0
+      },
+      {
+        "node_id": 3,
+        "tier": "hub",
+        "degree": 38,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n3-d38-f25134ffb4e0|add10",
+        "delta_max": 4.0
+      },
+      {
+        "node_id": 4,
+        "tier": "hub",
+        "degree": 109,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 0.0
+      },
+      {
+        "node_id": 6,
+        "tier": "hub",
+        "degree": 75,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n6-d75-3928d319423e|remove38",
+        "delta_max": 349.0
+      },
+      {
+        "node_id": 8,
+        "tier": "hub",
+        "degree": 75,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n8-d75-5331f4d88508|remove261",
+        "delta_max": 284.0
+      },
+      {
+        "node_id": 11,
+        "tier": "hub",
+        "degree": 57,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n11-d57-d44a81f0ad2b|remove326",
+        "delta_max": 334.0
+      },
+      {
+        "node_id": 12,
+        "tier": "hub",
+        "degree": 36,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n12-d36-eb15d2acb744|add315",
+        "delta_max": 4.0
+      },
+      {
+        "node_id": 14,
+        "tier": "hub",
+        "degree": 237,
+        "bin": ">120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n14-d237-ef095c6ea966|add2",
+        "delta_max": 100.0
+      },
+      {
+        "node_id": 24,
+        "tier": "hub",
+        "degree": 33,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n24-d33-9f55cc6217f1|add0",
+        "delta_max": 4.0
+      },
+      {
+        "node_id": 37,
+        "tier": "hub",
+        "degree": 63,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n37-d63-5567428bd790|add105",
+        "delta_max": 437.0
+      },
+      {
+        "node_id": 46,
+        "tier": "hub",
+        "degree": 59,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n46-d59-1a445ec952d4|add11",
+        "delta_max": 36.0
+      },
+      {
+        "node_id": 48,
+        "tier": "hub",
+        "degree": 59,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n48-d59-b90250eaf8f2|add69",
+        "delta_max": 36.0
+      },
+      {
+        "node_id": 50,
+        "tier": "hub",
+        "degree": 64,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n50-d64-09502dea74cd|add0",
+        "delta_max": 36.0
+      },
+      {
+        "node_id": 51,
+        "tier": "hub",
+        "degree": 35,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n51-d35-f3b7b9f44ae0|add0",
+        "delta_max": 5.0
+      },
+      {
+        "node_id": 54,
+        "tier": "hub",
+        "degree": 37,
+        "bin": "31-60",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n54-d37-d4e00c4184e5|add440",
+        "delta_max": 9.0
+      },
+      {
+        "node_id": 55,
+        "tier": "hub",
+        "degree": 64,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n55-d64-b3f9d2395290|remove14",
+        "delta_max": 349.0
+      },
+      {
+        "node_id": 57,
+        "tier": "hub",
+        "degree": 61,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n57-d61-8edac2888720|add108",
+        "delta_max": 343.0
+      },
+      {
+        "node_id": 96,
+        "tier": "hub",
+        "degree": 104,
+        "bin": "61-120",
+        "screened_pairs": 452,
+        "candidate": true,
+        "pair_id": "n96-d104-0de35713c8cd|add0",
+        "delta_max": 334.0
+      },
+      {
+        "node_id": 25,
+        "tier": "mid",
+        "degree": 13,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 26,
+        "tier": "mid",
+        "degree": 30,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 64,
+        "tier": "mid",
+        "degree": 16,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n64-d16-4625cbcdf2dc|remove11",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 65,
+        "tier": "mid",
+        "degree": 28,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n65-d28-4a2742886ac8|add371",
+        "delta_max": 6.0
+      },
+      {
+        "node_id": 71,
+        "tier": "mid",
+        "degree": 15,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n71-d15-a9357b884a83|add0",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 85,
+        "tier": "mid",
+        "degree": 24,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n85-d24-270fecee5788|add242",
+        "delta_max": 5.0
+      },
+      {
+        "node_id": 86,
+        "tier": "mid",
+        "degree": 18,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n86-d18-00f75a7cd99d|add0",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 112,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n112-d11-65b9e6c2938b|add26",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 113,
+        "tier": "mid",
+        "degree": 23,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n113-d23-27eb52e63e64|add146",
+        "delta_max": 3.0
+      },
+      {
+        "node_id": 119,
+        "tier": "mid",
+        "degree": 15,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n119-d15-c792b023c859|add1",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 122,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 124,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 133,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n133-d11-78483882b12e|remove48",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 137,
+        "tier": "mid",
+        "degree": 21,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n137-d21-b230a5c2fdd8|add3",
+        "delta_max": 5.0
+      },
+      {
+        "node_id": 143,
+        "tier": "mid",
+        "degree": 19,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n143-d19-f81e8fc83ebc|remove390",
+        "delta_max": 19.0
+      },
+      {
+        "node_id": 147,
+        "tier": "mid",
+        "degree": 16,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n147-d16-ac255c1762d9|remove1",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 150,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 153,
+        "tier": "mid",
+        "degree": 16,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n153-d16-aefc60ad9893|add0",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 182,
+        "tier": "mid",
+        "degree": 12,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n182-d12-429eaccff126|add0",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 188,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 189,
+        "tier": "mid",
+        "degree": 15,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n189-d15-9c3b0708d52b|remove1",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 190,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 201,
+        "tier": "mid",
+        "degree": 12,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n201-d12-26c3275d8174|add0",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 213,
+        "tier": "mid",
+        "degree": 14,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 234,
+        "tier": "mid",
+        "degree": 21,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n234-d21-47aaa5f8d82f|remove1",
+        "delta_max": 3.0
+      },
+      {
+        "node_id": 244,
+        "tier": "mid",
+        "degree": 11,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n244-d11-3a230ecbd82f|remove1",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 258,
+        "tier": "mid",
+        "degree": 13,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 272,
+        "tier": "mid",
+        "degree": 15,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": true,
+        "pair_id": "n272-d15-771b3d8d7120|add290",
+        "delta_max": 2.0
+      },
+      {
+        "node_id": 343,
+        "tier": "mid",
+        "degree": 12,
+        "bin": "11-30",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 370,
+        "tier": "mid",
+        "degree": 14,
+        "bin": "11-30",
+        "screened_pairs": 40,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 76,
+        "tier": "low",
+        "degree": 5,
+        "bin": "1-10",
+        "screened_pairs": 40,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 197,
+        "tier": "low",
+        "degree": 4,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 199,
+        "tier": "low",
+        "degree": 3,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 261,
+        "tier": "low",
+        "degree": 3,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 283,
+        "tier": "low",
+        "degree": 3,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 306,
+        "tier": "low",
+        "degree": 5,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 322,
+        "tier": "low",
+        "degree": 5,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 328,
+        "tier": "low",
+        "degree": 5,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 339,
+        "tier": "low",
+        "degree": 2,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 382,
+        "tier": "low",
+        "degree": 4,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 391,
+        "tier": "low",
+        "degree": 3,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      },
+      {
+        "node_id": 399,
+        "tier": "low",
+        "degree": 8,
+        "bin": "1-10",
+        "screened_pairs": 41,
+        "candidate": false,
+        "pair_id": null,
+        "delta_max": 1.0
+      }
+    ]
+  },
+  "pair_ids": [
+    "n1-d123-6c2f4d763dd7|add128",
+    "n3-d38-f25134ffb4e0|add10",
+    "n6-d75-3928d319423e|remove38",
+    "n8-d75-5331f4d88508|remove261",
+    "n11-d57-d44a81f0ad2b|remove326",
+    "n12-d36-eb15d2acb744|add315",
+    "n14-d237-ef095c6ea966|add2",
+    "n24-d33-9f55cc6217f1|add0",
+    "n37-d63-5567428bd790|add105",
+    "n46-d59-1a445ec952d4|add11",
+    "n48-d59-b90250eaf8f2|add69",
+    "n50-d64-09502dea74cd|add0",
+    "n51-d35-f3b7b9f44ae0|add0",
+    "n54-d37-d4e00c4184e5|add440",
+    "n55-d64-b3f9d2395290|remove14",
+    "n57-d61-8edac2888720|add108",
+    "n96-d104-0de35713c8cd|add0",
+    "n64-d16-4625cbcdf2dc|remove11",
+    "n65-d28-4a2742886ac8|add371",
+    "n71-d15-a9357b884a83|add0",
+    "n85-d24-270fecee5788|add242",
+    "n86-d18-00f75a7cd99d|add0",
+    "n112-d11-65b9e6c2938b|add26",
+    "n113-d23-27eb52e63e64|add146",
+    "n119-d15-c792b023c859|add1",
+    "n133-d11-78483882b12e|remove48",
+    "n137-d21-b230a5c2fdd8|add3",
+    "n143-d19-f81e8fc83ebc|remove390",
+    "n147-d16-ac255c1762d9|remove1",
+    "n153-d16-aefc60ad9893|add0",
+    "n182-d12-429eaccff126|add0",
+    "n189-d15-9c3b0708d52b|remove1",
+    "n201-d12-26c3275d8174|add0",
+    "n234-d21-47aaa5f8d82f|remove1",
+    "n244-d11-3a230ecbd82f|remove1",
+    "n272-d15-771b3d8d7120|add290"
+  ],
+  "m": 36,
+  "alpha": 0.05,
+  "alpha_pair": 0.001388888888888889,
+  "eval": 300,
+  "eval_jitter": 500,
+  "jitter_pairs": [
+    "n48-d59-b90250eaf8f2|add69"
+  ],
+  "select": 20,
+  "plan_hash": "ce15f2d2123d738a",
+  "noise_salt": "0|Qwen3-1.7B|nodes",
+  "model": "Qwen3-1.7B",
+  "created": "2026-11-09 16:15:48",
+  "note": "fixed before any evaluation trial; Bonferroni over the m pairs of this design"
+}

@@ -34,7 +34,8 @@ from psc.prompts import extract_structured, structured_block
 
 from .falsifier import check_derivation
 from .lang import DSLError, Program, parse_program
-from .library import PROGRAMS, infer_program_task, kstar_source
+from .library import NODE_PROGRAMS, PROGRAMS, infer_program_task, kstar_source
+from .matrix import REFERENCE_EPS1
 from .sensitivity import PublicParams, SensitivityError, derive
 from .utility import utility_test
 
@@ -70,6 +71,15 @@ Smaller sensitivity means less noise: bound degrees with project(P, D) before no
 The sensitivity checker bounds comb(size(S), k) tightly; products of expressions get looser bounds.
 Reading D or dmax, or calling N, makes the system spend part of the budget on a noisy degree bound."""
 
+# Added to DSL_REFERENCE in the per-node architecture (TrustOptions.node_bounds) only, so the
+# prompt of the PSC architecture is unchanged.
+MATRIX_REFERENCE = """Per-node architecture (this run):
+- D is this node's own public degree bound (each node has its own); project(P, D) keeps at most D neighbors.
+- A(x, y): public unbiased estimate of the edge between nodes x and y, computed from randomized-response
+  bits of the projected neighbor lists: E[A(x, y)] = 1 if the edge is kept, 0 otherwise; A(x, x) = 0.
+  Each value is noisy (between -1/(e^eps1 - 1) and e^eps1/(e^eps1 - 1)) but sums of A are unbiased counts.
+  A program reads either N(...) or A(...), not both; reading A costs the same budget as N."""
+
 _FORMAT = (
     "Reply with exactly two parts:\n```dsl\n<program>\n```\naggregate: <expression over total and n>"
 )
@@ -81,7 +91,7 @@ def design_reference_params(n: int) -> PublicParams:
     """Public parameters of the design-time checks: the real ``d̂max`` is not
     known yet, so a reference bound ``min(n - 1, 10)`` stands in for it."""
     d = max(2, min(n - 1, 10))
-    return PublicParams(n, D=d, dmax=d)
+    return PublicParams(n, D=d, dmax=d, eps1=REFERENCE_EPS1)
 
 
 def _excerpt(text: str, limit: int = 300) -> str:
@@ -100,9 +110,10 @@ def render_attempt(i: int, h: dict) -> str:
     return f"{head}\nResult: {h['feedback']}"
 
 
-def design_prompt(input_prompt: str, n: int, history: list[dict]) -> str:
+def design_prompt(input_prompt: str, n: int, history: list[dict], matrix: bool = False) -> str:
     payload = {"phase": "design_program", "input_prompt": input_prompt, "attempt": len(history) + 1}
-    parts = [DSL_REFERENCE, f"The input prompt from the analyst is:\n\"\"\"\n{input_prompt}\n\"\"\"", f"The graph has {n} nodes."]
+    reference = DSL_REFERENCE + ("\n" + MATRIX_REFERENCE if matrix else "")
+    parts = [reference, f"The input prompt from the analyst is:\n\"\"\"\n{input_prompt}\n\"\"\"", f"The graph has {n} nodes."]
     if history:
         parts.append("Your previous attempts were rejected:\n\n" + "\n\n".join(render_attempt(i, h) for i, h in enumerate(history, 1)))
         parts.append("Write a corrected program. Do not repeat a rejected program.")
@@ -213,14 +224,16 @@ def _duplicate_of(program: Program, seen: dict[str, int]) -> int | None:
 
 async def design_program(
     model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
-    params: PublicParams, task: str | None = None, max_iterations: int = 3,
+    params: PublicParams, task: str | None = None, max_iterations: int = 3, matrix: bool = False,
 ) -> DesignResult:
     """``task`` names the reference counter used by the utility test (``None``
-    skips it, e.g. for a task without a brute-force reference)."""
+    skips it, e.g. for a task without a brute-force reference). ``matrix``: the
+    per-node architecture, whose prompt documents ``A`` (:data:`MATRIX_REFERENCE`)."""
     history: list[dict] = []
     seen: dict[str, int] = {}
     for it in range(1, max_iterations + 1):
-        text = await chat(model, formatter, DESIGNER_SYSTEM, design_prompt(input_prompt, n, history), agent="Curator")
+        text = await chat(model, formatter, DESIGNER_SYSTEM, design_prompt(input_prompt, n, history, matrix),
+                          agent="Curator")
         program, entry = read_draft(text)
         if program is None:
             history.append(entry)
@@ -242,6 +255,7 @@ async def design_program(
 async def design_with_restarts(
     model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
     params: PublicParams, task: str | None = None, max_iterations: int = 3, restarts: int = 1,
+    matrix: bool = False,
 ) -> DesignResult:
     """Up to ``restarts`` independent design loops (fresh history each); the
     first accepted program is used. All loops are recorded in ``attempts``."""
@@ -249,7 +263,7 @@ async def design_with_restarts(
     calls = 0
     last: DesignResult | None = None
     for r in range(1, max(1, restarts) + 1):
-        res = await design_program(model, formatter, input_prompt, n, params, task, max_iterations)
+        res = await design_program(model, formatter, input_prompt, n, params, task, max_iterations, matrix)
         calls += res.llm_calls
         attempts.append({"restart": r, "accepted": res.accepted, "iterations": res.iterations,
                          "program": res.program.text() if res.program else None, "history": res.history})
@@ -285,7 +299,8 @@ class MockDesignerModel(ChatModelBase):
         task = infer_program_task(payload.get("input_prompt", ""))
         if task is None:
             return _text("I cannot express this task.")
-        src = PROGRAMS.get(task)
+        # the per-node architecture documents A: answer with that architecture's reference
+        src = (NODE_PROGRAMS if "A(x, y)" in user else PROGRAMS).get(task)
         m = re.fullmatch(r"(\d+)-star", task)
         if src is None and m:
             src = kstar_source(int(m.group(1)))

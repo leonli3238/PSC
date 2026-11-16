@@ -21,13 +21,15 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from psc.dp import graph_projection, laplace_noise, node_noisy_lower_row, project_neighbor_list, split_budget
+from psc.dp import (graph_projection, laplace_noise, node_noisy_lower_row, node_noisy_upper_row,
+                    project_neighbor_list, split_budget)
 from psc.graph import TASKS, Graph
 from psc.mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
 
 from .clipping import edge_clipping_bounds
 from .lang import Env, Interpreter, Program, node_projector, smallest_projector
-from .library import HAND_GS, PROGRAMS
+from .library import HAND_GS, reference_source
+from .matrix import unbiased_matrix
 from .sensitivity import PublicParams, derive
 
 
@@ -67,7 +69,7 @@ def degree_class(task: str | None, program: Program) -> str:
     """Task whose rounding the degree bound uses (as in the framework)."""
     if task in TASKS:
         return task
-    return "triangle" if program.uses_rows else "3-star"
+    return "triangle" if program.uses_release else "3-star"
 
 
 def dp_execute(
@@ -81,6 +83,8 @@ def dp_execute(
     ``budget`` uses that instead (as the framework does). ``node_bounds``: every
     node clips its list to its own bound ``D_i`` (edge clipping, Imola et al.
     2022, :mod:`certicount.dsl.clipping`) and reports with the GS at ``D_i``."""
+    if program.uses_matrix:
+        return _dp_execute_matrix(graph, program, eps, rng, task, mechanism, r1, r2, node_bounds, alpha)
     n = graph.n
     mech = get_mechanism(mechanism)
     cls = degree_class(task, program)
@@ -129,18 +133,63 @@ def dp_execute(
                     interp.aggregate_coefficient(n), node_gs if node_bounds else None)
 
 
-def reference_program(task: str) -> Program:
-    if task not in PROGRAMS:
-        raise KeyError(f"no reference program for {task!r}; known: {', '.join(PROGRAMS)}")
-    return PROGRAMS[task].parse()
+def _dp_execute_matrix(
+    graph: Graph, program: Program, eps: float, rng: np.random.Generator, task: str | None,
+    mechanism: str | MechanismProfile, r1: float, r2: float, node_bounds: bool, alpha: float,
+) -> DSLTrace:
+    """NAM-DPRD release (:mod:`certicount.dsl.matrix`) for a program that reads ``A``:
+    noisy degrees (ε2) -> per-node (``node_bounds``) or global bound -> projection
+    -> RR of the projected upper bits (ε1) -> unbiased matrix -> program -> Laplace (ε3).
+    The order differs from PSC's (RR first): the RR bits are those of the projected list."""
+    n = graph.n
+    mech = get_mechanism(mechanism)
+    cls = degree_class(task, program)
+    r1, r2 = program.budget_fractions(r1, r2)
+    split = split_budget(eps, True, program.needs_degree_bound, r1, r2)
+    real = [sorted(int(x) for x in graph.adj[i]) for i in range(n)]
+    kept = [list(r) for r in real]
+    projectors = [smallest_projector] * n
+    d_hat = None
+    limits: list[int] | None = None
+    if split.eps2 > 0:
+        reports = [len(real[i]) + laplace_noise(1.0, split.eps2, rng) for i in range(n)]
+        d_hat = mech.degree_bound(reports, cls).projection_degree
+        limits = edge_clipping_bounds(reports, alpha) if node_bounds else [d_hat] * n
+        for i in range(n):
+            kept[i] = project_neighbor_list(real[i], limits[i], rng)
+            projectors[i] = node_projector(n, real[i], kept[i], rng)
+    released = [(i, j) for i in range(n) for j in node_noisy_upper_row(i, kept[i], n, split.eps1, rng)]
+    noisy = Graph.from_edges(n, released)
+    matrix = unbiased_matrix(noisy, split.eps1)
+
+    node_D = limits if limits is not None else [0] * n
+    gs_of: dict[int, float] = {}
+    for D in set(node_D):
+        gs_of[D] = derive(program, PublicParams(n, D=D if d_hat is not None else None, dmax=d_hat,
+                                                eps1=split.eps1)).gs
+    node_gs = [gs_of[D] for D in node_D]
+    interp = Interpreter(program)
+    counts = [interp.local(Env(frozenset(real[i]), i, {}, n, D=node_D[i], dmax=int(d_hat or 0),
+                               projector=projectors[i], matrix=matrix)) for i in range(n)]
+    reports_out = [c + laplace_noise(g, split.eps3, rng) for c, g in zip(counts, node_gs)]
+    estimate = interp.aggregate(float(sum(reports_out)), n)
+    return DSLTrace(estimate, split.as_tuple(), max(node_gs), d_hat, counts, reports_out,
+                    interp.aggregate_coefficient(n), node_gs if node_bounds else None)
+
+
+def reference_program(task: str, node_bounds: bool = False) -> Program:
+    """Reference program of ``task`` (``node_bounds``: of the per-node architecture)."""
+    return reference_source(task, node_bounds).parse()
 
 
 def gt_dsl(graph: Graph, task: str, eps: float, rng: np.random.Generator,
            mechanism: str | MechanismProfile = DEFAULT_MECHANISM, r1: float = 0.5, r2: float = 0.2,
            node_bounds: bool = False, alpha: float = 0.0) -> DSLTrace:
-    """GT-DSL: the reference program of ``task`` executed in code (``node_bounds``:
-    with per-node edge clipping, :mod:`certicount.dsl.clipping`)."""
-    return dp_execute(graph, reference_program(task), eps, rng, task, mechanism, r1, r2, node_bounds, alpha)
+    """GT-DSL: the reference program of ``task`` executed in code. ``node_bounds``:
+    the per-node architecture (edge clipping, :mod:`certicount.dsl.clipping`; the
+    NAM-DPRD unbiased matrix for triangles, :mod:`certicount.dsl.matrix`)."""
+    return dp_execute(graph, reference_program(task, node_bounds), eps, rng, task, mechanism, r1, r2,
+                      node_bounds, alpha)
 
 
 def hand_gs(task: str, d_hat: int | None, n: int) -> float | None:

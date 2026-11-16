@@ -24,6 +24,7 @@ from dataclasses import asdict, dataclass
 from typing import Iterator
 
 from .lang import Env, Interpreter, Program, order_projector
+from .matrix import REFERENCE_EPS1, rr_constants, table_matrix
 from .sensitivity import Facts, PublicParams, SensitivityError, derive
 
 
@@ -34,12 +35,16 @@ class Counterexample:
     vertex: int | None = None
     rows: tuple[tuple[int, ...], ...] = ()
     checked: int = 0
+    matrix: tuple = ()  # ((j, k), A(j, k)) of the witness, for programs that read A
 
     def to_dict(self) -> dict:
-        return {
+        out = {
             "max_delta": self.max_delta, "private": list(self.private), "vertex": self.vertex,
             "rows": [list(r) for r in self.rows], "checked": self.checked,
         }
+        if self.matrix:
+            out["matrix"] = [[j, k, v] for (j, k), v in self.matrix]
+        return out
 
 
 def symmetric_graphs(n: int, dmax: int) -> Iterator[list[frozenset]]:
@@ -80,6 +85,23 @@ def random_symmetric_graphs(n: int, dmax: int, samples: int, seed: int = 0) -> I
         yield [frozenset(a) for a in adj]
 
 
+def sign_matrices(n: int, eps1: float, samples: int | None = None, seed: int = 0) -> Iterator[dict]:
+    """Symmetric unbiased matrices on ``n`` vertices (zero diagonal) whose off-diagonal
+    entries take the two released values of :func:`certicount.dsl.matrix.rr_constants`:
+    every one (``samples=None``) or ``samples`` random ones. A program is linear in each
+    entry it reads, so the largest change is attained at these values."""
+    low, high = rr_constants(eps1)
+    pairs = list(itertools.combinations(range(n), 2))
+    if samples is None:
+        for mask in range(1 << len(pairs)):
+            yield {p: (high if mask >> b & 1 else low) for b, p in enumerate(pairs)}
+        return
+    rnd = random.Random(seed)
+    for _ in range(samples):
+        q = rnd.random()
+        yield {p: (high if rnd.random() < q else low) for p in pairs}
+
+
 def self_orders(n: int) -> list[tuple[int, ...]]:
     """Projection orders that put node ``0`` at every position (the others by id).
 
@@ -94,14 +116,30 @@ def self_orders(n: int) -> list[tuple[int, ...]]:
 def max_delta(
     program: Program, n: int, dmax: int, graphs, D: int | None = None,
     privates: int | None = None, seed: int = 0, orders: list[tuple[int, ...]] | None = None,
+    matrices=None,
 ) -> Counterexample:
     """Largest change of the local count of node 0 over ``graphs`` and
     projection ``orders`` (default: :func:`self_orders`; one order is used for
     both sides of a flip, as at run time).
 
     ``privates=None`` enumerates every ``P``; otherwise ``privates`` random
-    sets are drawn per graph.
+    sets are drawn per graph. ``matrices``: off-diagonal values of ``A``
+    (:func:`sign_matrices`), one public input per entry like ``graphs``.
     """
+    if matrices is not None:
+        best, checked = Counterexample(0.0), 0
+        for values in matrices:
+            ce = _max_delta(program, n, dmax, graphs, D, privates, seed, orders, table_matrix(values))
+            checked += ce.checked
+            if ce.max_delta > best.max_delta + 1e-12:
+                best = ce
+                best.matrix = tuple(sorted(values.items()))
+        best.checked = checked
+        return best
+    return _max_delta(program, n, dmax, graphs, D, privates, seed, orders, None)
+
+
+def _max_delta(program, n, dmax, graphs, D, privates, seed, orders, matrix) -> Counterexample:
     interp = Interpreter(program)
     D = dmax if D is None else D
     if orders is None:
@@ -122,7 +160,7 @@ def max_delta(
         for proj in projectors:
 
             def f(p: frozenset) -> float:
-                return interp.local(Env(p, 0, table, n, D=D, dmax=dmax, projector=proj))
+                return interp.local(Env(p, 0, table, n, D=D, dmax=dmax, projector=proj, matrix=matrix))
 
             values = {p: f(p) for p in every_set} if privates is None else None  # each P once; its flips are other P
             for p in sets:
@@ -138,10 +176,15 @@ def max_delta(
 
 def falsify(program: Program, claimed_gs: float, n: int = 5, dmax: int = 3, D: int | None = None,
             symmetric: bool = True, samples: int = 2000, seed: int = 0,
-            exhaustive: bool = True) -> tuple[bool, Counterexample]:
+            exhaustive: bool = True, eps1: float = REFERENCE_EPS1) -> tuple[bool, Counterexample]:
     """``(refuted, witness)``: on every symmetric graph (``exhaustive``), on
-    ``samples`` random symmetric graphs, or on ``samples`` asymmetric rows."""
-    if not program.uses_rows:
+    ``samples`` random symmetric graphs, or on ``samples`` asymmetric rows.
+    A program that reads ``A`` is checked on every / ``samples`` sign matrices."""
+    matrices = None
+    if program.uses_matrix:
+        graphs = [[frozenset() for _ in range(n)]]
+        matrices = sign_matrices(n, eps1, None if exhaustive else samples, seed)
+    elif not program.uses_rows:
         graphs = [[frozenset() for _ in range(n)]]
     elif not symmetric:
         graphs = asymmetric_rows(n, dmax, samples, seed)
@@ -149,7 +192,7 @@ def falsify(program: Program, claimed_gs: float, n: int = 5, dmax: int = 3, D: i
         graphs = _all_symmetric_graphs(n, dmax)
     else:
         graphs = random_symmetric_graphs(n, dmax, samples, seed)
-    ce = max_delta(program, n, dmax, graphs, D=D)
+    ce = max_delta(program, n, dmax, graphs, D=D, matrices=matrices)
     return ce.max_delta > claimed_gs + 1e-9, ce
 
 
@@ -186,7 +229,7 @@ def check_derivation(program: Program, n: int = 5, dmax: int = 3, samples: int |
     ``samples`` random ones (every ``P`` and flip of node 0 on each)."""
     out = DerivationCheck(n, dmax, samples)
     try:
-        out.gs = derive(program, PublicParams(n, D=dmax, dmax=dmax), facts).gs
+        out.gs = derive(program, PublicParams(n, D=dmax, dmax=dmax, eps1=REFERENCE_EPS1), facts).gs
     except SensitivityError as exc:
         out.skipped = str(exc)
         return out

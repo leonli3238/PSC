@@ -1,0 +1,1 @@
+{"t": 1794195737.2262669, "model": "Qwen3-1.7B", "calls": 38800, "infra_errors": 0, "prompt_tokens": 14221160, "completion_tokens": 8642173, "wall_seconds": 1012.82, "jobs": 38800}

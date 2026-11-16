@@ -1,0 +1,22 @@
+{
+  "model": "certicount-program:degree:6c7d10f2a71f19c2",
+  "exec": "program",
+  "dataset": "PM",
+  "n": 453,
+  "reps": 20,
+  "true_avg_degree": 8.940397350993377,
+  "eps3": 2.0,
+  "gs": 1.0,
+  "program": "return size(P)\naggregate: total / n",
+  "re_mean": 0.0027652574980323234,
+  "re_exact_mean": 0.0027652574980323234,
+  "re_no_noise_mean": 0.0,
+  "node_error_rate": 0.0,
+  "node_model_calls": 0,
+  "prompt_tokens": 0,
+  "completion_tokens": 0,
+  "statuses": {
+    "json": 9060
+  },
+  "note": "re_exact = same noise with exact node counts (GT-PSC, paired); PSC paper Table 2 PM degree: PSC 0.0666, GT-PSC 0.0030"
+}

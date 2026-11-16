@@ -39,8 +39,10 @@ sys.path.insert(0, str(ROOT))
 
 import certicount  # noqa: E402,F401  (puts ../psc on sys.path)
 from certicount.dsl.designer import read_draft  # noqa: E402
-from certicount.dsl.falsifier import _all_symmetric_graphs, max_delta, random_symmetric_graphs  # noqa: E402
-from certicount.dsl.library import HAND_GS  # noqa: E402
+from certicount.dsl.falsifier import (_all_symmetric_graphs, max_delta, random_symmetric_graphs,  # noqa: E402
+                                      sign_matrices)
+from certicount.dsl.library import HAND_GS, matrix_triangle_gs  # noqa: E402
+from certicount.dsl.matrix import REFERENCE_EPS1  # noqa: E402
 from certicount.dsl.sensitivity import PublicParams, SensitivityError, derive  # noqa: E402
 from certicount.dsl.utility import utility_test  # noqa: E402
 
@@ -58,21 +60,27 @@ def empirical_delta(program, task: str) -> dict:
     out = {"max_delta": 0.0, "ratio": 0.0, "error": None, "witness": None,
            "unsound": False, "derived_gs": None, "reference_gs": None, "looser": None}
     for n, dmax, samples in CHECKS:
-        graphs = ([[frozenset() for _ in range(n)]] if not program.uses_rows else
-                  _all_symmetric_graphs(n, dmax) if samples is None else random_symmetric_graphs(n, dmax, samples))
-        params = PublicParams(n, D=dmax, dmax=dmax)
+        matrices = None
+        if program.uses_matrix:  # per-node architecture: sign matrices of A at the reference eps1
+            graphs = [[frozenset() for _ in range(n)]]
+            matrices = sign_matrices(n, REFERENCE_EPS1, samples, seed=0)
+        else:
+            graphs = ([[frozenset() for _ in range(n)]] if not program.uses_rows else
+                      _all_symmetric_graphs(n, dmax) if samples is None else random_symmetric_graphs(n, dmax, samples))
+        params = PublicParams(n, D=dmax, dmax=dmax, eps1=REFERENCE_EPS1)
         try:
             der_gs = derive(program, params).gs
         except SensitivityError:
             der_gs = None
         try:
-            ce = max_delta(program, n, dmax, graphs, D=dmax)
+            ce = max_delta(program, n, dmax, graphs, D=dmax, matrices=matrices)
         except (ArithmeticError, ValueError, TypeError, KeyError) as exc:
             out["error"] = f"{type(exc).__name__}: {exc} (n={n})"
             return out
         if der_gs is not None and ce.max_delta > der_gs + 1e-9:
             out["unsound"] = True
-        ref = HAND_GS[task](params)
+        ref = (matrix_triangle_gs(dmax, REFERENCE_EPS1) if program.uses_matrix and task == "triangle"
+               else HAND_GS[task](params))
         ratio = ce.max_delta / ref if ref > 0 else (float("inf") if ce.max_delta > 0 else 0.0)
         if ratio > out["ratio"]:
             out.update(max_delta=ce.max_delta, ratio=ratio, reference_gs=ref, derived_gs=der_gs, n=n, dmax=dmax,
@@ -135,7 +143,8 @@ def main() -> None:
                 row.update(stage=classify(program, seen, task, n, params), program=program.text())
                 if row["stage"] != "duplicate":
                     emp = empirical_delta(program, task)
-                    ref_design = HAND_GS[task](params)
+                    ref_design = (matrix_triangle_gs(params.D, params.eps1) if program.uses_matrix
+                                  and task == "triangle" else HAND_GS[task](params))
                     try:
                         gs_design = derive(program, params).gs
                     except SensitivityError:

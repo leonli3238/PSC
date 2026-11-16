@@ -1,0 +1,41 @@
+{
+  "provider": "mock",
+  "config": null,
+  "profile": null,
+  "node_model": "certicount-program:degree:6c7d10f2a71f19c2",
+  "base_model": null,
+  "exec": "program",
+  "vote_temperature": null,
+  "n": 453,
+  "base_url": null,
+  "concurrency": 128,
+  "seed": 0,
+  "guided_json": false,
+  "mock": {
+    "mode": "exact",
+    "rate": 0.05,
+    "trigger": 7
+  },
+  "plan_hash": "ce15f2d2123d738a",
+  "plan_from": "/data/workspace/PSC/certicount/results/qwen/probe_pm_degree_qwen3-1.7b",
+  "program_text": "return size(P)\naggregate: total / n",
+  "program_source": "library",
+  "certificate": {
+    "program_digest": "6c7d10f2a71f19c2",
+    "params": {
+      "n": 453,
+      "D": null,
+      "dmax": null
+    },
+    "facts": {
+      "symmetric_rows": true,
+      "self_not_in_private": true,
+      "rows_bounded": true
+    },
+    "gs": 1.0,
+    "trace": [
+      "GS = 1"
+    ],
+    "warnings": []
+  }
+}

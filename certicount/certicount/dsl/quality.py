@@ -28,6 +28,7 @@ from .falsifier import falsify
 from .ground_truth import gs_ratio, reference_program
 from .lang import Program
 from .library import analyst_prompt
+from .matrix import REFERENCE_EPS1
 from .sensitivity import PublicParams, SensitivityError, derive
 from .utility import reference_counter, utility_test
 
@@ -57,14 +58,16 @@ def design_quality(
     program: Program, task: str, n: int, reference_bound: int, bounds: tuple[int, ...] = (5, 10, 20),
     utility_graphs: int = 100, utility_seed: int = 1, utility_n: tuple[int, int] = (5, 16),
     falsify_program: bool = True, falsify_n: int = 5, falsify_dmax: int = 3, truncate: bool = True,
+    node_bounds: bool = False,
 ) -> DesignQuality:
     """``truncate=False``: semantic test with ``project`` as the identity (designs
-    that lower the threshold on purpose, as in the accuracy search)."""
-    ref = reference_program(task)
+    that lower the threshold on purpose, as in the accuracy search). ``node_bounds``:
+    compare with the reference of the per-node architecture."""
+    ref = reference_program(task, node_bounds)
     problems: list[str] = []
     ratios: dict[int, float | None] = {}
     for b in sorted({*bounds, reference_bound}):
-        p = PublicParams(n, D=b, dmax=b)
+        p = PublicParams(n, D=b, dmax=b, eps1=REFERENCE_EPS1)
         try:
             ratios[b] = gs_ratio(derive(program, p).gs, derive(ref, p).gs)
         except SensitivityError as exc:
@@ -76,7 +79,7 @@ def design_quality(
     sound, delta = None, None
     if falsify_program:
         try:
-            claimed = derive(program, PublicParams(falsify_n, falsify_dmax, falsify_dmax)).gs
+            claimed = derive(program, PublicParams(falsify_n, falsify_dmax, falsify_dmax, REFERENCE_EPS1)).gs
             refuted, ce = falsify(program, claimed, n=falsify_n, dmax=falsify_dmax)
             sound, delta = not refuted, ce.max_delta
             if refuted:
@@ -85,7 +88,8 @@ def design_quality(
             problems.append(f"falsifier skipped: {exc}")
     return DesignQuality(
         same_as_reference=same_structure(program, ref),
-        split_match=(program.uses_rows, program.needs_degree_bound) == (ref.uses_rows, ref.needs_degree_bound),
+        split_match=((program.uses_rows, program.uses_matrix, program.needs_degree_bound)
+                     == (ref.uses_rows, ref.uses_matrix, ref.needs_degree_bound)),
         gs_ratio=ratios.get(reference_bound), gs_ratios=ratios,
         semantic_pass=rep.passed, semantic_failures=len(rep.failures), semantic_graphs=rep.graphs,
         sound=sound, falsifier_max_delta=delta, problems=problems,

@@ -21,6 +21,19 @@ over ``P & N(self)`` the new summand ``j = v`` (the flipped vertex, ``v`` in
 meets ``N(v)`` in at most ``dmax - 1`` vertices; ``N(v)`` itself may have
 ``dmax``.
 
+``A(j, k)`` (the NAM-DPRD unbiased matrix, :mod:`certicount.dsl.matrix`) is a
+public number in ``[-1/(e^ε1 - 1), e^ε1/(e^ε1 - 1)]`` with ``A(j, j) = 0``. Two
+sound refinements of ``sum`` make its bound tight:
+
+* zero diagonal -- in ``sum(A(j, k) for k in S)`` with ``j`` itself ranging over
+  ``S``, the term ``k = j`` is 0, so at most ``|S| - 1`` terms count;
+* replacement coupling -- when the domain changes by one vertex in and one
+  out (``dsym = 2``, ``dsize <= 1``, e.g. ``project(P, D)``), the entering and
+  the leaving summand differ by at most ``hi - lo`` instead of ``2 * |.|``;
+  if moreover the summand reads private data only through the domain set
+  itself, it changes only when the domain does, and at most ``|S| - 1``
+  summands are common to both sides.
+
 The certificate is only as strong as the rules below; the falsifier
 (:mod:`certicount.dsl.falsifier`) searches small graphs for counterexamples, and
 the derived values are checked against the hand derivations of the library
@@ -33,6 +46,7 @@ import math
 from dataclasses import asdict, dataclass, field
 
 from .lang import BinOp, Call, Const, Expr, Name, Neg, Program, Sum
+from .matrix import rr_constants
 
 INF = math.inf
 
@@ -47,11 +61,13 @@ class PublicParams:
 
     ``D`` / ``dmax`` are ``None`` when no degree bound was published (no GS
     optimisation): the noisy rows are then only bounded by ``n - 1``.
+    ``eps1`` is the RR budget of the unbiased matrix ``A`` (its value range).
     """
 
     n: int
     D: int | None = None
     dmax: int | None = None
+    eps1: float | None = None
 
     def value(self, name: str) -> float:
         v = getattr(self, name)
@@ -147,6 +163,8 @@ class _Deriver:
         self.warnings: list[str] = []
         self.facts_used: set[str] = set()
         self.cache: dict[str, SetInfo | NumInfo] = {}
+        # loop variable -> canonical domain it ranges over (while its summand is analysed)
+        self.members: dict[str, Expr] = {}
 
     # -- helpers -------------------------------------------------------------
     @property
@@ -159,6 +177,53 @@ class _Deriver:
         while isinstance(e, Name) and self.program.lookup(e.id) is not None:
             e = self.program.lookup(e.id)
         return e
+
+    def canon(self, e: Expr) -> Expr:
+        """``e`` with every assigned name replaced by its definition (structural key)."""
+        if isinstance(e, Name):
+            sub = self.program.lookup(e.id)
+            return e if sub is None else self.canon(sub)
+        if isinstance(e, BinOp):
+            return BinOp(e.op, self.canon(e.left), self.canon(e.right))
+        if isinstance(e, Neg):
+            return Neg(self.canon(e.operand))
+        if isinstance(e, Call):
+            return Call(e.func, tuple(self.canon(a) for a in e.args))
+        if isinstance(e, Sum):
+            return Sum(self.canon(e.body), e.var, self.canon(e.domain))
+        return e
+
+    def only_via(self, e: Expr, target: Expr) -> bool:
+        """Every read of ``P`` in ``e`` is inside the set ``target`` (canonical form):
+        then ``e`` can change only when ``target`` does."""
+        if self.canon(e) == target:
+            return True
+        if isinstance(e, Name):
+            if e.id == "P":
+                return False
+            sub = self.program.lookup(e.id)
+            return True if sub is None else self.only_via(sub, target)
+        if isinstance(e, Const):
+            return True
+        if isinstance(e, BinOp):
+            return self.only_via(e.left, target) and self.only_via(e.right, target)
+        if isinstance(e, Neg):
+            return self.only_via(e.operand, target)
+        if isinstance(e, Call):
+            return all(self.only_via(a, target) for a in e.args)
+        return self.only_via(e.body, target) and self.only_via(e.domain, target)
+
+    def zero_diagonal_pair(self, body: Expr, var: str, domain: Expr) -> bool:
+        """``body`` is ``A(j, var)`` / ``A(var, j)`` with ``j`` ranging over the same
+        ``domain`` as ``var``: the term ``var = j`` is ``A(j, j) = 0``."""
+        b = self.canon(body)
+        if not (isinstance(b, Call) and b.func == "A" and all(isinstance(a, Name) for a in b.args)):
+            return False
+        ids = [a.id for a in b.args]
+        if var not in ids:
+            return False
+        others = [x for x in ids if x != var]
+        return len(others) == 1 and self.members.get(others[0]) == domain
 
     def is_private_set(self, e: Expr) -> bool:
         e = self.resolve(e)
@@ -319,6 +384,11 @@ class _Deriver:
 
     def call(self, e: Call, rows: dict[str, _Row]) -> NumInfo:
         f = e.func
+        if f == "A":
+            if self.p.eps1 is None:
+                raise SensitivityError("the program reads A(...) but no unbiased matrix (eps1) was published")
+            low, high = rr_constants(self.p.eps1)
+            return NumInfo(False, 0.0, low, high, False)
         if f == "size":
             s = self.set(e.args[0], rows)
             return NumInfo(s.private, s.dsize, 0.0, s.max_size, True)
@@ -361,15 +431,47 @@ class _Deriver:
 
     def sum(self, e: Sum, rows: dict[str, _Row]) -> NumInfo:
         dom = self.set(e.domain, rows)
-        body = self.num(e.body, {**rows, e.var: _Row(self.row_max)})
-        lo = min(0.0, body.lo * dom.max_size)
-        hi = max(0.0, body.hi * dom.max_size)
+        key = self.canon(e.domain)
+        outer = self.members.get(e.var)
+        self.members[e.var] = key
+        try:
+            body = self.num(e.body, {**rows, e.var: _Row(self.row_max)})
+            return self._sum(e, rows, dom, key, body)
+        finally:
+            if outer is None:
+                self.members.pop(e.var, None)
+            else:
+                self.members[e.var] = outer
+
+    def _sum(self, e: Sum, rows: dict[str, _Row], dom: SetInfo, key: Expr, body: NumInfo) -> NumInfo:
+        # terms that can be non-zero: the diagonal A(j, j) of a pair over one set is 0
+        terms = dom.max_size
+        if self.zero_diagonal_pair(e.body, e.var, key):
+            terms = max(0.0, dom.max_size - 1)
+            self.trace.append(f"sum over {e.var}: the term {e.var} = its outer variable is A(j, j) = 0")
+        lo = min(0.0, body.lo * terms)
+        hi = max(0.0, body.hi * terms)
+        # one vertex in and one out (e.g. project(P, D)): entering and leaving summand differ by <= hi - lo
+        replacement = dom.dsym == 2 and dom.dsize <= 1
+        swap = max(body.magnitude, body.hi - body.lo) if replacement else dom.dsym * body.magnitude
         if not body.private:
-            delta = dom.dsym * body.magnitude
+            delta = swap
             self.trace.append(
-                f"sum over {e.var}: public summand |.| <= {body.magnitude:g}, {dom.dsym:g} membership change(s): delta = {delta:g}",
+                f"sum over {e.var}: public summand in [{body.lo:g}, {body.hi:g}], {dom.dsym:g} membership "
+                f"change(s){' (one in, one out)' if replacement else ''}: delta = {delta:g}",
             )
             return NumInfo(dom.private, delta, lo, hi, body.integer)
+
+        if dom.private and self.only_via(e.body, key):
+            # the summand reads P only through the domain set: it changes only when the domain changes,
+            # and then at most |S| - 1 summands are on both sides
+            common = max(0.0, dom.max_size - 1)
+            delta = swap + common * body.delta
+            self.trace.append(
+                f"sum over {e.var}: summand private only through its domain: {swap:g} + "
+                f"{common:g} common summand(s) * {body.delta:g} = {delta:g}",
+            )
+            return NumInfo(True, delta, lo, hi, body.integer)
 
         local = self.facts.symmetric_rows and self.local_in(e.body, e.var)
         # number of summands whose value can change: those j with v in N(j), i.e. j in N(v)

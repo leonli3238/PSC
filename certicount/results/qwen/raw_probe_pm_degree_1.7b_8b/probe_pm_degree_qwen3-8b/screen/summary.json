@@ -1,0 +1,1896 @@
+{
+  "pairs_screened": 9924,
+  "pairs_planned": 9924,
+  "candidates": 5525,
+  "by_group": [
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "L",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "tag:consecutive",
+      "pairs": 1,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "tag:digit_sim",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "tag:len_boundary",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "tag:middle",
+      "pairs": 3,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "tag:near_self",
+      "pairs": 1,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "1-10",
+      "family": "tag:tail",
+      "pairs": 1,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "11-30",
+      "family": "L",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "11-30",
+      "family": "tag:digit_sim",
+      "pairs": 3,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "11-30",
+      "family": "tag:head",
+      "pairs": 1,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "11-30",
+      "family": "tag:len_boundary",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "11-30",
+      "family": "tag:middle",
+      "pairs": 2,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "11-30",
+      "family": "tag:tail",
+      "pairs": 1,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "31-60",
+      "family": "L",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 0.0,
+      "exec_error_x": 0.5,
+      "exec_error_x2": 1.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "31-60",
+      "family": "tag:consecutive",
+      "pairs": 2,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 0.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "31-60",
+      "family": "tag:digit_sim",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 0.0,
+      "exec_error_x": 0.5,
+      "exec_error_x2": 1.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "31-60",
+      "family": "tag:len_boundary",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 0.0,
+      "exec_error_x": 0.5,
+      "exec_error_x2": 1.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "31-60",
+      "family": "tag:middle",
+      "pairs": 4,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 0.0,
+      "exec_error_x": 0.5,
+      "exec_error_x2": 1.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "61-120",
+      "family": "L",
+      "pairs": 4,
+      "candidates": 2,
+      "cand_rate": 0.5,
+      "delta_max": 406.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.75,
+      "jitter": 0.5,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "61-120",
+      "family": "tag:digit_sim",
+      "pairs": 4,
+      "candidates": 2,
+      "cand_rate": 0.5,
+      "delta_max": 406.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.75,
+      "jitter": 0.5,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "61-120",
+      "family": "tag:len_boundary",
+      "pairs": 4,
+      "candidates": 2,
+      "cand_rate": 0.5,
+      "delta_max": 406.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.75,
+      "jitter": 0.5,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": "61-120",
+      "family": "tag:middle",
+      "pairs": 4,
+      "candidates": 2,
+      "cand_rate": 0.5,
+      "delta_max": 406.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.75,
+      "jitter": 0.5,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "L",
+      "pairs": 4,
+      "candidates": 2,
+      "cand_rate": 0.5,
+      "delta_max": 324.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.75,
+      "jitter": 0.25,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "X",
+      "pairs": 48,
+      "candidates": 16,
+      "cand_rate": 0.3333333333333333,
+      "delta_max": 352.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.2708333333333333,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:consecutive",
+      "pairs": 37,
+      "candidates": 9,
+      "cand_rate": 0.24324324324324326,
+      "delta_max": 352.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.1891891891891892,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:digit_sim",
+      "pairs": 52,
+      "candidates": 18,
+      "cand_rate": 0.34615384615384615,
+      "delta_max": 352.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.9807692307692307,
+      "jitter": 0.2692307692307692,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:head",
+      "pairs": 7,
+      "candidates": 3,
+      "cand_rate": 0.42857142857142855,
+      "delta_max": 20.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.14285714285714285,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:len_boundary",
+      "pairs": 41,
+      "candidates": 13,
+      "cand_rate": 0.3170731707317073,
+      "delta_max": 324.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.975609756097561,
+      "jitter": 0.21951219512195122,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:middle",
+      "pairs": 40,
+      "candidates": 13,
+      "cand_rate": 0.325,
+      "delta_max": 352.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.975,
+      "jitter": 0.275,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:near_self",
+      "pairs": 4,
+      "candidates": 3,
+      "cand_rate": 0.75,
+      "delta_max": 20.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.5,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "tag:tail",
+      "pairs": 5,
+      "candidates": 2,
+      "cand_rate": 0.4,
+      "delta_max": 28.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.4,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "C",
+      "pairs": 61,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "P",
+      "pairs": 70,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "R",
+      "pairs": 168,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "S",
+      "pairs": 192,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "tag:consecutive",
+      "pairs": 83,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "tag:digit_sim",
+      "pairs": 290,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "tag:head",
+      "pairs": 77,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "tag:middle",
+      "pairs": 261,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "tag:near_self",
+      "pairs": 86,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "1-10",
+      "family": "tag:tail",
+      "pairs": 153,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.0,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "C",
+      "pairs": 240,
+      "candidates": 5,
+      "cand_rate": 0.020833333333333332,
+      "delta_max": 2.0,
+      "exec_error_x": 0.03333333333333333,
+      "exec_error_x2": 0.05,
+      "jitter": 0.008333333333333333,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "P",
+      "pairs": 180,
+      "candidates": 2,
+      "cand_rate": 0.011111111111111112,
+      "delta_max": 2.0,
+      "exec_error_x": 0.03333333333333333,
+      "exec_error_x2": 0.041666666666666664,
+      "jitter": 0.016666666666666666,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "R",
+      "pairs": 329,
+      "candidates": 8,
+      "cand_rate": 0.0243161094224924,
+      "delta_max": 2.0,
+      "exec_error_x": 0.03343465045592705,
+      "exec_error_x2": 0.05167173252279635,
+      "jitter": 0.0060790273556231,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "S",
+      "pairs": 480,
+      "candidates": 12,
+      "cand_rate": 0.025,
+      "delta_max": 2.0,
+      "exec_error_x": 0.03333333333333333,
+      "exec_error_x2": 0.052083333333333336,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:consecutive",
+      "pairs": 378,
+      "candidates": 10,
+      "cand_rate": 0.026455026455026454,
+      "delta_max": 2.0,
+      "exec_error_x": 0.031746031746031744,
+      "exec_error_x2": 0.05555555555555555,
+      "jitter": 0.010582010582010581,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:digit_sim",
+      "pairs": 1005,
+      "candidates": 27,
+      "cand_rate": 0.026865671641791045,
+      "delta_max": 2.0,
+      "exec_error_x": 0.03283582089552239,
+      "exec_error_x2": 0.05373134328358209,
+      "jitter": 0.005970149253731343,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:head",
+      "pairs": 150,
+      "candidates": 4,
+      "cand_rate": 0.02666666666666667,
+      "delta_max": 2.0,
+      "exec_error_x": 0.02,
+      "exec_error_x2": 0.043333333333333335,
+      "jitter": 0.006666666666666667,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:len_boundary",
+      "pairs": 44,
+      "candidates": 0,
+      "cand_rate": 0.0,
+      "delta_max": 1.0,
+      "exec_error_x": 0.0,
+      "exec_error_x2": 0.011363636363636364,
+      "jitter": 0.022727272727272728,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:middle",
+      "pairs": 817,
+      "candidates": 22,
+      "cand_rate": 0.02692778457772338,
+      "delta_max": 2.0,
+      "exec_error_x": 0.030599755201958383,
+      "exec_error_x2": 0.04895960832313342,
+      "jitter": 0.004895960832313341,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:near_self",
+      "pairs": 132,
+      "candidates": 5,
+      "cand_rate": 0.03787878787878788,
+      "delta_max": 2.0,
+      "exec_error_x": 0.007575757575757576,
+      "exec_error_x2": 0.045454545454545456,
+      "jitter": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "11-30",
+      "family": "tag:tail",
+      "pairs": 262,
+      "candidates": 1,
+      "cand_rate": 0.003816793893129771,
+      "delta_max": 2.0,
+      "exec_error_x": 0.04961832061068702,
+      "exec_error_x2": 0.05725190839694656,
+      "jitter": 0.007633587786259542,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "E",
+      "pairs": 3616,
+      "candidates": 1577,
+      "cand_rate": 0.43611725663716816,
+      "delta_max": 31.0,
+      "exec_error_x": 0.75,
+      "exec_error_x2": 0.7520741150442478,
+      "jitter": 0.3418141592920354,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:consecutive",
+      "pairs": 604,
+      "candidates": 263,
+      "cand_rate": 0.43543046357615894,
+      "delta_max": 31.0,
+      "exec_error_x": 0.7864238410596026,
+      "exec_error_x2": 0.7408940397350994,
+      "jitter": 0.40728476821192056,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:digit_sim",
+      "pairs": 3065,
+      "candidates": 1310,
+      "cand_rate": 0.4274061990212072,
+      "delta_max": 31.0,
+      "exec_error_x": 0.7712887438825449,
+      "exec_error_x2": 0.7409461663947797,
+      "jitter": 0.3608482871125612,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:head",
+      "pairs": 234,
+      "candidates": 146,
+      "cand_rate": 0.6239316239316239,
+      "delta_max": 21.0,
+      "exec_error_x": 0.782051282051282,
+      "exec_error_x2": 0.6837606837606838,
+      "jitter": 0.34615384615384615,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:len_boundary",
+      "pairs": 786,
+      "candidates": 748,
+      "cand_rate": 0.9516539440203562,
+      "delta_max": 23.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.5750636132315522,
+      "jitter": 0.6730279898218829,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:middle",
+      "pairs": 2819,
+      "candidates": 1186,
+      "cand_rate": 0.4207165661582121,
+      "delta_max": 21.0,
+      "exec_error_x": 0.7821922667612629,
+      "exec_error_x2": 0.7580702376729337,
+      "jitter": 0.3611209648811635,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:near_self",
+      "pairs": 254,
+      "candidates": 100,
+      "cand_rate": 0.3937007874015748,
+      "delta_max": 21.0,
+      "exec_error_x": 0.7992125984251969,
+      "exec_error_x2": 0.734251968503937,
+      "jitter": 0.33858267716535434,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "31-60",
+      "family": "tag:tail",
+      "pairs": 563,
+      "candidates": 245,
+      "cand_rate": 0.4351687388987567,
+      "delta_max": 31.0,
+      "exec_error_x": 0.5754884547069272,
+      "exec_error_x2": 0.7504440497335702,
+      "jitter": 0.2433392539964476,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "E",
+      "pairs": 3616,
+      "candidates": 2997,
+      "cand_rate": 0.828816371681416,
+      "delta_max": 47.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.9926714601769911,
+      "jitter": 0.8116703539823009,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:consecutive",
+      "pairs": 1036,
+      "candidates": 851,
+      "cand_rate": 0.8214285714285714,
+      "delta_max": 47.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.9864864864864865,
+      "jitter": 0.7924710424710425,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:digit_sim",
+      "pairs": 3478,
+      "candidates": 2878,
+      "cand_rate": 0.8274870615296147,
+      "delta_max": 47.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.9926682001150087,
+      "jitter": 0.8108108108108109,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:head",
+      "pairs": 271,
+      "candidates": 202,
+      "cand_rate": 0.7453874538745388,
+      "delta_max": 31.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.977859778597786,
+      "jitter": 0.7564575645756457,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:len_boundary",
+      "pairs": 343,
+      "candidates": 27,
+      "cand_rate": 0.07871720116618076,
+      "delta_max": 28.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 0.06997084548104957,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:middle",
+      "pairs": 2758,
+      "candidates": 2312,
+      "cand_rate": 0.8382886149383612,
+      "delta_max": 47.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.994198694706309,
+      "jitter": 0.817258883248731,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:near_self",
+      "pairs": 214,
+      "candidates": 171,
+      "cand_rate": 0.7990654205607477,
+      "delta_max": 47.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.9789719626168224,
+      "jitter": 0.7990654205607477,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": "61-120",
+      "family": "tag:tail",
+      "pairs": 587,
+      "candidates": 483,
+      "cand_rate": 0.8228279386712095,
+      "delta_max": 47.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 0.9923339011925043,
+      "jitter": 0.8109028960817717,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "pairs": 904,
+      "candidates": 904,
+      "cand_rate": 1.0,
+      "delta_max": 329.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "tag:consecutive",
+      "pairs": 536,
+      "candidates": 536,
+      "cand_rate": 1.0,
+      "delta_max": 329.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "tag:digit_sim",
+      "pairs": 904,
+      "candidates": 904,
+      "cand_rate": 1.0,
+      "delta_max": 329.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "tag:head",
+      "pairs": 92,
+      "candidates": 92,
+      "cand_rate": 1.0,
+      "delta_max": 329.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "tag:middle",
+      "pairs": 716,
+      "candidates": 716,
+      "cand_rate": 1.0,
+      "delta_max": 329.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "tag:near_self",
+      "pairs": 69,
+      "candidates": 69,
+      "cand_rate": 1.0,
+      "delta_max": 329.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    },
+    {
+      "kind": "real",
+      "bin": ">120",
+      "family": "tag:tail",
+      "pairs": 96,
+      "candidates": 96,
+      "cand_rate": 1.0,
+      "delta_max": 92.0,
+      "exec_error_x": 1.0,
+      "exec_error_x2": 1.0,
+      "jitter": 1.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0
+    }
+  ],
+  "by_bin": [
+    {
+      "bin": "1-10",
+      "trials": 1112,
+      "inputs": 548,
+      "exec_error": 0.0,
+      "abs_err_mean": 0.0,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 97.22302158273381,
+      "tok_p50": 96.0,
+      "tok_p95": 120.45000000000005,
+      "tok_max": 154,
+      "jitter_inputs": 0.0
+    },
+    {
+      "bin": "11-30",
+      "trials": 2430,
+      "inputs": 1198,
+      "exec_error": 0.03168724279835391,
+      "abs_err_mean": 0.03168724279835391,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 149.84938271604938,
+      "tok_p50": 141.0,
+      "tok_p95": 208.0,
+      "tok_max": 241,
+      "jitter_inputs": 0.00333889816360601
+    },
+    {
+      "bin": "31-60",
+      "trials": 7462,
+      "inputs": 3725,
+      "exec_error": 0.7493969445188957,
+      "abs_err_mean": 2.3496381667113373,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 289.46904315196997,
+      "tok_p50": 260.0,
+      "tok_p95": 379.0,
+      "tok_max": 391,
+      "jitter_inputs": 0.18791946308724833
+    },
+    {
+      "bin": "61-120",
+      "trials": 7154,
+      "inputs": 3571,
+      "exec_error": 0.9993010902991334,
+      "abs_err_mean": 13.359519150125804,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 450.49035504612806,
+      "tok_p50": 409.0,
+      "tok_p95": 635.0,
+      "tok_max": 643,
+      "jitter_inputs": 0.26491178941472976
+    },
+    {
+      "bin": ">120",
+      "trials": 1954,
+      "inputs": 970,
+      "exec_error": 0.9989764585465711,
+      "abs_err_mean": 56.12384851586489,
+      "json": 1.0,
+      "number": 0.0,
+      "failed": 0.0,
+      "length_cut": 0.0,
+      "tok_mean": 582.403275332651,
+      "tok_p50": 689.0,
+      "tok_p95": 1224.0,
+      "tok_max": 2225,
+      "jitter_inputs": 0.49690721649484537
+    }
+  ],
+  "top": [
+    {
+      "pair_id": "n14-d99-60495914b2a7|add76",
+      "kind": "constructed",
+      "bin": "61-120",
+      "family": "L",
+      "delta_max": 406.0,
+      "frac_far": 0.6666666666666666,
+      "values": [
+        90.0,
+        45.0,
+        45.0
+      ],
+      "values2": [
+        451.0,
+        45.0
+      ]
+    },
+    {
+      "pair_id": "n14-d150-b1c54ece05d4|add400",
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "X",
+      "delta_max": 352.0,
+      "frac_far": 0.8333333333333334,
+      "values": [
+        120.0,
+        100.0,
+        128.0
+      ],
+      "values2": [
+        128.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove113",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove121",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove134",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove149",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove15",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove179",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        195.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove182",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        120.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove186",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        195.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove249",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        200.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove282",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove333",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove347",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove348",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove355",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove359",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove365",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove399",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove78",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove187",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 329.0,
+      "frac_far": 0.8333333333333334,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        452.0,
+        122.0
+      ]
+    },
+    {
+      "pair_id": "n14-d199-d19632b16837|add55",
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "L",
+      "delta_max": 324.0,
+      "frac_far": 0.5,
+      "values": [
+        128.0,
+        452.0,
+        452.0
+      ],
+      "values2": [
+        452.0,
+        128.0
+      ]
+    },
+    {
+      "pair_id": "n1-d199-06974fcf2036|add327",
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "L",
+      "delta_max": 252.0,
+      "frac_far": 1.0,
+      "values": [
+        452.0,
+        452.0,
+        452.0
+      ],
+      "values2": [
+        200.0,
+        200.0
+      ]
+    },
+    {
+      "pair_id": "n1-d450-12710aba289b|remove57",
+      "kind": "constructed",
+      "bin": ">120",
+      "family": "X",
+      "delta_max": 197.0,
+      "frac_far": 1.0,
+      "values": [
+        255.0,
+        255.0,
+        255.0
+      ],
+      "values2": [
+        452.0,
+        452.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove441",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 92.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        215.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove107",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove108",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove119",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        197.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove122",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove125",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        195.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove137",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove139",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove140",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove144",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove155",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove178",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        195.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove188",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        198.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove239",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        100.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove246",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        198.0,
+        210.0
+      ]
+    },
+    {
+      "pair_id": "n14-d237-ef095c6ea966|remove266",
+      "kind": "real",
+      "bin": ">120",
+      "family": "E",
+      "delta_max": 87.0,
+      "frac_far": 1.0,
+      "values": [
+        127.0,
+        123.0,
+        127.0
+      ],
+      "values2": [
+        210.0,
+        210.0
+      ]
+    }
+  ]
+}

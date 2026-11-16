@@ -18,6 +18,9 @@ Names
     assigned variables and loop variables
 Functions
     ``N(x)``             public neighbour row of ``x`` in the projected noisy graph ``G'``
+    ``A(x, y)``          public unbiased entry of the edge ``xy`` in the NAM-DPRD noisy
+                         adjacency matrix (:mod:`certicount.dsl.matrix`; ``A(x, x) = 0``).
+                         A program reads either ``N`` or ``A``, not both.
     ``size(S)``          ``|S|``
     ``project(S, k)``    at most ``k`` elements of ``S`` (degree projection)
     ``comb(x, k)``, ``pow(x, k)``   binomial coefficient / power with a constant ``k``
@@ -43,7 +46,7 @@ from typing import Callable, Mapping
 
 SET, NUM, NODE = "set", "num", "node"
 PUBLIC_NUMS = ("D", "dmax", "n")
-FUNCTIONS = ("N", "size", "project", "comb", "pow", "clip", "min", "max", "sum")
+FUNCTIONS = ("N", "A", "size", "project", "comb", "pow", "clip", "min", "max", "sum")
 
 
 class DSLError(ValueError):
@@ -132,6 +135,17 @@ class Program:
         return any(_calls(e, "N") for _, e in self.assigns) or _calls(self.ret, "N")
 
     @property
+    def uses_matrix(self) -> bool:
+        """Reads the unbiased noisy adjacency matrix ``A`` (needs ``eps1`` and the
+        NAM-DPRD release of the projected lists, :mod:`certicount.dsl.matrix`)."""
+        return any(_calls(e, "A") for _, e in self.assigns) or _calls(self.ret, "A")
+
+    @property
+    def uses_release(self) -> bool:
+        """Reads a randomized-response release (``N`` or ``A``): ``eps1 > 0``."""
+        return self.uses_rows or self.uses_matrix
+
+    @property
     def uses_threshold(self) -> bool:
         """Reads ``D`` / ``dmax`` explicitly."""
         return bool(self.names_used() & {"D", "dmax"})
@@ -184,7 +198,7 @@ def _calls(e: Expr, func: str) -> bool:
 # ---------------------------------------------------------------------------
 
 _BINOPS = {ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "/", ast.BitAnd: "&", ast.BitOr: "|"}
-_ARITY = {"N": 1, "size": 1, "project": 2, "comb": 2, "pow": 2, "clip": 3, "min": 2, "max": 2}
+_ARITY = {"N": 1, "A": 2, "size": 1, "project": 2, "comb": 2, "pow": 2, "clip": 3, "min": 2, "max": 2}
 
 
 class _Checker:
@@ -227,7 +241,7 @@ class _Checker:
             args = tuple(e for e, _ in parsed)
             types = [t for _, t in parsed]
             want = {
-                "N": [NODE], "size": [SET], "project": [SET, NUM], "comb": [NUM, NUM], "pow": [NUM, NUM],
+                "N": [NODE], "A": [NODE, NODE], "size": [SET], "project": [SET, NUM], "comb": [NUM, NUM], "pow": [NUM, NUM],
                 "clip": [NUM, NUM, NUM], "min": [NUM, NUM], "max": [NUM, NUM],
             }[f]
             if types != want:
@@ -325,7 +339,11 @@ def parse_program(source: str, aggregate: str = "total", clamp_nonnegative: bool
     if ret is None:
         raise DSLError("the program must end with 'return <expr>'")
     agg = _parse_aggregate(aggregate)
-    return Program(source, tuple(assigns), ret, aggregate.strip(), agg, clamp_nonnegative, dict(checker.scope), budget)
+    prog = Program(source, tuple(assigns), ret, aggregate.strip(), agg, clamp_nonnegative, dict(checker.scope), budget)
+    if prog.uses_rows and prog.uses_matrix:
+        raise DSLError("a program reads either the noisy rows N(...) or the unbiased matrix A(...), not both "
+                       "(each is a separate randomized-response release)")
+    return prog
 
 
 def _parse_aggregate(text: str) -> Expr:
@@ -405,11 +423,17 @@ class Env:
     D: int = 0
     dmax: int = 0
     projector: Projector = smallest_projector
+    matrix: Callable[[int, int], float] | None = None
 
     def row(self, j: int) -> frozenset:
         if callable(self.rows):
             return frozenset(self.rows(j))
         return frozenset(self.rows.get(j, ()))
+
+    def entry(self, j: int, k: int) -> float:
+        if self.matrix is None:
+            raise ValueError("the program reads A(...) but no unbiased matrix was published")
+        return float(self.matrix(int(j), int(k)))
 
 
 def _compile(e: Expr) -> Callable[[dict, Env], object]:
@@ -458,6 +482,8 @@ def _compile(e: Expr) -> Callable[[dict, Env], object]:
     f = e.func
     if f == "N":
         return lambda s, env: env.row(int(args[0](s, env)))
+    if f == "A":
+        return lambda s, env: env.entry(args[0](s, env), args[1](s, env))
     if f == "size":
         return lambda s, env: float(len(args[0](s, env)))
     if f == "project":

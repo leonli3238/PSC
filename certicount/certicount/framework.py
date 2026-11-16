@@ -49,7 +49,8 @@ from .dsl.clipping import edge_clipping_bounds
 from .dsl.designer import DesignResult, MockDesignerModel, design_reference_params, design_with_restarts
 from .dsl.ground_truth import final_noise_scale
 from .dsl.lang import Interpreter, Program
-from .dsl.library import PROGRAMS
+from .dsl.library import PROGRAMS, reference_source
+from .dsl.matrix import unbiased_matrix
 from .dsl.search import SearchOptions, search_program
 from .dsl.sensitivity import PublicParams, certify
 
@@ -239,25 +240,29 @@ class TrustedPSCFramework:
             return self._rejected(record, eps, BudgetSplit(0, 0, 0), t0, nodes, None, controller, trust, design)
 
         # DP framework from the program's requirements (degree class decides the rounding)
-        degree_class = record.task if record.task in TASKS else ("triangle" if program.uses_rows else "3-star")
+        degree_class = record.task if record.task in TASKS else ("triangle" if program.uses_release else "3-star")
         spec = get_dp_framework(degree_class)
         r1, r2 = program.budget_fractions(self.r1, self.r2)
-        split = split_budget(eps, program.uses_rows, program.needs_degree_bound, r1, r2)
-        noisy_graph = controller.build_noisy_graph(nodes, split.eps1) if split.eps1 > 0 else None
+        split = split_budget(eps, program.uses_release, program.needs_degree_bound, r1, r2)
         d_hat_max = None
         limits: list[int] | None = None
-        if split.eps2 > 0:
-            if self.opts.node_bounds:
-                d_hat_max, noisy_graph, limits = self._edge_clipping(nodes, noisy_graph, split.eps2, spec, controller, rng)
-            else:
-                _, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
+        matrix = None
+        if program.uses_matrix:
+            d_hat_max, noisy_graph, limits, matrix = self._matrix_release(nodes, split, spec, controller, rng)
+        else:
+            noisy_graph = controller.build_noisy_graph(nodes, split.eps1) if split.eps1 > 0 else None
+            if split.eps2 > 0:
+                if self.opts.node_bounds:
+                    d_hat_max, noisy_graph, limits = self._edge_clipping(nodes, noisy_graph, split.eps2, spec, controller, rng)
+                else:
+                    _, d_hat_max, noisy_graph = controller.gs_optimize(nodes, noisy_graph, split.eps2, spec)
         # bound of project(P, D) per node: the global d̂max, or the node's own clipping bound
         node_D = limits if limits is not None else [d_hat_max] * n
 
         certs, node_gs_list = {}, []
         for D in node_D:
             if D not in certs:
-                params = PublicParams(n, D=D, dmax=d_hat_max)
+                params = PublicParams(n, D=D, dmax=d_hat_max, eps1=split.eps1 if program.uses_matrix else None)
                 cert = certify(program, params)
                 if self.adversary is not None:
                     cert = self.adversary.tamper_certificate(cert)
@@ -270,9 +275,9 @@ class TrustedPSCFramework:
         cert, gs = certs[node_D[0]][0], max(node_gs_list)
         trust["certified_bounds"] = len(certs)
 
-        rows = dict(enumerate(noisy_graph.adj)) if noisy_graph is not None else None
+        rows = dict(enumerate(noisy_graph.adj)) if noisy_graph is not None and matrix is None else None
         for node, D in zip(nodes, node_D):
-            node.configure(n, rows, D, None, program, dmax=d_hat_max)
+            node.configure(n, rows, D, None, program, dmax=d_hat_max, matrix=matrix)
         note_phase("update")
         for node in nodes:
             node.count = node.run_program()
@@ -292,7 +297,7 @@ class TrustedPSCFramework:
             "llm_count_sum": count_sum, "rule_count_sum": count_sum, "count_rel_diff": 0.0,
             "aggregate_exact": True, "rule_estimate": estimate, "mismatches": [], "checked_against": "program",
         }
-        if record.task in TASKS:  # for the record: how far the design is from the library algorithm
+        if record.task in TASKS and not program.uses_matrix:  # for the record: distance to the library algorithm
             algo = get_algorithm(record.task)
             for node in nodes:  # the node reads the public rows directly; record them as its messages
                 if algo.needs_messages:
@@ -331,13 +336,35 @@ class TrustedPSCFramework:
             node.bound_degree(limit, rng)
         return d_hat_max, noisy_graph, limits
 
+    def _matrix_release(self, nodes, split: BudgetSplit, spec, controller, rng):
+        """NAM-DPRD release (:mod:`certicount.dsl.matrix`) for a program that reads ``A``:
+        noisy degrees -> per-node (edge clipping) or global bound -> projection -> RR of the
+        projected upper bits -> unbiased matrix. Consumes the random numbers in the order of
+        :func:`certicount.dsl.ground_truth.dp_execute`."""
+        n = len(nodes)
+        d_hat_max, limits = None, None
+        if split.eps2 > 0:
+            reports = [node.report_noisy_degree(split.eps2, rng) for node in nodes]
+            bound = self.mechanism.degree_bound(reports, spec.task)
+            d_hat_max = bound.projection_degree
+            controller.degree_trace = {"noisy_degree_reports": reports, "noisy_max_degree": bound.raw_max,
+                                       "sensitivity_degree": bound.sensitivity_degree}
+            limits = edge_clipping_bounds(reports, self.opts.clip_alpha) if self.opts.node_bounds else [d_hat_max] * n
+            for node, limit in zip(nodes, limits):
+                node.bound_degree(limit, rng)
+        released: list[tuple[int, int]] = []
+        for node in nodes:
+            released.extend(node.release_upper_noisy_edges(n, split.eps1, rng))
+        noisy = Graph.from_edges(n, released)
+        return d_hat_max, noisy, limits, unbiased_matrix(noisy, split.eps1)
+
     async def _program(self, record: TaskRecord) -> tuple[Program | None, DesignResult | None]:
         if self.opts.program_source == "library":
-            return PROGRAMS[record.task].parse(), None
+            return reference_source(record.task, self.opts.node_bounds).parse(), None
         o = self.opts
         search = SearchOptions.from_dict(o.search) if o.design_mode == "search" else None
         key = (id(self.designer_model), record.input_prompt, o.max_design_iterations, o.design_restarts,
-               o.design_mode, repr(search))
+               o.design_mode, repr(search), o.node_bounds)
         cached = key in _DESIGN_CACHE
         if not cached:
             n = record.vertex_num
@@ -350,6 +377,7 @@ class TrustedPSCFramework:
                 _DESIGN_CACHE[key] = await design_with_restarts(
                     self.designer_model, self.formatter, record.input_prompt, n, design_reference_params(n),
                     task=record.task, max_iterations=o.max_design_iterations, restarts=o.design_restarts,
+                    matrix=o.node_bounds,
                 )
             else:
                 raise ValueError(f"unknown design_mode {o.design_mode!r} (exact, search)")

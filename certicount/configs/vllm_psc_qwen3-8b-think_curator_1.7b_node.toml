@@ -1,0 +1,30 @@
+# Experiment 1 (PSC baseline on PM): curator and privacy controller Qwen3-8B in THINKING mode,
+# node agents Qwen3-1.7B NON-thinking (temperature 0, as the 1.7B probe).
+# Two local vLLM servers; the endpoints come from the environment:
+#   VLLM_CURATOR_BASE_URL=http://127.0.0.1:8003/v1   (Qwen3-8B,   --max-model-len 16384)
+#   VLLM_NODE_BASE_URL=http://127.0.0.1:8001/v1      (Qwen3-1.7B, --max-model-len 8192)
+# The served model names must match --served-model-name of the servers.
+# The aggregate prompt of PM (453 noisy reports) is ~5.5k tokens: curator max_tokens stays below ~10k.
+
+provider = "vllm"
+temperature = 0.0
+max_concurrency = 128
+parallel_runs = 8
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-1.7B"
+curator_model = "Qwen3-8B"
+
+[vllm.extra]
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+max_tokens = 4096
+
+[vllm.curator_extra]
+# Replaces extra_body of [vllm.extra] as a whole; Qwen3 thinking-mode sampling
+extra_body = { chat_template_kwargs = { enable_thinking = true }, top_k = 20, min_p = 0.0 }
+temperature = 0.6
+top_p = 0.95
+max_tokens = 9500
