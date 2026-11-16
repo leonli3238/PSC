@@ -130,7 +130,9 @@ def parse_update_prompt(task: str, user: str) -> NodeInput:
     """Rebuild the node input from a logged update prompt (``transcripts.jsonl``
     stores the prompt without the structured block).  Raises ``ValueError``
     when the prompt does not have the :func:`node_update_prompt` layout or
-    does not round-trip exactly."""
+    does not round-trip exactly.  A logged prompt that still carries the block
+    (mock runs, structured input on) is compared without it."""
+    user = strip_structured(user)
     m = _UPDATE_PROMPT.match(user)
     if m is None:
         raise ValueError("not a node update prompt")
