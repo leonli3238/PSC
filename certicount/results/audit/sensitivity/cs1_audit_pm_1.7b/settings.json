@@ -1,0 +1,22 @@
+{
+  "provider": "vllm",
+  "profile": null,
+  "config": "configs/vllm_psc_qwen3-8b-think_curator_1.7b_node.toml",
+  "node_model": "Qwen3-1.7B",
+  "temperature": 0.0,
+  "node_base_url": "http://127.0.0.1:8001/v1",
+  "select": 20,
+  "eval": 200,
+  "pairs_per_node": 2,
+  "runs": 1,
+  "nodes": 40,
+  "alpha": 0.05,
+  "seed": 0,
+  "mock_error_rate": 0.0,
+  "source_names": [
+    "cs1_pm_8bthink-curator_1.7b-node"
+  ],
+  "sources": [
+    "/jizhicfs/leonlanli/work/PSC/psc/results/exp1/cs1_pm_8bthink-curator_1.7b-node"
+  ]
+}
