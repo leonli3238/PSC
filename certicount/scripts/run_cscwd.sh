@@ -33,6 +33,9 @@
 #   scripts/run_cscwd.sh cs3                        # 40 designs + certification ablation (reads α)
 #   scripts/run_cscwd.sh cs3-code                   # no model call (reads α)
 #   scripts/run_cscwd.sh cs3b                       # PM 2/3-star + CU/Do triangle (reads α)
+#   MEM=0.90 MAXLEN=32768 scripts/run_cscwd.sh serve 8b   # then, unattended and resumable:
+#   scripts/run_cscwd.sh cs45-all                   # check, cs4-replay (background), cs4-online, cs5-evolve-psc,
+#                                                   # cs5-eval-psc, cs5-evolve-node, cs5-eval-node, summary
 #
 # Every executed command is appended to results/cscwd_commands.log with UTC time and git revision.
 # Existing tags are refused by the scripts (no overwrite): to rerun a stage, move its directory away.
@@ -78,6 +81,43 @@ alpha() {
   [ -f "$ALPHA_FILE" ] || { echo "missing $ALPHA_FILE: run the cs0-alpha stage first" >&2; exit 1; }
   "$PY" -c "import json; print(json.load(open('$ALPHA_FILE'))['alpha'])"
 }
+done_or_reset() {  # $1 dir, $2 file written last: 0 if finished; a partial dir is moved aside (return 1)
+  [ -f "$1/$2" ] && return 0
+  if [ -d "$1" ]; then
+    local aside; aside="$1.incomplete-$(date -u +%Y%m%dT%H%M%SZ)"
+    echo "incomplete $1 -> $aside" >&2
+    mv "$1" "$aside"
+  fi
+  return 1
+}
+privacy_guard() {  # stop on a falsifier refutation (evolution) or an unsound certificate (design run)
+  "$PY" - "$1" <<'EOF' || { echo "PRIVACY CHECK FAILED in $1: stop and report this directory" >&2; exit 3; }
+import json, sys
+from pathlib import Path
+d = Path(sys.argv[1])
+bad = 0
+if (d / "lineage.jsonl").exists():
+    for line in (d / "lineage.jsonl").read_text().splitlines():
+        rec = json.loads(line)
+        bad += rec.get("evaluation", {}).get("stages", {}).get("refuted", 0)
+cert = d / "certification_ablation" / "summary.json"
+if cert.exists():
+    bad += sum(row.get("certificate_unsound") or 0 for row in json.loads(cert.read_text())["table"])
+print(f"privacy guard {d}: {bad} problem(s)")
+sys.exit(1 if bad else 0)
+EOF
+}
+design_run() {  # $1 tag, then run_dsl_design_eval options; skips a finished run, redoes a partial one
+  local t=$1; shift
+  if ! done_or_reset "results/dsl_eval/$t" table.md; then
+    run "$PY" scripts/run_dsl_design_eval.py --datasets PM --designs 10 --runs 100 --eps "$EPS" --seed 0 --noisy-gate \
+      --design-concurrency 8 --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B --temperature 0.6 \
+      --tag "$t" "$@"
+  fi
+  [ -f "results/dsl_eval/$t/certification_ablation/table.md" ] || \
+    run "$PY" scripts/analyze_design_certification.py "results/dsl_eval/$t"
+  privacy_guard "results/dsl_eval/$t"
+}
 served()    { case $1 in 1.7b) echo Qwen3-1.7B;; 8b) echo Qwen3-8B;; *) echo "unknown model $1" >&2; exit 2;; esac; }
 model_dir() { echo "$MODELS/$(served "$1")"; }
 
@@ -87,17 +127,21 @@ case $cmd in
     [ -f tests/test_matrix.py ] && [ -f certicount/dsl/matrix.py ] \
       || { echo "this checkout lacks the per-node architecture (dsl/matrix.py, tests/test_matrix.py)" >&2; exit 1; }
     git --no-pager log --oneline -1; git --no-pager status --short -- . ../psc | head -30
-    run "$PY" -m pytest tests -q ;;                                   # expected: 243 passed, 1 skipped
+    run "$PY" -m pytest tests -q ;;                                   # expected: 294 passed, 1 skipped
 
   serve)  # $1 = 8b | 1.7b; both on one GPU: 8B first (0.55), then 1.7B (0.35)
+    # MAXLEN: context length (default 16384, as CS1-CS3). CS4/CS5 design and reflection prompts (up to ~4k
+    # tokens) plus the 13000-token reasoning budget need MAXLEN=32768 (Qwen3-8B's native context).
     m=$1
     if [ "$m" = 8b ]; then port=8003 mem=${MEM:-0.55} seqs=128; else port=8001 mem=${MEM:-0.35} seqs=256; fi
     exec "$VLLM_BIN" serve "$(model_dir "$m")" --served-model-name "$(served "$m")" \
-      --max-model-len 16384 --enable-prefix-caching --gpu-memory-utilization "$mem" \
+      --max-model-len "${MAXLEN:-16384}" --enable-prefix-caching --gpu-memory-utilization "$mem" \
       --max-num-seqs "$seqs" --host 127.0.0.1 --port "$port" ;;
 
-  wait)
+  wait)  # wait8b: only the 8B server (CS4/CS5 need no node model)
     for u in "$URL_8B" "$URL_17B"; do until curl -sf "$u/models" >/dev/null; do sleep 10; done; curl -s "$u/models"; echo; done ;;
+  wait8b)
+    until curl -sf "$URL_8B/models" >/dev/null; do sleep 10; done; curl -s "$URL_8B/models"; echo ;;
 
   dry)  # model calls of cs1, cs1-small, cs2, cs3, cs3b (the audit needs cs1: cs1-audit-dry)
     psc_run --exp exp1 --methods PSC --datasets PM --tasks "$PSC_PM_TASKS" --runs 10 --provider vllm \
@@ -199,8 +243,17 @@ EOF
   # Reader (reasoning block skipped, truncation detected, several for clauses = nested sums), repair hints,
   # GS-growth check and noise-aware gate (certicount/dsl/noisy_gate.py). No model call.
   cs4-replay)
+    done_or_reset results/dsl_eval/cs4_step1a_replay table.md && { echo "cs4-replay: done"; exit 0; }
     run "$PY" scripts/replay_design_drafts.py "results/dsl_eval/$T_CS2" "results/dsl_eval/cs3_pm_node-arch_d10_a$(alpha)" \
       results/dsl_eval/A3_pm_design_8bthink_d10 --tau 2.0 --reps 8 --runs 20 --tag cs4_step1a_replay ;;
+  # Online check of the step-1a loop: the CS2 / CS3 settings (same tasks, prompt v0, seed, temperature) with the
+  # new checks and gate on, so the drafts can be rewritten after the new feedback (stages noisy -> accepted).
+  cs4-online)
+    for arch in psc node; do
+      extra=(); t=cs4_online_psc-arch_d10
+      if [ "$arch" = node ]; then extra=(--node-bounds --clip-alpha "$(alpha)"); t="cs4_online_node-arch_d10_a$(alpha)"; fi
+      design_run "$t" --tasks "$PM_TASKS" --prompt v0 --restarts 1 "${extra[@]}"
+    done ;;
 
   # ---------------- CS5: prompt self-evolution (certicount/dsl/evolve.py) ----------------
   # Evolution uses the training tasks only (degree, 2-star, 4-star; public n = 400, synthetic graphs);
@@ -211,9 +264,11 @@ EOF
   cs5-evolve-psc|cs5-evolve-node)
     extra=(); tag=cs5_evolve_psc
     if [ "$cmd" = cs5-evolve-node ]; then extra=(--node-bounds --clip-alpha "$(alpha)"); tag=cs5_evolve_node; fi
+    done_or_reset "results/evolve/$tag" best_prompt.json && { echo "$cmd: done"; exit 0; }
     run "$PY" scripts/run_prompt_evolution.py --start v0 --train-tasks degree,2-star,4-star --n 400 --eps "$EPS" \
       --designs 4 --generations 5 --children 3 --patience 2 --design-concurrency 8 --seed 0 "${extra[@]}" \
-      --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B --temperature 0.6 --tag "$tag" ;;
+      --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B --temperature 0.6 --tag "$tag"
+    privacy_guard "results/evolve/$tag" ;;
   cs5-eval-psc|cs5-eval-node)
     extra=(); arch=psc
     if [ "$cmd" = cs5-eval-node ]; then extra=(--node-bounds --clip-alpha "$(alpha)"); arch=node; fi
@@ -223,13 +278,26 @@ EOF
       prompt=v0; restarts=1
       [ "$arm" = evolved ] && prompt=$best
       [ "$arm" = v0-r2 ] && restarts=2
-      t="cs5_eval_${arch}_$arm"
-      [ -d "results/dsl_eval/$t" ] && continue
-      run "$PY" scripts/run_dsl_design_eval.py --datasets PM --tasks "$HELD_OUT" --designs 10 --runs 100 \
-        --eps "$EPS" --seed 0 --noisy-gate --prompt "$prompt" --restarts "$restarts" --design-concurrency 8 \
-        "${extra[@]}" --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B --temperature 0.6 --tag "$t"
-      run "$PY" scripts/analyze_design_certification.py "results/dsl_eval/$t"
+      design_run "cs5_eval_${arch}_$arm" --tasks "$HELD_OUT" --prompt "$prompt" --restarts "$restarts" "${extra[@]}"
     done ;;
+
+  # ---------------- everything of steps CS4 + CS5 in one unattended run ----------------
+  # Needs the 8B server (serve 8b with MAXLEN=32768). Resumable: rerun the same command after an interruption;
+  # finished stages are skipped, a half-written result directory is moved to <dir>.incomplete-<time> and redone.
+  # Stops at the first error and at any falsifier refutation / unsound certificate.
+  cs45-all)
+    echo "[cs45-all] $(date -u +%FT%TZ) start"
+    "$0" check
+    until curl -sf "$URL_8B/models" >/dev/null; do echo "waiting for $URL_8B"; sleep 15; done
+    "$0" cs4-replay > results/cs4_replay.log 2>&1 &
+    replay_pid=$!
+    for stage in cs4-online cs5-evolve-psc cs5-eval-psc cs5-evolve-node cs5-eval-node; do
+      echo "[cs45-all] $(date -u +%FT%TZ) $stage"
+      "$0" "$stage"
+    done
+    wait "$replay_pid" || { echo "[cs45-all] cs4-replay failed, see results/cs4_replay.log" >&2; exit 1; }
+    run "$PY" scripts/summarize_cs45.py --out results/cs45_summary.md
+    echo "[cs45-all] $(date -u +%FT%TZ) done: results/cs45_summary.md" ;;
 
   *)
     sed -n '2,40p' "$0"; exit 2 ;;
