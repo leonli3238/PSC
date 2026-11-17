@@ -26,7 +26,7 @@ Functions
     ``comb(x, k)``, ``pow(x, k)``   binomial coefficient / power with a constant ``k``
     ``clip(x, lo, hi)``  clamp to public bounds (runtime fallback for loose bounds)
     ``min(a, b)``, ``max(a, b)``
-    ``sum(e for j in S)``
+    ``sum(e for j in S)``; several clauses ``sum(e for a in X for b in Y)`` are nested sums
 Operators
     sets: ``&`` (intersection), ``|`` (union), ``-`` (difference)
     numbers: ``+ - *`` and ``/`` (the divisor must be public)
@@ -252,25 +252,30 @@ class _Checker:
         raise DSLError(f"unsupported syntax {type(node).__name__}{where}")
 
     def _sum(self, node: ast.Call, where: str) -> tuple[Expr, str]:
+        """``sum(e for a in X for b in Y)`` is read as ``sum(sum(e for b in Y) for a in X)``
+        (same semantics as Python; ``Y`` may use ``a``)."""
         if len(node.args) != 1 or not isinstance(node.args[0], ast.GeneratorExp):
             raise DSLError(f"sum takes one generator: sum(<expr> for <var> in <set>){where}")
         gen = node.args[0]
-        if len(gen.generators) != 1:
-            raise DSLError(f"sum supports a single 'for' clause{where}")
-        comp = gen.generators[0]
-        if comp.ifs or comp.is_async or not isinstance(comp.target, ast.Name):
-            raise DSLError(f"sum supports 'for <name> in <set>' without conditions{where}")
-        var = comp.target.id
-        if var in self.scope:
-            raise DSLError(f"loop variable {var!r} shadows an existing name{where}")
-        domain, dt = self.expr(comp.iter)
-        if dt != SET:
-            raise DSLError(f"sum must iterate over a set{where}")
-        inner = _Checker({**self.scope, var: NODE})
-        body, bt = inner.expr(gen.elt)
+        scope = dict(self.scope)
+        clauses: list[tuple[str, Expr]] = []
+        for comp in gen.generators:
+            if comp.ifs or comp.is_async or not isinstance(comp.target, ast.Name):
+                raise DSLError(f"sum supports 'for <name> in <set>' without conditions{where}")
+            var = comp.target.id
+            if var in scope:
+                raise DSLError(f"loop variable {var!r} shadows an existing name{where}")
+            domain, dt = _Checker(scope).expr(comp.iter)
+            if dt != SET:
+                raise DSLError(f"sum must iterate over a set{where}")
+            clauses.append((var, domain))
+            scope = {**scope, var: NODE}
+        body, bt = _Checker(scope).expr(gen.elt)
         if bt != NUM:
             raise DSLError(f"the summand must be a number{where}")
-        return Sum(body, var, domain), NUM
+        for var, domain in reversed(clauses):
+            body = Sum(body, var, domain)
+        return body, NUM
 
 
 def _strip_fence(source: str) -> str:

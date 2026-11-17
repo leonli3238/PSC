@@ -43,11 +43,13 @@ from certicount.dsl.falsifier import (_all_symmetric_graphs, max_delta, random_s
                                       sign_matrices)
 from certicount.dsl.library import HAND_GS, matrix_triangle_gs  # noqa: E402
 from certicount.dsl.matrix import REFERENCE_EPS1  # noqa: E402
+from certicount.dsl.noisy_gate import NoisyGate, noise_free_check  # noqa: E402
 from certicount.dsl.sensitivity import PublicParams, SensitivityError, derive  # noqa: E402
 from certicount.dsl.utility import utility_test  # noqa: E402
+from psc.mechanism import DEFAULT_MECHANISM  # noqa: E402
 
 CHECKS = ((5, 3, None), (7, 4, 300))
-ORDER = ("parse", "duplicate", "gs_failed", "gs_loose", "semantic", "refuted", "accepted")
+ORDER = ("truncated", "parse", "duplicate", "gs_failed", "gs_loose", "semantic", "noisy", "refuted", "accepted")
 
 
 def load_jsonl(p: Path) -> list[dict]:
@@ -89,7 +91,7 @@ def empirical_delta(program, task: str) -> dict:
     return out
 
 
-def classify(program, seen: set, task: str, public_n: int, params: PublicParams) -> str:
+def classify(program, seen: set, task: str, public_n: int, params: PublicParams, noisy=None) -> str:
     if program.digest in seen:
         return "duplicate"
     seen.add(program.digest)
@@ -99,11 +101,33 @@ def classify(program, seen: set, task: str, public_n: int, params: PublicParams)
         return "gs_failed"
     if any("loose" in w for w in der.warnings):
         return "gs_loose"
+    from certicount.dsl.designer import growth_feedback
+
+    if noisy is not None and growth_feedback(program, params, der.gs):  # runs of the new design loop
+        return "gs_loose"
     if not utility_test(program, task, count=30, public_n=public_n).passed:
         return "semantic"
+    if noisy is not None and not noise_free_check(program, task, noisy).passed:
+        return "noisy"
     from certicount.dsl.designer import falsifier_feedback
 
     return "refuted" if falsifier_feedback(program) else "accepted"
+
+
+def calls_by_design(designs: list[dict], calls: list[dict]) -> list[list[dict]]:
+    """Model calls of each design: by the ``design`` tag of the transcript lines (concurrent designs), or by
+    position for runs recorded serially without it."""
+    if calls and all("design" in c for c in calls):
+        groups: dict[tuple, list[dict]] = defaultdict(list)
+        for c in calls:
+            groups[(c.get("dataset"), c.get("task"), c["design"])].append(c)
+        return [groups.get((r["dataset"], r["task"], r["design"]), []) for r in designs]
+    out, pos = [], 0
+    for r in designs:
+        k = int(r["llm_calls"])
+        out.append(calls[pos:pos + k])
+        pos += k
+    return out
 
 
 def main() -> None:
@@ -120,9 +144,10 @@ def main() -> None:
 
     out = Path(a.out) if a.out else d / "certification_ablation"
     out.mkdir(parents=True, exist_ok=True)
-    drafts, pos = [], 0
+    settings = json.loads((d / "manifest.json").read_text()).get("settings", {}) if (d / "manifest.json").exists() else {}
+    drafts = []
     public_n = {}
-    for r in designs:
+    for r, design_calls in zip(designs, calls_by_design(designs, calls)):
         task = r["task"]
         if r["dataset"] not in public_n:
             from psc.graph import load_dataset
@@ -130,17 +155,20 @@ def main() -> None:
             public_n[r["dataset"]] = load_dataset(str(certicount.DATA_DIR), r["dataset"])["degree"].vertex_num
         n = public_n[r["dataset"]]
         params = design_reference_params(n)
+        noisy = (NoisyGate(n, settings.get("eps", 2.0), bool(settings.get("node_bounds")),
+                           settings.get("clip_alpha", 0.0), settings.get("mechanism", DEFAULT_MECHANISM),
+                           tau=settings.get("noisy_tau", 2.0), reps=settings.get("noisy_reps", 8))
+                 if settings.get("noisy_gate") else None)
         seen: set = set()
-        for it in range(int(r["llm_calls"])):
-            text = calls[pos]["reply"]
-            pos += 1
+        for it, call in enumerate(design_calls):
+            text = call["reply"]
             program, entry = read_draft(text)
             row = {"dataset": r["dataset"], "task": task, "design": r["design"], "iteration": it + 1,
                    "recorded_feedback": r["feedback"][it] if it < len(r["feedback"]) else None}
             if program is None:
-                row.update(stage="parse", program=entry.get("program"))
+                row.update(stage="truncated" if entry.get("truncated") else "parse", program=entry.get("program"))
             else:
-                row.update(stage=classify(program, seen, task, n, params), program=program.text())
+                row.update(stage=classify(program, seen, task, n, params, noisy), program=program.text())
                 if row["stage"] != "duplicate":
                     emp = empirical_delta(program, task)
                     ref_design = (matrix_triangle_gs(params.D, params.eps1) if program.uses_matrix

@@ -52,6 +52,8 @@ PM_TASKS=degree,2-star,3-star,triangle          # CertiCount stages (code execut
 PSC_PM_TASKS=degree,2-star,3-star               # PSC with LLM nodes on PM (triangle prompts overflow, see cs1)
 CFG_CS1=configs/vllm_psc_qwen3-8b-think_curator_1.7b_node.toml   # curator 8B thinking, nodes 1.7B
 CFG_8B=configs/vllm_psc_qwen3-8b_curator-think.toml              # curator 8B thinking, nodes 8B
+CFG_DESIGN=configs/vllm_qwen3-8b-think_design.toml               # design runs (reasoning budget 13000)
+HELD_OUT=3-star,5-star,triangle,degree-moment2                   # never used by the evolution
 ALPHA_GRID="0 2 5 10 20"
 ALPHA_FILE=results/execution/cs0_alpha_selection.json
 
@@ -192,6 +194,42 @@ EOF
       --provider vllm --config "../certicount/$CFG_CS1" --tag "cs3b_pm_psc-agent_node-arch_a$A"
     psc_run --exp exp1 --methods TriTR --tritr-alpha "$A" --datasets CU,Do --tasks triangle --runs 10 \
       --provider vllm --config "../certicount/$CFG_CS1" --tag "cs3b_cudo_triangle_psc-agent_node-arch_a$A" ;;
+
+  # ---------------- CS4 (step 1a): design-loop fixes, offline replay of the recorded drafts ----------------
+  # Reader (reasoning block skipped, truncation detected, several for clauses = nested sums), repair hints,
+  # GS-growth check and noise-aware gate (certicount/dsl/noisy_gate.py). No model call.
+  cs4-replay)
+    run "$PY" scripts/replay_design_drafts.py "results/dsl_eval/$T_CS2" "results/dsl_eval/cs3_pm_node-arch_d10_a$(alpha)" \
+      results/dsl_eval/A3_pm_design_8bthink_d10 --tau 2.0 --reps 8 --runs 20 --tag cs4_step1a_replay ;;
+
+  # ---------------- CS5: prompt self-evolution (certicount/dsl/evolve.py) ----------------
+  # Evolution uses the training tasks only (degree, 2-star, 4-star; public n = 400, synthetic graphs);
+  # evaluation uses the held-out tasks on PM. Arms per architecture:
+  #   v0       original prompt + checks + gate (feedback rewrites within a design only)
+  #   evolved  best_prompt.json of the evolution
+  #   v0-r2    original prompt with 2 restarts (more tries at evaluation time, no learning)
+  cs5-evolve-psc|cs5-evolve-node)
+    extra=(); tag=cs5_evolve_psc
+    if [ "$cmd" = cs5-evolve-node ]; then extra=(--node-bounds --clip-alpha "$(alpha)"); tag=cs5_evolve_node; fi
+    run "$PY" scripts/run_prompt_evolution.py --start v0 --train-tasks degree,2-star,4-star --n 400 --eps "$EPS" \
+      --designs 4 --generations 5 --children 3 --patience 2 --design-concurrency 8 --seed 0 "${extra[@]}" \
+      --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B --temperature 0.6 --tag "$tag" ;;
+  cs5-eval-psc|cs5-eval-node)
+    extra=(); arch=psc
+    if [ "$cmd" = cs5-eval-node ]; then extra=(--node-bounds --clip-alpha "$(alpha)"); arch=node; fi
+    best="results/evolve/cs5_evolve_$arch/best_prompt.json"
+    [ -f "$best" ] || { echo "missing $best: run cs5-evolve-$arch first" >&2; exit 1; }
+    for arm in v0 evolved v0-r2; do
+      prompt=v0; restarts=1
+      [ "$arm" = evolved ] && prompt=$best
+      [ "$arm" = v0-r2 ] && restarts=2
+      t="cs5_eval_${arch}_$arm"
+      [ -d "results/dsl_eval/$t" ] && continue
+      run "$PY" scripts/run_dsl_design_eval.py --datasets PM --tasks "$HELD_OUT" --designs 10 --runs 100 \
+        --eps "$EPS" --seed 0 --noisy-gate --prompt "$prompt" --restarts "$restarts" --design-concurrency 8 \
+        "${extra[@]}" --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B --temperature 0.6 --tag "$t"
+      run "$PY" scripts/analyze_design_certification.py "results/dsl_eval/$t"
+    done ;;
 
   *)
     sed -n '2,40p' "$0"; exit 2 ;;

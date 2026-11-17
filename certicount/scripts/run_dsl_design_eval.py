@@ -44,7 +44,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import certicount  # noqa: E402,F401
-from psc.events import set_error_sink, set_transcript_sink  # noqa: E402
+from psc.events import collect_errors, set_error_sink, set_transcript_sink  # noqa: E402
 from psc.experiments import run_rng  # noqa: E402
 from psc.graph import load_dataset  # noqa: E402
 from psc.ground_truth import relative_error  # noqa: E402
@@ -52,7 +52,10 @@ from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig, create_formatter, create_model  # noqa: E402
 from certicount import DATA_DIR  # noqa: E402
 from certicount.artifacts import append_jsonl, markdown_table, out_dir, write_json, write_manifest  # noqa: E402
-from certicount.dsl.designer import MockDesignerModel, design_reference_params, design_with_restarts  # noqa: E402
+from certicount.dsl.designer import (MockDesignerModel, design_reference_params, design_with_restarts,  # noqa: E402
+                                     draft_stage)
+from certicount.dsl.noisy_gate import NoisyGate, noise_free_check  # noqa: E402
+from certicount.dsl.prompt_spec import load_spec  # noqa: E402
 from certicount.dsl.ground_truth import dp_execute, gs_ratio, gt_dsl, noise_ratio  # noqa: E402
 from certicount.dsl.library import PROGRAMS  # noqa: E402
 from certicount.dsl.quality import design_quality, finite_mean, task_record  # noqa: E402
@@ -93,6 +96,15 @@ def main() -> None:
                     help="per-node architecture: edge clipping + NAM-DPRD unbiased matrix A (the curator's prompt "
                          "documents A; designs are paired with GT-DSL-node)")
     ap.add_argument("--clip-alpha", type=float, default=0.0, help="--node-bounds: public margin α of the clipping bound")
+    ap.add_argument("--noisy-gate", action="store_true",
+                    help="design loop: noise-free check of each draft through the real release on public graphs "
+                         "(certicount.dsl.noisy_gate); its statistic is recorded for every accepted design anyway")
+    ap.add_argument("--noisy-tau", type=float, default=2.0, help="gate threshold on the median noise-free relative error")
+    ap.add_argument("--noisy-reps", type=int, default=8, help="releases per public test graph")
+    ap.add_argument("--prompt", default="v0",
+                    help="design instructions: v0 (the original prompt) or a spec JSON, e.g. results/evolve/<tag>/best_prompt.json")
+    ap.add_argument("--design-concurrency", type=int, default=1,
+                    help="designs of a task run concurrently (transcripts carry dataset/task/design)")
     ap.add_argument("--data", default=str(DATA_DIR))
     ap.add_argument("--provider", default="mock", choices=PROVIDERS)
     ap.add_argument("--profile", default=None)
@@ -125,13 +137,16 @@ def main() -> None:
         cfg = ModelConfig.from_env(provider=args.provider, config_path=args.config, profile=args.profile, **overrides)
         model = create_model(cfg, "curator")
     fmt = create_formatter(cfg)
+    spec = load_spec(args.prompt)
     out = out_dir("dsl_eval", args.tag, "dsl_eval")
-    write_manifest(out, {**vars(args), "planned_calls": planned, "designer": getattr(cfg, "curator_model", None)})
+    write_manifest(out, {**vars(args), "planned_calls": planned, "designer": getattr(cfg, "curator_model", None),
+                         "prompt_spec": spec.to_dict()})
     set_error_sink(out / "errors.jsonl")
     set_transcript_sink(out / "transcripts.jsonl")
 
     async def evaluate() -> tuple[list[dict], list[dict]]:
         summaries, designs = [], []
+        sem = asyncio.Semaphore(max(1, args.design_concurrency))
         for ds in datasets:
             recs = load_dataset(args.data, ds)
             for task in tasks:
@@ -141,17 +156,24 @@ def main() -> None:
                 gt = [gt_dsl(g, task, args.eps, run_rng(args.seed, i), mechanism=args.mechanism,
                              node_bounds=args.node_bounds, alpha=args.clip_alpha) for i in range(args.runs)]
                 gt_re = [relative_error(t.estimate, truth, n) for t in gt]
-                rows: list[dict] = []
-                for k in range(args.designs):
-                    t0 = time.perf_counter()
-                    if args.design_mode == "search":
-                        opts = SearchOptions(rounds=args.search_rounds, proposals=args.search_proposals,
-                                             sims=args.search_sims, eps=args.eps, mechanism=args.mechanism)
-                        res = await search_program(model, fmt, rec.input_prompt, n, task, opts)
-                    else:
-                        res = await design_with_restarts(model, fmt, rec.input_prompt, n, ref_params, task=task,
-                                                         max_iterations=args.max_iterations, restarts=args.restarts,
-                                                         matrix=args.node_bounds)
+                noisy = (NoisyGate(n, args.eps, args.node_bounds, args.clip_alpha, args.mechanism,
+                                   tau=args.noisy_tau, reps=args.noisy_reps) if args.noisy_gate else None)
+
+                async def one(k: int) -> tuple[dict, list[dict]]:
+                    """Design k, then its paired code runs; the transcript lines carry dataset/task/design."""
+                    async with sem:
+                        with collect_errors(dataset=ds, task=task, design=k):
+                            t0 = time.perf_counter()
+                            if args.design_mode == "search":
+                                opts = SearchOptions(rounds=args.search_rounds, proposals=args.search_proposals,
+                                                     sims=args.search_sims, eps=args.eps, mechanism=args.mechanism)
+                                res = await search_program(model, fmt, rec.input_prompt, n, task, opts)
+                            else:
+                                res = await design_with_restarts(model, fmt, rec.input_prompt, n, ref_params, task=task,
+                                                                 max_iterations=args.max_iterations,
+                                                                 restarts=args.restarts, matrix=args.node_bounds,
+                                                                 noisy=noisy, spec=spec)
+                    run_rows: list[dict] = []
                     row = {
                         "dataset": ds, "task": task, "design": k, "accepted": res.accepted, "iterations": res.iterations,
                         "restarts": res.restarts, "first_loop_accepted": bool(res.attempts and res.attempts[0]["accepted"])
@@ -160,6 +182,8 @@ def main() -> None:
                         "program": res.program.text() if res.program else None,
                         "search_score": (res.score or {}).get("score"),
                         "feedback": [h["feedback"] for h in res.history],
+                        "stages": [draft_stage(h["feedback"]) for a in (res.attempts or [{"history": res.history}])
+                                   for h in a["history"]],
                     }
                     if res.program is not None:
                         q = design_quality(res.program, task, n, int(ref_params.D), bounds, args.utility_graphs,
@@ -179,20 +203,32 @@ def main() -> None:
                                 exact.append(abs(tr.estimate - gt[i].estimate) <= EXACT_TOL * max(1.0, abs(truth)))
                             ratios.append(gs_ratio(tr.gs, gt[i].gs))
                             nratios.append(noise_ratio(tr.final_noise_scale, gt[i].final_noise_scale))
-                            append_jsonl({
+                            run_rows.append({
                                 "dataset": ds, "task": task, "design": k, "run": i, "truth": truth,
                                 "estimate": tr.estimate, "gt_dsl_estimate": gt[i].estimate,
                                 "relative_error": e, "gt_dsl_relative_error": gt_re[i], "design_error": e - gt_re[i],
                                 "gs": tr.gs, "gt_dsl_gs": gt[i].gs, "split": tr.split, "gt_dsl_split": gt[i].split,
                                 "d_hat_max": tr.d_hat_max, "gt_dsl_d_hat_max": gt[i].d_hat_max,
                                 "final_noise_scale": tr.final_noise_scale, "gt_dsl_final_noise_scale": gt[i].final_noise_scale,
-                            }, out / "runs.jsonl")
+                            })
+                        # diagnostic for every accepted design (also without the gate): the gate's statistic
+                        nrep = noise_free_check(res.program, task, noisy or diag_gate)
                         row.update(
                             relative_error=float(np.mean(re_)), gt_dsl_relative_error=float(np.mean(gt_re)),
                             design_error=float(np.mean(diffs)), design_error_se=_se(diffs),
                             design_exact=float(np.mean(exact)) if exact else None, both_zero=float(np.mean(zeros)),
                             run_gs_ratio=finite_mean(ratios), noise_ratio=finite_mean(nratios),
+                            noise_free_bias=max((r["bias"] for r in nrep.rows), default=None),
+                            noise_free_pass=nrep.passed,
                         )
+                    return row, run_rows
+
+                diag_gate = NoisyGate(n, args.eps, args.node_bounds, args.clip_alpha, args.mechanism,
+                                      tau=args.noisy_tau, reps=args.noisy_reps)
+                rows: list[dict] = []
+                for row, run_rows in await asyncio.gather(*(one(k) for k in range(args.designs))):
+                    for rr in run_rows:
+                        append_jsonl(rr, out / "runs.jsonl")
                     append_jsonl(row, out / "designs.jsonl")
                     rows.append(row)
                     designs.append(row)
@@ -220,6 +256,8 @@ def main() -> None:
                     "design_error_max": max(diffs_all, default=None),
                     "design_exact": finite_mean(r.get("design_exact") for r in acc),
                     "both_zero": finite_mean(r.get("both_zero") for r in acc),
+                    "noise_free_pass": _rate(r.get("noise_free_pass") for r in acc),
+                    "median_relative_error": float(np.median([r["relative_error"] for r in acc])) if acc else None,
                 })
         return summaries, designs
 
@@ -227,11 +265,12 @@ def main() -> None:
     write_json({"settings": vars(args), "summary": summaries, "designs": designs}, out / "summary.json")
     sum_cols = ["dataset", "task", "designs", "accept_rate", "first_loop_rate", "first_try_rate", "mean_iterations",
                 "mean_restarts", "mean_llm_calls", "distinct_programs", "same_as_reference", "split_match", "semantic_pass",
-                "sound", "gs_ratio", "gs_ratio_max", "noise_ratio"]
-    err_cols = ["dataset", "task", "relative_error", "gt_dsl_relative_error", "design_error", "design_error_max",
-                "design_exact", "both_zero"]
+                "sound", "noise_free_pass", "gs_ratio", "gs_ratio_max", "noise_ratio"]
+    err_cols = ["dataset", "task", "relative_error", "median_relative_error", "gt_dsl_relative_error", "design_error",
+                "design_error_max", "design_exact", "both_zero"]
     design_cols = ["dataset", "task", "design", "accepted", "restarts", "iterations", "same_as_reference", "split_match",
-                   "noise_ratio", "semantic_pass", "sound", "search_score", "relative_error", "design_error", "program"]
+                   "noise_ratio", "semantic_pass", "sound", "noise_free_bias", "search_score", "relative_error",
+                   "design_error", "program"]
     shown = [{**d, "program": (d["program"] or "-").replace("\n", " ; ")} for d in designs]
     loop = (f"search: {args.search_rounds} round(s) x {args.search_proposals} proposal(s)" if args.design_mode == "search"
             else f"{args.max_iterations} draft(s) x up to {args.restarts} restart(s)")
@@ -242,7 +281,11 @@ def main() -> None:
         f"{args.temperature if args.temperature is not None else cfg.temperature}, {args.designs} independent design(s), "
         f"{loop}, ε = {args.eps}, {args.runs} runs per design (noise of run i: seed [{args.seed}, i]), "
         f"mechanism = {args.mechanism}, architecture = "
-        f"{'per-node (edge clipping + unbiased matrix A, α = %g)' % args.clip_alpha if args.node_bounds else 'PSC'}.", "",
+        f"{'per-node (edge clipping + unbiased matrix A, α = %g)' % args.clip_alpha if args.node_bounds else 'PSC'}, "
+        f"noise-aware gate {'on (τ = %g, %d releases per graph)' % (args.noisy_tau, args.noisy_reps) if args.noisy_gate else 'off'}.", "",
+        "`noise_free_pass` / `noise_free_bias`: the gate's statistic for every accepted design (median relative error of "
+        "the estimate through the real release on public Holme-Kim graphs, final Laplace noise left out; "
+        "certicount.dsl.noisy_gate), recorded with the gate off too.", "",
         "## Design quality", "",
         "`accept_rate`: designs that produced a program; `first_loop_rate`: accepted without a restart; "
         "`first_try_rate`: accepted at the first draft. `gs_ratio`: derived GS / reference GS at the design-time bound "

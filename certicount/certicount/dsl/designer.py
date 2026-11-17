@@ -36,6 +36,8 @@ from .falsifier import check_derivation
 from .lang import DSLError, Program, parse_program
 from .library import NODE_PROGRAMS, PROGRAMS, infer_program_task, kstar_source
 from .matrix import REFERENCE_EPS1
+from .noisy_gate import NoisyGate, noise_free_check
+from .prompt_spec import PromptSpec
 from .sensitivity import PublicParams, SensitivityError, derive
 from .utility import utility_test
 
@@ -110,10 +112,15 @@ def render_attempt(i: int, h: dict) -> str:
     return f"{head}\nResult: {h['feedback']}"
 
 
-def design_prompt(input_prompt: str, n: int, history: list[dict], matrix: bool = False) -> str:
+def design_prompt(input_prompt: str, n: int, history: list[dict], matrix: bool = False,
+                  spec: PromptSpec | None = None) -> str:
+    """``spec``: evolvable modules (:mod:`certicount.dsl.prompt_spec`); ``None`` / V0 gives the
+    original prompt byte for byte."""
     payload = {"phase": "design_program", "input_prompt": input_prompt, "attempt": len(history) + 1}
     reference = DSL_REFERENCE + ("\n" + MATRIX_REFERENCE if matrix else "")
-    parts = [reference, f"The input prompt from the analyst is:\n\"\"\"\n{input_prompt}\n\"\"\"", f"The graph has {n} nodes."]
+    guidance = spec.guidance() if spec is not None else ""
+    parts = [reference] + ([guidance] if guidance else [])
+    parts += [f"The input prompt from the analyst is:\n\"\"\"\n{input_prompt}\n\"\"\"", f"The graph has {n} nodes."]
     if history:
         parts.append("Your previous attempts were rejected:\n\n" + "\n\n".join(render_attempt(i, h) for i, h in enumerate(history, 1)))
         parts.append("Write a corrected program. Do not repeat a rejected program.")
@@ -121,8 +128,24 @@ def design_prompt(input_prompt: str, n: int, history: list[dict], matrix: bool =
     return "\n\n".join(parts) + f"\n\n{structured_block(payload)}"
 
 
+TRUNCATED_FEEDBACK = ("rejected: the reply was cut off during the reasoning, before any program; "
+                      "reason more briefly and give the program")
+
+
+def is_truncated(text: str) -> bool:
+    """A reasoning reply that never closed its ``<think>`` block (output token limit)."""
+    return "<think>" in text and "</think>" not in text
+
+
+def answer_part(text: str) -> str:
+    """The reply after the reasoning block (the whole reply without one)."""
+    return text.rsplit("</think>", 1)[1] if "</think>" in text else text
+
+
 def parse_design_reply(text: str) -> tuple[str, str, str | None]:
-    """``(local program, aggregate, budget line or None)``."""
+    """``(local program, aggregate, budget line or None)``, read after the reasoning
+    block: a program drafted inside the reasoning is not the answer."""
+    text = answer_part(text)
     m = _CODE_BLOCK.search(text)
     if not m:
         raise DSLError("no code block found (put the program in a dsl code block)")
@@ -133,17 +156,77 @@ def parse_design_reply(text: str) -> tuple[str, str, str | None]:
             budget.group(1).strip().strip("`") if budget else None)
 
 
+# (pattern of the parser's message, hint); the first match is used. Hints say how to write a
+# construct in the language; they never contain the program of a task.
+_REPAIR_HINTS: tuple[tuple[str, str], ...] = (
+    (r"no code block found",
+     "put the program in a code block marked dsl, followed by a line 'aggregate: <expression over total and n>'"),
+    (r"without conditions",
+     "remove the 'if' condition: sum over all elements and correct repeated counting with a constant factor"),
+    (r"comb expects \(num, num\), got \(set",
+     "comb takes a number: write comb(size(S), k)"),
+    (r"project expects \(set, num\), got \(num",
+     "project takes a set: write project(S, k) and take size(...) afterwards"),
+    (r"size expects \(set\)",
+     "size takes a set (P, N(x), project(...) or a set expression)"),
+    (r"expects .*got",
+     "check the argument types: N(node), A(node, node), size(set), project(set, number), comb(number, k)"),
+    (r"A takes \d+ argument",
+     "A(x, y) takes two nodes: the noisy indicator of the edge between x and y"),
+    (r"reads either the noisy rows N\(\.\.\.\) or the unbiased matrix A",
+     "N(...) and A(...) are two different releases and a program uses one of them; this node's own "
+     "neighbors are P (bounded: project(P, D)), N(self) is only a randomized copy of them"),
+    (r"is already defined",
+     "assign each name once: use a new name for every step"),
+    (r"only 'name = <expr>' lines",
+     "write straight-line code: no for / if statements, loops only as sum(<expr> for j in <set>), "
+     "and end with 'return <expr>'"),
+    (r"must end with 'return",
+     "end the program with 'return <expr>'"),
+    (r"unknown function",
+     "only N, A, size, project, comb, pow, clip, min, max and sum are available"),
+)
+
+
+def repair_hint(message: str, source: str = "") -> str | None:
+    """How to express what the parser rejected (``None``: no specific hint)."""
+    if re.search(r"<[a-z][a-z _-]*>", source):
+        return ("replace the placeholder in angle brackets with your actual program; "
+                "do not copy '<...>' from the format description")
+    if "//" in source and re.search(r"unsupported syntax BinOp|syntax", message):
+        return "use '/' instead of '//' (results are real numbers)"
+    if re.search(r"unsupported syntax (Set|List|Tuple|Dict|Subscript)", message):
+        return "there are no literals, tuples or indexing: build sets from P, N(x), project, &, |, -"
+    m = re.search(r"unknown name '([^']+)'", message)
+    if m:
+        return (f"'{m.group(1)}' is not defined: this node is 'self', its neighbors are P, other nodes are the "
+                "loop variables of sum(...); public numbers are n, D, dmax")
+    for pattern, hint in _REPAIR_HINTS:
+        if re.search(pattern, message):
+            return hint
+    return None
+
+
+def _rejected(exc: Exception, source: str) -> str:
+    hint = repair_hint(str(exc), source)
+    return f"rejected: not a valid program: {exc}" + (f". Hint: {hint}" if hint else "")
+
+
 def read_draft(text: str) -> tuple[Program | None, dict]:
     """Parse a reply; returns the program (or ``None``) and its history entry."""
+    if is_truncated(text):
+        return None, {"program": "", "aggregate": "", "reply": text[-2000:], "truncated": True,
+                      "feedback": TRUNCATED_FEEDBACK}
     try:
         local, agg, budget = parse_design_reply(text)
     except DSLError as exc:
-        return None, {"program": "", "aggregate": "", "reply": text[:2000], "feedback": f"rejected: not a valid program: {exc}"}
+        return None, {"program": "", "aggregate": "", "reply": answer_part(text)[:2000],
+                      "feedback": _rejected(exc, answer_part(text))}
     entry = {"program": local, "aggregate": agg, "budget": budget}
     try:
         return parse_program(local, agg, budget=budget), entry
     except DSLError as exc:
-        return None, {**entry, "feedback": f"rejected: not a valid program: {exc}"}
+        return None, {**entry, "feedback": _rejected(exc, local)}
 
 
 @dataclass
@@ -170,8 +253,10 @@ class DesignResult:
 
 
 def check_draft(program: Program, task: str | None, params: PublicParams, utility_graphs: int = 30,
-                public_n: int | None = None, truncate: bool = True, falsifier: bool = True) -> str | None:
-    """Feedback for a draft, or ``None`` if it is accepted."""
+                public_n: int | None = None, truncate: bool = True, falsifier: bool = True,
+                noisy: NoisyGate | None = None) -> str | None:
+    """Feedback for a draft, or ``None`` if it is accepted. ``noisy``: also run the
+    noise-free check through the real release (:mod:`certicount.dsl.noisy_gate`)."""
     try:
         der = derive(program, params)
     except SensitivityError as exc:
@@ -179,13 +264,52 @@ def check_draft(program: Program, task: str | None, params: PublicParams, utilit
     loose = [w for w in der.warnings if "loose" in w]
     if loose:
         return f"sensitivity GS = {der.gs:g} is too loose: {loose[0]}"
+    grows = growth_feedback(program, params, der.gs)
+    if grows:
+        return grows
     if task is not None:
         rep = utility_test(program, task, count=utility_graphs, public_n=public_n, truncate=truncate)
         if not rep.passed:
             return rep.feedback()
+        if noisy is not None:
+            nrep = noise_free_check(program, task, noisy)
+            if not nrep.passed:
+                return nrep.feedback()
     if falsifier:
         return falsifier_feedback(program)
     return None
+
+
+def growth_feedback(program: Program, params: PublicParams, gs: float | None = None) -> str | None:
+    """Rejection if the derived GS grows with the number of nodes at fixed public degree bounds:
+    some set reaching the count is bounded only by ``n - 1`` (e.g. ``P`` without ``project``), so the
+    noise grows with the graph although a degree bound is available. Generalises the ``comb`` loose
+    warning of the deriver to every expression (products, sums over pairs, ...)."""
+    try:
+        g1 = derive(program, params).gs if gs is None else gs
+        g2 = derive(program, PublicParams(4 * params.n, params.D, params.dmax, params.eps1)).gs
+    except SensitivityError:
+        return None
+    if g2 > g1 * 1.01 + 1e-9:
+        return (f"sensitivity GS = {g1:g} is too loose: it grows with the number of nodes (GS = {g2:g} on a graph "
+                f"with {4 * params.n} nodes and the same degree bound), so a set in the program is bounded only by n; "
+                "bound the neighbor sets with project(..., D) before counting")
+    return None
+
+
+def draft_stage(feedback: str | None) -> str:
+    """Stage of the design loop a draft stopped at, from its feedback."""
+    if feedback is None or feedback == "accepted":
+        return "accepted"
+    f = feedback.removeprefix("rejected: ")
+    for prefix, stage in (("the reply was cut off", "truncated"), ("not a valid program", "parse"),
+                          ("identical to attempt", "duplicate"), ("sensitivity check failed", "gs_failed"),
+                          ("sensitivity GS", "gs_loose"), ("utility test failed", "semantic"),
+                          ("noise-free check failed", "noisy"), ("sensitivity certification failed", "refuted"),
+                          ("the program fails on a public test graph", "refuted")):
+        if f.startswith(prefix):
+            return stage
+    return "other"
 
 
 # Falsifier runs of the design-time check: (n, dmax, random symmetric graphs; None = every graph)
@@ -225,37 +349,45 @@ def _duplicate_of(program: Program, seen: dict[str, int]) -> int | None:
 async def design_program(
     model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
     params: PublicParams, task: str | None = None, max_iterations: int = 3, matrix: bool = False,
+    noisy: NoisyGate | None = None, spec: PromptSpec | None = None,
 ) -> DesignResult:
     """``task`` names the reference counter used by the utility test (``None``
     skips it, e.g. for a task without a brute-force reference). ``matrix``: the
-    per-node architecture, whose prompt documents ``A`` (:data:`MATRIX_REFERENCE`)."""
+    per-node architecture, whose prompt documents ``A`` (:data:`MATRIX_REFERENCE`).
+    ``noisy``: the noise-aware utility gate (:mod:`certicount.dsl.noisy_gate`).
+    ``spec``: evolvable prompt modules (guidance and extra repair hints)."""
     history: list[dict] = []
     seen: dict[str, int] = {}
+
+    def reject(entry: dict, feedback: str) -> None:
+        extra = spec.hints_for(feedback) if spec is not None else []
+        history.append({**entry, "feedback": feedback + "".join(f" Hint: {h}" for h in extra)})
+
     for it in range(1, max_iterations + 1):
-        text = await chat(model, formatter, DESIGNER_SYSTEM, design_prompt(input_prompt, n, history, matrix),
+        text = await chat(model, formatter, DESIGNER_SYSTEM, design_prompt(input_prompt, n, history, matrix, spec),
                           agent="Curator")
         program, entry = read_draft(text)
         if program is None:
-            history.append(entry)
+            reject(entry, entry["feedback"])
             continue
         dup = _duplicate_of(program, seen)
         if dup is not None:
-            history.append({**entry, "feedback": f"rejected: identical to attempt {dup}, which was already rejected"})
+            reject(entry, f"rejected: identical to attempt {dup}, which was already rejected")
             continue
         seen[program.digest] = it
-        feedback = check_draft(program, task, params, public_n=n)
+        feedback = check_draft(program, task, params, public_n=n, noisy=noisy)
         if feedback is None:
             gs = derive(program, params).gs
             history.append({**entry, "feedback": "accepted", "gs": gs})
             return DesignResult(program, task, it, True, gs, history, it)
-        history.append({**entry, "feedback": f"rejected: {feedback}"})
+        reject(entry, f"rejected: {feedback}")
     return DesignResult(None, task, max_iterations, False, None, history, max_iterations)
 
 
 async def design_with_restarts(
     model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
     params: PublicParams, task: str | None = None, max_iterations: int = 3, restarts: int = 1,
-    matrix: bool = False,
+    matrix: bool = False, noisy: NoisyGate | None = None, spec: PromptSpec | None = None,
 ) -> DesignResult:
     """Up to ``restarts`` independent design loops (fresh history each); the
     first accepted program is used. All loops are recorded in ``attempts``."""
@@ -263,7 +395,8 @@ async def design_with_restarts(
     calls = 0
     last: DesignResult | None = None
     for r in range(1, max(1, restarts) + 1):
-        res = await design_program(model, formatter, input_prompt, n, params, task, max_iterations, matrix)
+        res = await design_program(model, formatter, input_prompt, n, params, task, max_iterations, matrix, noisy,
+                                   spec)
         calls += res.llm_calls
         attempts.append({"restart": r, "accepted": res.accepted, "iterations": res.iterations,
                          "program": res.program.text() if res.program else None, "history": res.history})

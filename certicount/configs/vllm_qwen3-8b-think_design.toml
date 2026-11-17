@@ -1,0 +1,27 @@
+# DSL design runs (run_dsl_design_eval.py), step 1a onwards: curator Qwen3-8B in THINKING mode.
+# Same decoding as vllm_psc_qwen3-8b_curator-think.toml, with a larger reasoning budget: a design
+# prompt is ~0.7-0.9k tokens (up to ~3k with the history of rejected drafts), so on a server with
+# --max-model-len 16384 the reply may use 13000 tokens. CS3 had one design reply cut at 9500.
+# Node settings are unused by design runs (nodes execute the program in code).
+
+provider = "vllm"
+temperature = 0.0
+max_concurrency = 64
+parallel_runs = 8
+stream = false
+max_retries = 4
+retry_backoff = 5.0
+
+[vllm]
+node_model = "Qwen3-8B"
+curator_model = "Qwen3-8B"
+
+[vllm.extra]
+extra_body = { chat_template_kwargs = { enable_thinking = false } }
+max_tokens = 4096
+
+[vllm.curator_extra]
+extra_body = { chat_template_kwargs = { enable_thinking = true }, top_k = 20, min_p = 0.0 }
+temperature = 0.6
+top_p = 0.95
+max_tokens = 13000

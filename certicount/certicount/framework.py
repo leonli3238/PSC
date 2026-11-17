@@ -51,6 +51,7 @@ from .dsl.ground_truth import final_noise_scale
 from .dsl.lang import Interpreter, Program
 from .dsl.library import PROGRAMS, reference_source
 from .dsl.matrix import unbiased_matrix
+from .dsl.noisy_gate import NoisyGate
 from .dsl.search import SearchOptions, search_program
 from .dsl.sensitivity import PublicParams, certify
 
@@ -80,6 +81,10 @@ class TrustOptions:
     # certicount.dsl.clipping): node i clips P to floor(max(d_i + Lap(1/eps2), 0) + clip_alpha)
     node_bounds: bool = False
     clip_alpha: float = 0.0  # public, data-independent
+    # design loop: noise-free check of each draft through the real release on public graphs
+    # (certicount.dsl.noisy_gate), simulated at the public design-time budget noisy_gate_eps
+    noisy_gate: bool = False
+    noisy_gate_eps: float = 2.0
 
     @property
     def label(self) -> str:
@@ -363,11 +368,13 @@ class TrustedPSCFramework:
             return reference_source(record.task, self.opts.node_bounds).parse(), None
         o = self.opts
         search = SearchOptions.from_dict(o.search) if o.design_mode == "search" else None
+        n = record.vertex_num
+        noisy = (NoisyGate(n, o.noisy_gate_eps, o.node_bounds, o.clip_alpha, self.mechanism.name, self.r1, self.r2)
+                 if o.noisy_gate else None)
         key = (id(self.designer_model), record.input_prompt, o.max_design_iterations, o.design_restarts,
-               o.design_mode, repr(search), o.node_bounds)
+               o.design_mode, repr(search), o.node_bounds, noisy)
         cached = key in _DESIGN_CACHE
         if not cached:
-            n = record.vertex_num
             if o.design_mode == "search":
                 if record.task is None or record.task not in PROGRAMS:
                     raise ValueError("design_mode='search' needs a task with a brute-force reference counter")
@@ -377,7 +384,7 @@ class TrustedPSCFramework:
                 _DESIGN_CACHE[key] = await design_with_restarts(
                     self.designer_model, self.formatter, record.input_prompt, n, design_reference_params(n),
                     task=record.task, max_iterations=o.max_design_iterations, restarts=o.design_restarts,
-                    matrix=o.node_bounds,
+                    matrix=o.node_bounds, noisy=noisy,
                 )
             else:
                 raise ValueError(f"unknown design_mode {o.design_mode!r} (exact, search)")
