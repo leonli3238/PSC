@@ -1,0 +1,1 @@
+{"time": "2026-11-17T18:24:19.072", "kind": "api_error", "dataset": "CU", "task": "triangle", "method": "TriTR", "run": 4, "model": "Qwen3-1.7B", "attempt": 1, "elapsed": 4.65, "status": null, "message": "APIConnectionError: Connection error."}
