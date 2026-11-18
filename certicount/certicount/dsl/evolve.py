@@ -2,26 +2,34 @@
 
 One generation:
 
-1. **evaluate** the parent spec (:class:`certicount.dsl.prompt_spec.PromptSpec`): the curator
-   designs every training task ``designs`` times with the full design loop (checks, noise-aware
-   gate, feedback-driven rewrites, :func:`certicount.dsl.designer.design_with_restarts`);
-2. **reflect**: the rejected drafts are grouped by the stage that rejected them; a sample of each
-   group (program + the checker's feedback) goes to a reflection call of the same model, which
-   proposes ONE edit (add / replace / delete) of ONE evolvable module: a guidance rule, a worked
-   example of another statistic, or a repair hint attached to matching rejections;
-3. the edited spec must pass :func:`certicount.dsl.prompt_spec.leak_check`, otherwise the
-   reflection is asked once more with the problems;
-4. every child is evaluated once; the best one is evaluated a second time and replaces the
-   parent only if its mean score beats the parent's (the parent is re-evaluated every
-   generation, so neither side profits from one lucky evaluation).
+1. **evaluate** a spec (:class:`certicount.dsl.prompt_spec.PromptSpec`): the curator designs every
+   training task ``designs`` times with the full design loop (checks, noise-aware gate,
+   feedback-driven rewrites, :func:`certicount.dsl.designer.design_with_restarts`);
+2. **select** the spec to edit: with ``pareto`` (GEPA, Agrawal et al. 2025) a member of the Pareto
+   front of all evaluated specs over the per-task scores, drawn with a weight equal to the number
+   of tasks on which it is best, so a rule that fixes one task is not lost to the average;
+   otherwise the incumbent;
+3. **reflect**: the rejected drafts of that spec are grouped by the stage that rejected them; a
+   sample of each group (program + the checker's feedback) goes to a reflection call of the same
+   model, which proposes ONE edit (add / replace / delete) of ONE evolvable module: a guidance
+   rule, a worked example of another statistic, or a repair hint attached to matching rejections;
+4. the edited spec must pass :func:`certicount.dsl.prompt_spec.leak_check` and keep at most
+   ``max_rules`` rules, otherwise the reflection is asked once more with the problems;
+5. every child is evaluated once; the incumbent is re-evaluated every generation; the best child
+   is evaluated until it has ``confirm_evals`` evaluations and replaces the incumbent only if its
+   mean design score beats the incumbent's by more than ``z`` standard errors (racing,
+   Maron & Moore 1993; one lucky evaluation of 12 designs moved the score by 0.1-0.4 in CS5).
 
-Score of an evaluation (public information only: training tasks, public n, synthetic graphs):
+Score of a design (public information only: training tasks, public n, synthetic graphs):
 
-    qualified_rate - lambda_calls * mean model calls per design - mu_chars * module characters / 1000
+    qualified - lambda_calls * model calls - nu_gs * log(max(1, GS / GS of the reference))
 
 where a design is *qualified* if it was accepted and its noise-free relative error through the
 real release (:func:`certicount.dsl.noisy_gate.noise_free_check`) is at most
-``slack_factor * reference + slack_abs`` (reference = the task's reference program).
+``slack_factor * reference + slack_abs`` (reference = the task's reference program), and the GS
+term charges a certified but looser bound (more noise at run time; GS at the design-time public
+parameters). The score of an evaluation is the mean design score minus
+``mu_chars * module characters / 1000``.
 
 Privacy never depends on the spec: every accepted program is certified by the deriver and the
 falsifier exactly as without evolution. A falsifier refutation during evolution (stage
@@ -32,6 +40,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import random
 import statistics
 from collections import Counter, defaultdict
@@ -44,25 +53,26 @@ from psc.events import collect_errors
 from psc.mechanism import DEFAULT_MECHANISM
 from psc.models import chat
 
-from .designer import (DSL_REFERENCE, MATRIX_REFERENCE, answer_part, design_reference_params, design_with_restarts,
-                       draft_stage)
+from .designer import DesignOptions, answer_part, design_reference_params, design_with_restarts, draft_stage, dsl_reference
 from .ground_truth import reference_program
 from .library import analyst_prompt
 from .noisy_gate import NoisyGate, noise_free_check
 from .prompt_spec import Example, PromptSpec, leak_check
+from .sensitivity import derive
 
 MODULES = ("rules", "examples", "repair_hints")
 
 
 @dataclass(frozen=True)
 class EvolveConfig:
-    train_tasks: tuple[str, ...] = ("degree", "2-star", "4-star")
+    # open-wedge reads the noisy rows like the held-out triangle (see certicount.dsl.library)
+    train_tasks: tuple[str, ...] = ("degree", "2-star", "4-star", "open-wedge")
     n: int = 400  # public number of nodes of the training setting (not an evaluation graph)
     node_bounds: bool = False
     alpha: float = 0.0
     eps: float = 2.0
     mechanism: str = DEFAULT_MECHANISM
-    designs: int = 4  # designs per task and evaluation
+    designs: int = 8  # designs per task and evaluation (CS5: 4, too few to rank specs)
     max_iterations: int = 3
     concurrency: int = 8
     generations: int = 5
@@ -74,6 +84,12 @@ class EvolveConfig:
     slack_abs: float = 0.05
     lambda_calls: float = 0.02
     mu_chars: float = 0.01
+    nu_gs: float = 0.1
+    confirm_evals: int = 2  # evaluations a child needs before it can replace the incumbent
+    z: float = 1.0  # required margin in standard errors of the difference of the mean design scores
+    max_rules: int = 4
+    pareto: bool = True
+    normalize: bool = True  # certicount.dsl.designer.DesignOptions.normalize
     seed: int = 0
 
     def gate(self) -> NoisyGate:
@@ -81,6 +97,17 @@ class EvolveConfig:
 
     def to_dict(self) -> dict:
         return {k: getattr(self, k) for k in self.__dataclass_fields__}
+
+
+def wilson_interval(successes: float, n: int, z: float = 1.96) -> tuple[float, float]:
+    """Wilson score interval of a proportion (Wilson 1927); ``(0, 1)`` without trials."""
+    if n <= 0:
+        return 0.0, 1.0
+    p = successes / n
+    den = 1 + z * z / n
+    centre = (p + z * z / (2 * n)) / den
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / den
+    return max(0.0, centre - half), min(1.0, centre + half)
 
 
 @dataclass
@@ -93,14 +120,17 @@ class Evaluation:
     stages: dict[str, int]
     failures: list[dict] = field(default_factory=list)
     designs: list[dict] = field(default_factory=list)
+    penalty: float = 0.0  # mu_chars * module characters / 1000
 
     def summary(self) -> dict:
         return {"score": self.score, "qualified_rate": self.qualified_rate, "accept_rate": self.accept_rate,
-                "mean_calls": self.mean_calls, "per_task": self.per_task, "stages": self.stages}
+                "mean_calls": self.mean_calls, "per_task": self.per_task, "stages": self.stages,
+                "qualified_ci95": list(wilson_interval(sum(d["qualified"] for d in self.designs), len(self.designs)))}
 
 
 # ----------------------------------------------------------------- evaluation
 _REF_BIAS: dict[tuple, float] = {}
+_REF_GS: dict[tuple, float] = {}
 
 
 def reference_bias(task: str, cfg: EvolveConfig) -> float:
@@ -111,50 +141,84 @@ def reference_bias(task: str, cfg: EvolveConfig) -> float:
     return _REF_BIAS[key]
 
 
+def reference_gs(task: str, cfg: EvolveConfig) -> float:
+    """GS of the task's reference program at the design-time public parameters."""
+    key = (task, cfg.n, cfg.node_bounds)
+    if key not in _REF_GS:
+        _REF_GS[key] = derive(reference_program(task, cfg.node_bounds), design_reference_params(cfg.n)).gs
+    return _REF_GS[key]
+
+
+def design_score(d: dict, cfg: EvolveConfig) -> float:
+    s = float(d["qualified"]) - cfg.lambda_calls * d["calls"]
+    if d["accepted"] and d.get("gs_ratio") is not None and d["gs_ratio"] > 1:
+        s -= cfg.nu_gs * math.log(d["gs_ratio"])
+    return s
+
+
 async def evaluate(spec: PromptSpec, model: ChatModelBase, formatter: FormatterBase, cfg: EvolveConfig,
                    label: str = "") -> Evaluation:
     """Design every training task ``cfg.designs`` times with ``spec`` (concurrently)."""
     gate = cfg.gate()
     params = design_reference_params(cfg.n)
     sem = asyncio.Semaphore(max(1, cfg.concurrency))
+    options = DesignOptions(normalize=cfg.normalize)
 
     async def one(task: str, k: int) -> dict:
         async with sem:
             with collect_errors(phase="evolve_eval", candidate=label, task=task, design=k):
                 res = await design_with_restarts(model, formatter, analyst_prompt(task, cfg.n), cfg.n, params,
                                                  task=task, max_iterations=cfg.max_iterations, restarts=1,
-                                                 matrix=cfg.node_bounds, noisy=gate, spec=spec)
+                                                 matrix=cfg.node_bounds, noisy=gate, spec=spec, options=options)
         bias = None
         if res.program is not None:
             bias = max(r["bias"] for r in noise_free_check(res.program, task, gate).rows)
         limit = cfg.slack_factor * reference_bias(task, cfg) + cfg.slack_abs
-        return {
+        ref_gs = reference_gs(task, cfg)
+        gs_ratio = None
+        if res.gs_reference is not None:
+            gs_ratio = res.gs_reference / ref_gs if ref_gs > 0 else (1.0 if res.gs_reference == 0 else math.inf)
+        d = {
             "task": task, "design": k, "accepted": res.accepted, "calls": res.llm_calls,
             "program": res.program.text() if res.program else None, "noise_free_bias": bias,
+            "gs": res.gs_reference, "gs_ratio": gs_ratio,
             "qualified": bool(res.accepted and bias is not None and bias <= limit),
             "history": [{"program": h.get("program"), "feedback": h.get("feedback"),
                          "stage": draft_stage(h.get("feedback"))} for h in res.history],
         }
+        d["score"] = design_score(d, cfg)
+        return d
 
     designs = await asyncio.gather(*(one(t, k) for t in cfg.train_tasks for k in range(cfg.designs)))
     per_task: dict[str, dict] = {}
     for t in cfg.train_tasks:
         ds = [d for d in designs if d["task"] == t]
+        ratios = [d["gs_ratio"] for d in ds if d["gs_ratio"] is not None and math.isfinite(d["gs_ratio"])]
         per_task[t] = {"qualified_rate": statistics.mean(d["qualified"] for d in ds),
+                       "qualified_ci95": list(wilson_interval(sum(d["qualified"] for d in ds), len(ds))),
                        "accept_rate": statistics.mean(d["accepted"] for d in ds),
-                       "mean_calls": statistics.mean(d["calls"] for d in ds)}
+                       "mean_calls": statistics.mean(d["calls"] for d in ds),
+                       "score": statistics.mean(d["score"] for d in ds),
+                       "mean_gs_ratio": statistics.mean(ratios) if ratios else None}
     stages = Counter(h["stage"] for d in designs for h in d["history"])
     qualified = statistics.mean(d["qualified"] for d in designs)
     calls = statistics.mean(d["calls"] for d in designs)
-    failures = [{"task": d["task"], **h} for d in designs for h in d["history"] if h["stage"] != "accepted"]
+    failures = [{"task": d["task"], **h} for d in designs for h in d["history"]
+                if h["stage"] not in ("accepted", "superseded")]
     # accepted but not qualified: a failure the checks let through (too noisy / biased vs the reference)
     failures += [{"task": d["task"], "program": d["program"], "stage": "not_qualified",
                   "feedback": f"accepted, but its noise-free relative error {d['noise_free_bias']:.3g} on the public "
                               f"test graphs is well above the best program's for this task"}
                  for d in designs if d["accepted"] and not d["qualified"]]
-    score = qualified - cfg.lambda_calls * calls - cfg.mu_chars * spec.module_chars() / 1000
+    # accepted with a looser certified bound than needed: more noise at run time
+    failures += [{"task": d["task"], "program": d["program"], "stage": "gs_looser",
+                  "feedback": f"accepted, but its certified sensitivity is {d['gs_ratio']:.3g} times the smallest one "
+                              "known for this statistic, so its reports carry that much more noise"}
+                 for d in designs if d["accepted"] and d["gs_ratio"] is not None and d["gs_ratio"] > 1.05]
+    penalty = cfg.mu_chars * spec.module_chars() / 1000
+    score = statistics.mean(d["score"] for d in designs) - penalty
     return Evaluation(score, qualified, statistics.mean(d["accepted"] for d in designs), calls, per_task,
-                      dict(stages), failures, list(designs))
+                      dict(stages), failures, list(designs), penalty)
 
 
 # ----------------------------------------------------------------- reflection
@@ -186,19 +250,22 @@ def sample_failures(failures: list[dict], cfg: EvolveConfig, rnd: random.Random)
 
 def reflect_prompt(spec: PromptSpec, ev: Evaluation, samples: list[dict], cfg: EvolveConfig,
                    problems: list[str] | None = None) -> str:
-    reference = DSL_REFERENCE + ("\n" + MATRIX_REFERENCE if cfg.node_bounds else "")
+    reference = dsl_reference(spec.core, cfg.node_bounds)
     lines = [
         "The curator receives this language description (READ-ONLY, you cannot change it):",
         '"""', reference, '"""', "",
         "After it, the curator receives these editable instruction modules (JSON):",
         json.dumps(spec.modules(), indent=2, ensure_ascii=False), "",
-        "- rules: short guidance sentences (plain text, no code).",
+        f"- rules: short guidance sentences (plain text, no code; at most {cfg.max_rules} rules, short ones work "
+        "better than long ones).",
         "- examples: worked programs {title, program, aggregate, note} for statistics that the system is NOT asked "
-        "to compute (never a degree, k-star, triangle or degree-moment program).",
+        "to compute (never a degree, k-star, triangle, wedge or degree-moment program).",
         "- repair_hints: [pattern, hint] pairs; when a draft is rejected and the regular expression `pattern` matches "
         "the rejection message, the plain-text hint is added to the feedback the curator sees.", "",
         f"Last evaluation: {ev.qualified_rate:.0%} of the designs were accepted and accurate, "
         f"{ev.accept_rate:.0%} accepted, {ev.mean_calls:.2f} drafts per design on average.",
+        "Per task: " + "; ".join(f"{t}: {v['qualified_rate']:.0%} accurate, {v['mean_calls']:.2f} drafts"
+                                 for t, v in ev.per_task.items()),
         "Rejections by stage: " + ", ".join(f"{k}={v}" for k, v in sorted(ev.stages.items()) if k != "accepted"), "",
         "Failed drafts (program and the message of the check):",
     ]
@@ -289,6 +356,8 @@ async def propose_child(spec: PromptSpec, ev: Evaluation, model: ChatModelBase, 
                 raise ValueError("no JSON edit found in the reply")
             child = apply_patch(spec, patch, name)
             problems = leak_check(child)
+            if len(child.rules) > cfg.max_rules:
+                problems.append(f"at most {cfg.max_rules} rules: replace or delete a rule instead of adding one")
         except ValueError as exc:
             child, problems = None, [str(exc)]
         attempt["problems"] = problems
@@ -299,71 +368,126 @@ async def propose_child(spec: PromptSpec, ev: Evaluation, model: ChatModelBase, 
     return None, record
 
 
-# ----------------------------------------------------------------- the loop
+# ----------------------------------------------------------------- candidates and statistics
 @dataclass
 class Candidate:
     spec: PromptSpec
     evals: list[Evaluation] = field(default_factory=list)
 
     @property
+    def scores(self) -> list[float]:
+        """Every design score of every evaluation, the module penalty included."""
+        return [d["score"] - e.penalty for e in self.evals for d in e.designs]
+
+    @property
     def mean(self) -> float:
-        return statistics.mean(e.score for e in self.evals) if self.evals else float("-inf")
+        return statistics.mean(self.scores) if self.evals else float("-inf")
+
+    @property
+    def se(self) -> float:
+        s = self.scores
+        return statistics.stdev(s) / math.sqrt(len(s)) if len(s) > 1 else math.inf
+
+    def task_scores(self) -> dict[str, float]:
+        by: dict[str, list[float]] = defaultdict(list)
+        for e in self.evals:
+            for d in e.designs:
+                by[d["task"]].append(d["score"] - e.penalty)
+        return {t: statistics.mean(v) for t, v in by.items()}
 
 
+def beats(a: Candidate, b: Candidate, z: float) -> bool:
+    """``a``'s mean design score exceeds ``b``'s by more than ``z`` standard errors of the difference."""
+    se = math.sqrt(a.se ** 2 + b.se ** 2) if math.isfinite(a.se) and math.isfinite(b.se) else math.inf
+    diff = a.mean - b.mean
+    return diff > 0 and (diff > z * se if math.isfinite(se) else False)
+
+
+def pareto_front(pool: list[Candidate], tasks: tuple[str, ...]) -> list[Candidate]:
+    """Candidates no other candidate matches on every task and beats on one."""
+    vecs = [(c, c.task_scores()) for c in pool if c.evals]
+
+    def dominates(u: dict, v: dict) -> bool:
+        return all(u.get(t, -math.inf) >= v.get(t, -math.inf) for t in tasks) and \
+            any(u.get(t, -math.inf) > v.get(t, -math.inf) for t in tasks)
+
+    return [c for c, v in vecs if not any(dominates(u, v) for o, u in vecs if o is not c)]
+
+
+def select_parent(front: list[Candidate], tasks: tuple[str, ...], rnd: random.Random) -> Candidate:
+    """GEPA's selection: weight = number of tasks on which the candidate has the best score of the front."""
+    weights = []
+    for c in front:
+        ts = c.task_scores()
+        weights.append(sum(1 for t in tasks if ts.get(t, -math.inf) >= max(o.task_scores().get(t, -math.inf)
+                                                                              for o in front) - 1e-12))
+    if not any(weights):
+        weights = [1] * len(front)
+    return rnd.choices(front, weights=weights, k=1)[0]
+
+
+# ----------------------------------------------------------------- the loop
 async def evolve(start: PromptSpec, model: ChatModelBase, formatter: FormatterBase, cfg: EvolveConfig,
                  log=lambda rec: None) -> tuple[PromptSpec, list[dict]]:
     """Run the generations; ``log(record)`` receives one record per evaluated candidate.
-    Returns the best spec and the lineage."""
+    Returns the best spec (the incumbent) and the lineage."""
     rnd = random.Random(cfg.seed)
     lineage: list[dict] = []
 
     def emit(kind: str, cand: Candidate, gen: int, ev: Evaluation, extra: dict | None = None) -> None:
         rec = {"kind": kind, "generation": gen, "name": cand.spec.name, "parent": cand.spec.parent,
                "digest": cand.spec.digest, "evaluation": ev.summary(), "mean_score": cand.mean,
+               "se": cand.se if math.isfinite(cand.se) else None,
                "evaluations": len(cand.evals), "spec": cand.spec.to_dict(), "designs": ev.designs, **(extra or {})}
         lineage.append(rec)
         log(rec)
 
-    parent = Candidate(start)
-    ev = await evaluate(parent.spec, model, formatter, cfg, parent.spec.name)
-    parent.evals.append(ev)
-    emit("parent", parent, 0, ev)
+    async def run_eval(cand: Candidate, kind: str, gen: int, extra: dict | None = None) -> Evaluation:
+        ev = await evaluate(cand.spec, model, formatter, cfg, cand.spec.name)
+        cand.evals.append(ev)
+        emit(kind, cand, gen, ev, extra)
+        return ev
+
+    incumbent = Candidate(start)
+    pool: list[Candidate] = [incumbent]
+    await run_eval(incumbent, "parent", 0)
     stale = 0
     for gen in range(1, cfg.generations + 1):
-        if not parent.evals[-1].failures:  # nothing left to learn from
-            lineage.append({"kind": "converged", "generation": gen, "parent": parent.spec.name,
-                            "parent_mean": parent.mean})
+        front = pareto_front(pool, cfg.train_tasks) if cfg.pareto else [incumbent]
+        if not any(c.evals[-1].failures for c in front):  # nothing left to learn from
+            lineage.append({"kind": "converged", "generation": gen, "parent": incumbent.spec.name,
+                            "parent_mean": incumbent.mean})
             log(lineage[-1])
             break
-        children: list[tuple[Candidate, dict]] = []
+        children: list[Candidate] = []
         for c in range(cfg.children):
             name = f"g{gen}c{c + 1}"
-            child, rec = await propose_child(parent.spec, parent.evals[-1], model, formatter, cfg, name, rnd)
+            base = select_parent([f for f in front if f.evals[-1].failures], cfg.train_tasks, rnd) \
+                if cfg.pareto else incumbent
+            child, rec = await propose_child(base.spec, base.evals[-1], model, formatter, cfg, name, rnd)
             if child is None:
                 lineage.append({"kind": "refused", "generation": gen, **rec})
                 log(lineage[-1])
                 continue
             cand = Candidate(child)
-            cev = await evaluate(child, model, formatter, cfg, name)
-            cand.evals.append(cev)
-            emit("child", cand, gen, cev, {"reflection": rec})
-            children.append((cand, rec))
-        pev = await evaluate(parent.spec, model, formatter, cfg, parent.spec.name)
-        parent.evals.append(pev)
-        emit("parent", parent, gen, pev)
+            await run_eval(cand, "child", gen, {"reflection": rec})
+            children.append(cand)
+            pool.append(cand)
+        await run_eval(incumbent, "parent", gen)
         improved = False
         if children:
-            best, _ = max(children, key=lambda cr: cr[0].mean)
-            if best.mean > parent.mean:
-                bev = await evaluate(best.spec, model, formatter, cfg, best.spec.name)  # confirmation
-                best.evals.append(bev)
-                emit("confirm", best, gen, bev)
-                if best.mean > parent.mean:
-                    parent, improved = best, True
+            best = max(children, key=lambda cand: cand.mean)
+            if best.mean > incumbent.mean:
+                while len(best.evals) < max(1, cfg.confirm_evals):  # confirmation
+                    await run_eval(best, "confirm", gen)
+                if beats(best, incumbent, cfg.z):
+                    incumbent, improved = best, True
         stale = 0 if improved else stale + 1
-        lineage.append({"kind": "generation", "generation": gen, "parent": parent.spec.name,
-                        "parent_mean": parent.mean, "improved": improved})
+        front_names = [c.spec.name for c in pareto_front(pool, cfg.train_tasks)]
+        lineage.append({"kind": "generation", "generation": gen, "parent": incumbent.spec.name,
+                        "parent_mean": incumbent.mean, "parent_se": incumbent.se if math.isfinite(incumbent.se) else None,
+                        "improved": improved, "front": front_names})
         log(lineage[-1])
         if stale >= cfg.patience:
             break
-    return parent.spec, lineage
+    return incumbent.spec, lineage

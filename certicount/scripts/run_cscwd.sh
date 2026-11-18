@@ -14,6 +14,10 @@
 #   CS3   CertiCount + per-node architecture (edge clipping + NAM-DPRD unbiased matrix A)
 #   CS3c  code references on PM/CU/Do: GT-PSC, GT-DSL, GT-DSL-node, GT-TriTR (no model call)
 #   CS3b  fair control: PSC agents (1.7B nodes) with the same per-node mechanism (method TriTR)
+#   CS4/5 design-loop checks online, prompt self-evolution (held-out tasks 3-star, 5-star, triangle, degree-moment2)
+#   CS6   fixes of the four CS5 problems: tighter deriver, prompt core v1 + format repairs, evolution with
+#         GS term / Pareto parents / confirmed replacement, min-GS selection + tighten round; CS6a compares
+#         the prompt cores A v1 / B v1-repeat3 / C v1-alt
 #
 # Order:
 #   scripts/run_cscwd.sh check                      # code version + offline tests (no GPU)
@@ -36,6 +40,9 @@
 #   MEM=0.90 MAXLEN=32768 scripts/run_cscwd.sh serve 8b   # then, unattended and resumable:
 #   scripts/run_cscwd.sh cs45-all                   # check, cs4-replay (background), cs4-online, cs5-evolve-psc,
 #                                                   # cs5-eval-psc, cs5-evolve-node, cs5-eval-node, summary
+#   scripts/run_cscwd.sh cs6-all                    # CS6 (fixes of the four CS5 problems), same server:
+#                                                   # check, cs6b (background, no model), cs6a, cs6c-evolve,
+#                                                   # cs6c-eval, cs6-summary -> results/cs6_summary.md
 #
 # Every executed command is appended to results/cscwd_commands.log with UTC time and git revision.
 # Existing tags are refused by the scripts (no overwrite): to rerun a stage, move its directory away.
@@ -127,7 +134,7 @@ case $cmd in
     [ -f tests/test_matrix.py ] && [ -f certicount/dsl/matrix.py ] \
       || { echo "this checkout lacks the per-node architecture (dsl/matrix.py, tests/test_matrix.py)" >&2; exit 1; }
     git --no-pager log --oneline -1; git --no-pager status --short -- . ../psc | head -30
-    run "$PY" -m pytest tests -q ;;                                   # expected: 294 passed, 1 skipped
+    run "$PY" -m pytest tests -q ;;                                   # expected: 323 passed, 1 skipped
 
   serve)  # $1 = 8b | 1.7b; both on one GPU: 8B first (0.55), then 1.7B (0.35)
     # MAXLEN: context length (default 16384, as CS1-CS3). CS4/CS5 design and reflection prompts (up to ~4k
@@ -299,6 +306,70 @@ EOF
     run "$PY" scripts/summarize_cs45.py --out results/cs45_summary.md
     echo "[cs45-all] $(date -u +%FT%TZ) done: results/cs45_summary.md" ;;
 
+  # ---------------- CS6: the fixes of the four CS5 problems (PSC architecture, held-out tasks on PM) ----------------
+  # CS6a  prompt cores, one loop per design (the parse question): A = v1, B = v1-repeat3 (the prohibition paragraph
+  #       three times), C = v1-alt (rewrites of the Python constructs + closing checklist + rewrite hints).
+  #       20 designs per task; format repairs on in every arm; A is also the v1 arm of CS6c.
+  cs6a)
+    for core in v1 v1-repeat3 v1-alt; do
+      design_run "cs6a_psc_$core" --tasks "$HELD_OUT" --designs 20 --prompt "$core" --restarts 1
+    done ;;
+  # CS6b  no model call: replay of the recorded CS2/CS4/CS5 runs through the current reader and deriver
+  #       (problem 2: rescued parse failures and the categories left; problem 1: GS and paired RE of every accepted
+  #       program), and fuzzing of the tighter deriver (must report 0 refuted programs).
+  cs6b)
+    done_or_reset results/dsl_eval/cs6b_offline_replay table.md || \
+      run "$PY" scripts/replay_fixes_offline.py "results/dsl_eval/$T_CS2" results/dsl_eval/cs4_online_psc-arch_d10 \
+        results/dsl_eval/cs5_eval_psc_v0 results/dsl_eval/cs5_eval_psc_v0-r2 results/dsl_eval/cs5_eval_psc_evolved \
+        --tag cs6b_offline_replay
+    for spec in "cs6b_fuzz_shapes 0 1.0" "cs6b_fuzz_mixed 1 0.3"; do
+      set -- $spec
+      done_or_reset "results/dsl/$1" table.md || \
+        run "$PY" scripts/run_dsl_fuzz.py --tag "$1" --count 3000 --seed "$2" --shapes "$3" --workers 8
+      "$PY" -c "import json, sys; f = json.load(open('results/dsl/$1/summary.json'))['failures']; \
+print('$1: refuted or failing programs', f); sys.exit(1 if f else 0)" \
+        || { echo "PRIVACY CHECK FAILED in results/dsl/$1" >&2; exit 3; }
+    done ;;
+  # CS6c  the fixes online (10 designs per task, 100 paired code runs, as CS5):
+  #   legacy          CS5 prompt byte for byte, no format repairs (current deriver: problem 1 against cs5_eval_psc_v0)
+  #   v1-r4-first     v1, up to 4 restarts, first accepted program (CS5 v0-r2 style: restarts only)
+  #   v1-r4-mings     v1, up to 4 restarts, smallest GS among 3 accepted programs, 1 tighten round, early stop (problem 4)
+  #   evolve          evolution from v0 (core v1) with GS in the score, Pareto parents, confirmed replacement (problem 3)
+  #   evolved(-r4-mings)  its best prompt, one loop / with the selection of v1-r4-mings
+  cs6c-evolve)
+    tag=cs6c_evolve_psc
+    done_or_reset "results/evolve/$tag" best_prompt.json && { echo "$cmd: done"; exit 0; }
+    run "$PY" scripts/run_prompt_evolution.py --start v0 --train-tasks degree,2-star,4-star,open-wedge --n 400 \
+      --eps "$EPS" --designs 8 --generations 5 --children 3 --patience 2 --confirm-evals 2 --z 1.0 --nu-gs 0.1 \
+      --max-rules 4 --design-concurrency 8 --seed 0 --provider vllm --config "$CFG_DESIGN" --curator-model Qwen3-8B \
+      --temperature 0.6 --tag "$tag"
+    privacy_guard "results/evolve/$tag" ;;
+  cs6c-eval)
+    SELECT=(--restarts 4 --select min_gs --min-accepted 3 --tighten 1 --early-stop noisy,gs_loose)
+    design_run cs6c_psc_legacy --tasks "$HELD_OUT" --prompt legacy --no-normalize --restarts 1
+    design_run cs6c_psc_v1-r4-first --tasks "$HELD_OUT" --prompt v1 --restarts 4 --select first
+    design_run cs6c_psc_v1-r4-mings --tasks "$HELD_OUT" --prompt v1 "${SELECT[@]}"
+    best=results/evolve/cs6c_evolve_psc/best_prompt.json
+    [ -f "$best" ] || { echo "missing $best: run cs6c-evolve first" >&2; exit 1; }
+    design_run cs6c_psc_evolved --tasks "$HELD_OUT" --prompt "$best" --restarts 1
+    design_run cs6c_psc_evolved-r4-mings --tasks "$HELD_OUT" --prompt "$best" "${SELECT[@]}" ;;
+  cs6-summary)
+    run "$PY" scripts/summarize_cs6.py --out results/cs6_summary.md ;;
+  # Everything of CS6 unattended and resumable (8B server with MAXLEN=32768); stops at any privacy-check failure.
+  cs6-all)
+    echo "[cs6-all] $(date -u +%FT%TZ) start"
+    "$0" check
+    "$0" cs6b > results/cs6b.log 2>&1 &
+    offline_pid=$!
+    until curl -sf "$URL_8B/models" >/dev/null; do echo "waiting for $URL_8B"; sleep 15; done
+    for stage in cs6a cs6c-evolve cs6c-eval; do
+      echo "[cs6-all] $(date -u +%FT%TZ) $stage"
+      "$0" "$stage"
+    done
+    wait "$offline_pid" || { echo "[cs6-all] cs6b failed, see results/cs6b.log" >&2; exit 1; }
+    "$0" cs6-summary
+    echo "[cs6-all] $(date -u +%FT%TZ) done: results/cs6_summary.md" ;;
+
   *)
-    sed -n '2,40p' "$0"; exit 2 ;;
+    sed -n '2,49p' "$0"; exit 2 ;;
 esac

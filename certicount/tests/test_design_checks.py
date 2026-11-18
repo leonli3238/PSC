@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import random
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -13,9 +15,11 @@ from agentscope.model import ChatModelBase, ChatResponse
 
 from psc.models import ModelConfig, create_formatter
 from certicount.dsl.designer import (
-    TRUNCATED_FEEDBACK, _text, check_draft, design_program, design_reference_params, draft_stage, growth_feedback,
-    read_draft, repair_hint,
+    TRUNCATED_FEEDBACK, DesignOptions, _text, bound_slack, check_draft, design_program, design_prompt,
+    design_reference_params, design_with_restarts, draft_stage, dsl_reference, falsifier_feedback, growth_feedback,
+    normalize_source, read_draft, repair_hint,
 )
+from certicount.dsl.prompt_spec import LEGACY_V0, V0, PromptSpec, load_spec
 from certicount.dsl.ground_truth import reference_program
 from certicount.dsl.lang import DSLError, Env, Interpreter, parse_program
 from certicount.dsl.library import analyst_prompt
@@ -178,3 +182,173 @@ def test_calls_are_grouped_by_design_tag_or_by_position():
     assert [[c["reply"] for c in g] for g in calls_by_design(designs, tagged)] == [["a0", "a1"], ["b0"]]
     serial = [{"reply": r} for r in ("a0", "a1", "b0")]
     assert [[c["reply"] for c in g] for g in calls_by_design(designs, serial)] == [["a0", "a1"], ["b0"]]
+
+
+# ---------------------------------------------------------------- prompt cores
+RECORDED = Path(__file__).resolve().parents[1] / "results" / "dsl_eval" / "cs5_eval_psc_v0" / "transcripts.jsonl"
+
+
+@pytest.mark.skipif(not RECORDED.exists(), reason="recorded CS5 transcripts not available")
+def test_legacy_core_reproduces_the_recorded_first_prompts():
+    from psc.graph import load_dataset
+    from certicount import DATA_DIR
+    from certicount.dsl.quality import task_record
+    from psc.prompts import strip_structured
+    recs = load_dataset(DATA_DIR, "PM")
+    calls = [json.loads(x) for x in RECORDED.read_text(encoding="utf-8").splitlines() if x.strip()]
+    first = [c for c in calls if "previous attempts" not in c["user"]]
+    assert first
+    for c in first:
+        rec = task_record(recs, "PM", c["task"])
+        assert strip_structured(design_prompt(rec.input_prompt, rec.vertex_num, [], False, LEGACY_V0)) == c["user"]
+    assert load_spec("legacy") is LEGACY_V0
+    manifest = json.loads((RECORDED.parent / "manifest.json").read_text(encoding="utf-8"))
+    recorded = manifest.get("settings", manifest).get("prompt_spec") or manifest.get("prompt_spec")
+    if recorded:
+        assert recorded["digest"] == LEGACY_V0.digest
+
+
+def test_v1_core_has_no_angle_bracket_placeholders_and_a_new_digest():
+    for matrix in (False, True):
+        ref = dsl_reference("v1", matrix)
+        assert not re.search(r"<[a-z_ ]+>", ref)
+        assert "<" in dsl_reference("legacy", matrix)
+    assert "sum(sum(" in dsl_reference("v1") and "//" in dsl_reference("v1")
+    assert V0.core == "v1" and V0.digest != LEGACY_V0.digest
+    assert PromptSpec.from_dict({"name": "old", "rules": []}).core == "legacy"  # specs written before cores
+
+
+# ---------------------------------------------------------------- format normalisation
+TAGGED = ("```dsl\n<program>\nd = size(project(P, D))\nreturn d * (d - 1) // 2\naggregate: total\n</program>\n```")
+
+
+def test_normalisation_repairs_only_the_format():
+    prog, entry = read_draft(TAGGED)
+    assert prog is None and draft_stage(entry["feedback"]) == "parse"
+    prog, entry = read_draft(TAGGED, normalize=True)
+    assert prog is not None and prog.aggregate_source.strip() == "total"
+    assert prog.source.strip() == "d = size(project(P, D))\nreturn d * (d - 1) / 2"
+    assert len(entry["normalized"]) == 3
+    src, agg, notes = normalize_source("return size(P)")
+    assert (src, agg, notes) == ("return size(P)", None, [])
+
+
+def test_normalised_draft_is_accepted_and_the_note_reaches_the_next_prompt():
+    model = _Script([TAGGED])
+    res = asyncio.run(design_program(model, FMT, analyst_prompt("2-star", N), N, design_reference_params(N),
+                                     "2-star", 1))
+    assert res.accepted and res.history[0]["normalized"]
+    off = asyncio.run(design_program(_Script([TAGGED]), FMT, analyst_prompt("2-star", N), N,
+                                     design_reference_params(N), "2-star", 1, options=DesignOptions(normalize=False)))
+    assert not off.accepted
+
+
+# ---------------------------------------------------------------- tighter deriver (must stay sound)
+P10 = PublicParams(200, D=10, dmax=10, eps1=1.0)
+
+
+@pytest.mark.parametrize("source, aggregate, gs", [
+    ("d = size(project(P, D))\nreturn d * (d - 1) * (d - 2) / 6", "total", 36.0),  # = comb(D, 2), was 45
+    ("s = size(project(P, D))\nreturn s * s", "total / n", 19.0),  # = 2D - 1, was 21
+    ("Q = project(P, D)\nreturn sum(size(Q & N(v)) for v in Q)", "total / 6", 18.0),  # |Q & N(v)| <= |Q| - 1
+    ("Q = project(P, D)\nreturn 0.5 * sum(size(Q - N(j)) - 1 for j in Q)", "total", 9.0),  # size >= 1 for j in Q
+])
+def test_deriver_is_exact_on_single_count_and_member_rows(source, aggregate, gs):
+    prog = parse_program(source, aggregate)
+    assert derive(prog, P10).gs == pytest.approx(gs)
+    assert falsifier_feedback(prog) is None
+    assert bound_slack(prog).ratio == pytest.approx(1.0)
+
+
+def test_deriver_stays_sound_on_products_of_different_counts():
+    prog = parse_program("Q = project(P, D)\nreturn size(Q) * size(Q & N(self)) + size(Q - N(self)) * 2")
+    assert derive(prog, P10).gs > 0 and falsifier_feedback(prog) is None
+
+
+# ---------------------------------------------------------------- tighten round, early stop, min-GS selection
+LOOSE_TRI = "```dsl\nQ = project(P, D)\nreturn sum(size(P & N(v)) for v in Q)\n```\naggregate: total / 6"
+TIGHT_TRI = "```dsl\nQ = project(P, D)\nreturn sum(size(Q & N(v)) for v in Q)\n```\naggregate: total / 6"
+
+
+def test_tighten_round_replaces_a_loose_program_only_by_a_tighter_one():
+    params = design_reference_params(N)
+    model = _Script([LOOSE_TRI, TIGHT_TRI])
+    res = asyncio.run(design_program(model, FMT, analyst_prompt("triangle", N), N, params, "triangle", 2,
+                                     options=DesignOptions(tighten=2)))
+    assert res.accepted and res.llm_calls == 2 and "P & N(v)" not in res.program.source
+    assert [draft_stage(h["feedback"]) for h in res.history] == ["superseded", "accepted"]
+    assert "loose" in res.history[0]["tighten_request"] and res.history[1]["round"] == "tighten"
+    res = asyncio.run(design_program(_Script([LOOSE_TRI, LOOSE_TRI]), FMT, analyst_prompt("triangle", N), N, params,
+                                     "triangle", 2, options=DesignOptions(tighten=2)))
+    assert res.accepted and "P & N(v)" in res.program.source and draft_stage(res.history[-1]["feedback"]) == "not_tighter"
+    res = asyncio.run(design_program(_Script([TIGHT_TRI]), FMT, analyst_prompt("triangle", N), N, params,
+                                     "triangle", 2, options=DesignOptions(tighten=2)))
+    assert res.llm_calls == 1  # already tight: no extra call
+
+
+def test_early_stop_after_two_rejections_of_the_same_stage():
+    bad = "```dsl\nreturn size(P) +\n```\naggregate: total"
+    res = asyncio.run(design_program(_Script([bad, bad + " "]), FMT, analyst_prompt("degree", N), N,
+                                     design_reference_params(N), "degree", 5,
+                                     options=DesignOptions(early_stop=("parse",))))
+    assert not res.accepted and res.llm_calls == 2 and res.history[-1]["early_stop"]
+
+
+def test_min_gs_selection_keeps_the_tightest_accepted_program():
+    params = design_reference_params(N)
+    first = asyncio.run(design_with_restarts(_Script([LOOSE_TRI, TIGHT_TRI]), FMT, analyst_prompt("triangle", N), N,
+                                             params, "triangle", 1, restarts=2))
+    assert "P & N(v)" in first.program.source and first.restarts == 1
+    res = asyncio.run(design_with_restarts(_Script([LOOSE_TRI, TIGHT_TRI]), FMT, analyst_prompt("triangle", N), N,
+                                           params, "triangle", 1, restarts=2,
+                                           options=DesignOptions(select="min_gs", min_accepted=2)))
+    assert res.restarts == 2 and res.selection["chosen_restart"] == 2 and "P & N(v)" not in res.program.source
+    assert [c["gs"] for c in res.selection["candidates"]] == [30.0, 18.0]
+
+
+# ---------------------------------------------------------------- prompt cores of CS6a (A v1 / B v1-repeat3 / C v1-alt)
+def _cs6_prompt(core: str, history: list[dict] | None = None) -> str:
+    from psc.prompts import strip_structured
+    return strip_structured(design_prompt(analyst_prompt("triangle", N), N, history or [], False, load_spec(core)))
+
+
+def test_core_b_states_the_prohibition_three_times_and_core_c_gives_rewrites():
+    from certicount.dsl.designer import ALTERNATIVES, CHECKLIST, NOT_SUPPORTED
+    a, b, c = (_cs6_prompt(k) for k in ("v1", "v1-repeat3", "v1-alt"))
+    assert NOT_SUPPORTED in a and a.count(NOT_SUPPORTED) == 1
+    assert b.count(NOT_SUPPORTED) == 3 and b.startswith(NOT_SUPPORTED) and b.replace(NOT_SUPPORTED, "").strip()
+    assert b.index(NOT_SUPPORTED, len(b) // 2) < b.index("Reply with exactly two parts")
+    assert c.count(NOT_SUPPORTED) == 1 and ALTERNATIVES in c and c.index(CHECKLIST) < c.index("Reply with")
+    assert len({load_spec(k).digest for k in ("v0", "legacy", "v1-repeat3", "v1-alt")}) == 4
+    with pytest.raises(ValueError):
+        dsl_reference("v2")
+
+
+@pytest.mark.parametrize("rewrite, expected", [
+    ("0.5 * sum(size(P) - 1 for v in P)", lambda S, rows: sum(1 for v in S for w in S if v < w)),
+    ("0.5 * sum(size(P & N(v)) for v in P)", lambda S, rows: sum(1 for v in S for w in S if v < w and w in rows[v])),
+    ("0.5 * sum(size(P - N(v)) - 1 for v in P)",
+     lambda S, rows: sum(1 for v in S for w in S if v < w and w not in rows[v])),
+])
+def test_the_rewrites_of_core_c_equal_the_python_conditions(rewrite, expected):
+    rnd = random.Random(5)
+    prog = parse_program(f"return {rewrite}", clamp_nonnegative=False)
+    for _ in range(100):
+        rows = {i: set() for i in range(9)}
+        for a in range(9):
+            for b in range(a + 1, 9):
+                if rnd.random() < 0.4:
+                    rows[a].add(b)
+                    rows[b].add(a)
+        frozen = {i: frozenset(v) for i, v in rows.items()}
+        S = frozenset(rnd.sample(range(1, 9), rnd.randint(0, 6)))
+        assert Interpreter(prog).local(Env(S, 0, frozen, 9, D=8, dmax=8)) == pytest.approx(expected(S, frozen))
+
+
+def test_core_c_hints_give_the_rewrite_and_other_cores_keep_theirs():
+    cond = "```dsl\nreturn sum(1 for a in P for b in P if a < b)\n```\naggregate: total"
+    power = "```dsl\nreturn size(P) ** 2\n```\naggregate: total"
+    assert "0.5 * sum(size(S & N(v)) for v in S)" in read_draft(cond, core="v1-alt")[1]["feedback"]
+    assert "remove the 'if' condition" in read_draft(cond)[1]["feedback"]
+    assert "pow(x, 2)" in read_draft(power, core="v1-alt")[1]["feedback"]
+    assert "Hint" not in read_draft(power, core="v1-repeat3")[1]["feedback"]

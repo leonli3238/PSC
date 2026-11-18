@@ -52,8 +52,9 @@ from psc.mechanism import DEFAULT_MECHANISM, MECHANISMS  # noqa: E402
 from psc.models import PROVIDERS, ModelConfig, create_formatter, create_model  # noqa: E402
 from certicount import DATA_DIR  # noqa: E402
 from certicount.artifacts import append_jsonl, markdown_table, out_dir, write_json, write_manifest  # noqa: E402
-from certicount.dsl.designer import (MockDesignerModel, design_reference_params, design_with_restarts,  # noqa: E402
-                                     draft_stage)
+from certicount.dsl.designer import (DesignOptions, MockDesignerModel, design_reference_params,  # noqa: E402
+                                     design_with_restarts, draft_stage)
+from certicount.dsl.evolve import wilson_interval  # noqa: E402
 from certicount.dsl.noisy_gate import NoisyGate, noise_free_check  # noqa: E402
 from certicount.dsl.prompt_spec import load_spec  # noqa: E402
 from certicount.dsl.ground_truth import dp_execute, gs_ratio, gt_dsl, noise_ratio  # noqa: E402
@@ -102,7 +103,22 @@ def main() -> None:
     ap.add_argument("--noisy-tau", type=float, default=2.0, help="gate threshold on the median noise-free relative error")
     ap.add_argument("--noisy-reps", type=int, default=8, help="releases per public test graph")
     ap.add_argument("--prompt", default="v0",
-                    help="design instructions: v0 (the original prompt) or a spec JSON, e.g. results/evolve/<tag>/best_prompt.json")
+                    help="design instructions: v0 / v1 (empty modules, prompt core v1), legacy (the CS2-CS5 prompt byte "
+                         "for byte), v1-repeat3 (v1, prohibitions stated three times), v1-alt (v1 + rewrites of "
+                         "Python constructs + closing checklist + rewrite hints) or a spec JSON, e.g. "
+                         "results/evolve/<tag>/best_prompt.json (a spec without a 'core' field was evolved on the "
+                         "legacy core and keeps it)")
+    ap.add_argument("--select", default="first", choices=("first", "min_gs"),
+                    help="exact mode with --restarts > 1: first accepted program, or the smallest derived GS among "
+                         "--min-accepted behaviourally different accepted programs")
+    ap.add_argument("--min-accepted", type=int, default=1, help="--select min_gs: accepted programs to collect")
+    ap.add_argument("--early-stop", default="", help="comma-separated stages (e.g. noisy,gs_loose): two rejections in a "
+                                                     "row at one of them end the design loop")
+    ap.add_argument("--tighten", type=int, default=0,
+                    help="extra calls after an acceptance whose derived GS is loose on the falsifier's graphs")
+    ap.add_argument("--slack-tol", type=float, default=1.2, help="--tighten: derived GS / observed change that triggers it")
+    ap.add_argument("--no-normalize", action="store_true",
+                    help="no format-only repairs of the curator's replies (tag lines, aggregate inside the block, //)")
     ap.add_argument("--design-concurrency", type=int, default=1,
                     help="designs of a task run concurrently (transcripts carry dataset/task/design)")
     ap.add_argument("--data", default=str(DATA_DIR))
@@ -121,8 +137,11 @@ def main() -> None:
     if unknown:
         ap.error(f"no reference program for {unknown}; known: {', '.join(PROGRAMS)}")
     bounds = tuple(int(x) for x in args.bounds.split(","))
+    options = DesignOptions(normalize=not args.no_normalize, tighten=args.tighten, slack_tol=args.slack_tol,
+                            early_stop=tuple(s for s in args.early_stop.split(",") if s), select=args.select,
+                            min_accepted=args.min_accepted)
     per_design = (args.search_rounds * args.search_proposals if args.design_mode == "search"
-                  else args.max_iterations * args.restarts)
+                  else (args.max_iterations + args.tighten) * args.restarts)
     planned = len(datasets) * len(tasks) * args.designs * per_design
     print(f"{len(datasets)} dataset(s) x {len(tasks)} task(s) x {args.designs} design(s): at most {planned} model calls "
           f"({args.provider}); {args.runs} code runs per accepted design")
@@ -140,7 +159,7 @@ def main() -> None:
     spec = load_spec(args.prompt)
     out = out_dir("dsl_eval", args.tag, "dsl_eval")
     write_manifest(out, {**vars(args), "planned_calls": planned, "designer": getattr(cfg, "curator_model", None),
-                         "prompt_spec": spec.to_dict()})
+                         "prompt_spec": spec.to_dict(), "design_options": options.to_dict()})
     set_error_sink(out / "errors.jsonl")
     set_transcript_sink(out / "transcripts.jsonl")
 
@@ -172,8 +191,9 @@ def main() -> None:
                                 res = await design_with_restarts(model, fmt, rec.input_prompt, n, ref_params, task=task,
                                                                  max_iterations=args.max_iterations,
                                                                  restarts=args.restarts, matrix=args.node_bounds,
-                                                                 noisy=noisy, spec=spec)
+                                                                 noisy=noisy, spec=spec, options=options)
                     run_rows: list[dict] = []
+                    loops = res.attempts or [{"history": res.history}]
                     row = {
                         "dataset": ds, "task": task, "design": k, "accepted": res.accepted, "iterations": res.iterations,
                         "restarts": res.restarts, "first_loop_accepted": bool(res.attempts and res.attempts[0]["accepted"])
@@ -182,8 +202,9 @@ def main() -> None:
                         "program": res.program.text() if res.program else None,
                         "search_score": (res.score or {}).get("score"),
                         "feedback": [h["feedback"] for h in res.history],
-                        "stages": [draft_stage(h["feedback"]) for a in (res.attempts or [{"history": res.history}])
-                                   for h in a["history"]],
+                        "stages": [draft_stage(h["feedback"]) for a in loops for h in a["history"]],
+                        "normalized_drafts": sum(bool(h.get("normalized")) for a in loops for h in a["history"]),
+                        "selection": res.selection,
                     }
                     if res.program is not None:
                         q = design_quality(res.program, task, n, int(ref_params.D), bounds, args.utility_graphs,
@@ -234,9 +255,11 @@ def main() -> None:
                     designs.append(row)
                 acc = [r for r in rows if r["accepted"]]
                 diffs_all = [r["design_error"] for r in acc]
+                lo, hi = wilson_interval(len(acc), len(rows))
                 summaries.append({
                     "dataset": ds, "task": task, "designs": len(rows),
                     "accept_rate": _rate(r["accepted"] for r in rows),
+                    "accept_ci95": f"[{lo:.2f}, {hi:.2f}]",
                     "first_loop_rate": _rate(r["first_loop_accepted"] for r in rows),
                     "first_try_rate": _rate(r["accepted"] and r["iterations"] == 1 and r["restarts"] == 1 for r in rows),
                     "mean_iterations": finite_mean(r["iterations"] for r in acc),
@@ -263,9 +286,9 @@ def main() -> None:
 
     summaries, designs = asyncio.run(evaluate())
     write_json({"settings": vars(args), "summary": summaries, "designs": designs}, out / "summary.json")
-    sum_cols = ["dataset", "task", "designs", "accept_rate", "first_loop_rate", "first_try_rate", "mean_iterations",
-                "mean_restarts", "mean_llm_calls", "distinct_programs", "same_as_reference", "split_match", "semantic_pass",
-                "sound", "noise_free_pass", "gs_ratio", "gs_ratio_max", "noise_ratio"]
+    sum_cols = ["dataset", "task", "designs", "accept_rate", "accept_ci95", "first_loop_rate", "first_try_rate",
+                "mean_iterations", "mean_restarts", "mean_llm_calls", "distinct_programs", "same_as_reference",
+                "split_match", "semantic_pass", "sound", "noise_free_pass", "gs_ratio", "gs_ratio_max", "noise_ratio"]
     err_cols = ["dataset", "task", "relative_error", "median_relative_error", "gt_dsl_relative_error", "design_error",
                 "design_error_max", "design_exact", "both_zero"]
     design_cols = ["dataset", "task", "design", "accepted", "restarts", "iterations", "same_as_reference", "split_match",
@@ -273,7 +296,10 @@ def main() -> None:
                    "design_error", "program"]
     shown = [{**d, "program": (d["program"] or "-").replace("\n", " ; ")} for d in designs]
     loop = (f"search: {args.search_rounds} round(s) x {args.search_proposals} proposal(s)" if args.design_mode == "search"
-            else f"{args.max_iterations} draft(s) x up to {args.restarts} restart(s)")
+            else f"{args.max_iterations} draft(s) x up to {args.restarts} restart(s), selection {args.select}"
+                 f"{' of %d' % args.min_accepted if args.select == 'min_gs' else ''}, tighten {args.tighten}, "
+                 f"early stop {args.early_stop or 'off'}, normalisation {'off' if args.no_normalize else 'on'}, "
+                 f"prompt {spec.name} (core {spec.core}, {spec.digest})")
     md = [
         "# DSL design evaluation (goal 2: error added by the LLM designer)", "",
         f"designer = {args.provider}{' / ' + str(cfg.curator_model) if args.provider != 'mock' else ''}"

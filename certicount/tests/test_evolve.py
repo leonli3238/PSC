@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
+import random
 import re
 from typing import Any
 
@@ -12,7 +14,10 @@ from agentscope.model import ChatModelBase, ChatResponse
 
 from psc.models import ModelConfig, create_formatter
 from certicount.dsl.designer import _text, design_program, design_prompt, design_reference_params, draft_stage
-from certicount.dsl.evolve import EvolveConfig, apply_patch, evolve, parse_patch
+from certicount.dsl.evolve import (
+    Candidate, EvolveConfig, Evaluation, apply_patch, beats, design_score, evolve, pareto_front, parse_patch,
+    select_parent, wilson_interval,
+)
 from certicount.dsl.library import analyst_prompt
 from certicount.dsl.noisy_gate import NoisyGate
 from certicount.dsl.prompt_spec import V0, Example, PromptSpec, leak_check, load_spec
@@ -149,3 +154,44 @@ def test_evolution_learns_the_rule_from_the_gate_failures_and_keeps_privacy():
     assert child["evaluation"]["qualified_rate"] == 1.0
     assert all(r["evaluation"]["stages"].get("refuted", 0) == 0 for r in lineage if "evaluation" in r)
     assert model.reflections >= 1 and lineage == log
+
+
+# ---------------------------------------------------------------- statistics of the selection
+def _cand(name: str, per_task: dict[str, list[float]]) -> Candidate:
+    designs = [{"task": t, "score": s} for t, v in per_task.items() for s in v]
+    return Candidate(PromptSpec(name), [Evaluation(0.0, 0.0, 0.0, 0.0, {}, {}, designs=designs)])
+
+
+def test_wilson_interval_is_inside_the_unit_interval_and_shrinks_with_n():
+    lo, hi = wilson_interval(0, 10)
+    assert lo == 0 and 0.2 < hi < 0.35
+    assert wilson_interval(10, 10)[1] == 1.0 and wilson_interval(0, 0) == (0.0, 1.0)
+    assert wilson_interval(50, 100)[1] - wilson_interval(50, 100)[0] < wilson_interval(5, 10)[1] - wilson_interval(5, 10)[0]
+
+
+def test_a_child_must_beat_the_incumbent_by_z_standard_errors():
+    a = _cand("a", {"t": [1, 1, 0, 1, 1, 0, 1, 1]})
+    b = _cand("b", {"t": [1, 0, 0, 1, 1, 0, 1, 1]})
+    assert a.mean > b.mean and not beats(a, b, 1.0)  # one design of noise is not an improvement
+    c = _cand("c", {"t": [0, 0, 0, 0, 1, 0, 0, 0]})
+    assert beats(a, c, 1.0) and not beats(c, a, 1.0)
+    assert not beats(a, Candidate(PromptSpec("empty")), 1.0)
+
+
+def test_pareto_front_keeps_per_task_specialists_and_drops_dominated_specs():
+    tasks = ("t1", "t2")
+    x, y = _cand("x", {"t1": [1, 1], "t2": [0, 0]}), _cand("y", {"t1": [0, 0], "t2": [1, 1]})
+    z = _cand("z", {"t1": [0, 1], "t2": [0, 0]})
+    front = pareto_front([x, y, z], tasks)
+    assert {c.spec.name for c in front} == {"x", "y"}
+    rnd = random.Random(0)
+    assert {select_parent(front, tasks, rnd).spec.name for _ in range(40)} == {"x", "y"}
+
+
+def test_design_score_penalises_a_looser_gs():
+    cfg = EvolveConfig(nu_gs=0.1, lambda_calls=0.0)
+    tight = {"qualified": True, "accepted": True, "calls": 1, "gs_ratio": 1.0}
+    loose = {**tight, "gs_ratio": 3.0}
+    assert design_score(tight, cfg) == 1.0
+    assert design_score(loose, cfg) == pytest.approx(1.0 - 0.1 * math.log(3.0))
+    assert design_score({**loose, "accepted": False, "qualified": False}, cfg) == 0.0

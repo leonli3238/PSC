@@ -35,12 +35,20 @@ def _brute_triangles(g: Graph) -> float:
     ))
 
 
+def _brute_open_wedges(g: Graph) -> float:
+    return float(sum(
+        1 for c in range(g.n) for u, w in itertools.combinations(sorted(g.neighbors(c)), 2) if not g.has_edge(u, w)
+    ))
+
+
 def reference_counter(task: str) -> Callable[[Graph], float]:
     """Independent brute-force implementation of a task (not the DSL program)."""
     if task == "degree":
         return lambda g: sum(len(g.adj[u]) for u in range(g.n)) / g.n
     if task == "triangle":
         return _brute_triangles
+    if task == "open-wedge":
+        return _brute_open_wedges
     if task == "degree-moment2":
         return lambda g: float(sum(len(g.adj[u]) ** 2 for u in range(g.n)))
     m = re.fullmatch(r"(\d+)-star", task)

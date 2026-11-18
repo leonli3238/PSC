@@ -55,6 +55,24 @@ class SensitivityError(ValueError):
     """The program has no finite sensitivity bound; ``str()`` is the feedback."""
 
 
+class _NotUnivariate(Exception):
+    """The expression is not a public function of one private count."""
+
+
+def _names_in(e: Expr) -> set[str]:
+    if isinstance(e, Name):
+        return {e.id}
+    if isinstance(e, BinOp):
+        return _names_in(e.left) | _names_in(e.right)
+    if isinstance(e, Neg):
+        return _names_in(e.operand)
+    if isinstance(e, Call):
+        return set().union(*(_names_in(a) for a in e.args)) if e.args else set()
+    if isinstance(e, Sum):
+        return _names_in(e.body) | _names_in(e.domain)
+    return set()
+
+
 @dataclass(frozen=True)
 class PublicParams:
     """Public values the node knows before it executes the program.
@@ -325,12 +343,61 @@ class _Deriver:
                 without_self = self.row_without_self(e, rows)
                 if without_self is not None:
                     size = min(size, without_self)
+                own = self.row_of_member(e, a, b)
+                if own is not None:
+                    size = min(size, own)
             elif e.op == "|":
                 size = min(a.max_size + b.max_size, float(self.p.n))
             else:
                 size = a.max_size
-            return SetInfo(a.private or b.private, size, dsym, min(dsym, size) if size < INF else dsym)
+            dsize = min(dsym, size) if size < INF else dsym
+            fixed = self.fixed_side_dsize(a, b)
+            if fixed is not None:
+                dsize = min(dsize, fixed)
+            return SetInfo(a.private or b.private, size, dsym, dsize)
         raise SensitivityError(f"cannot analyse set expression {type(e).__name__}")
+
+    @staticmethod
+    def fixed_side_dsize(a: SetInfo, b: SetInfo) -> float | None:
+        """Size change of ``A op B`` (``&``, ``|``, ``-``) when one side does not change.
+
+        If ``B`` is fixed and ``A`` gains ``x`` and loses ``y`` elements (``x + y <= dsym(A)``,
+        ``|x - y| <= dsize(A)``), the size of ``A op B`` changes by at most
+        ``max(x, y) <= (dsym(A) + dsize(A)) / 2``. E.g. a projection that swaps one vertex
+        (``dsym = 2``, ``dsize = 1``) changes ``|project(P, D) & N(j)|`` by at most 1, not 2."""
+        if a.dsym == 0:
+            a, b = b, a
+        if b.dsym != 0 or not (math.isfinite(a.dsym) and math.isfinite(a.dsize)):
+            return None
+        return float(math.floor((a.dsym + a.dsize) / 2 + 1e-9))
+
+    def holds_member(self, e: Expr, var: str) -> bool:
+        """The loop variable ``var`` is an element of the set ``e`` (in the summand of its sum):
+        ``e`` is ``var``'s domain, or built from it with ``&`` / ``|`` / ``- N(var)`` (no self-loops)."""
+        if var not in self.members:
+            return False
+        if self.canon(e) == self.members[var]:
+            return True
+        e = self.resolve(e)
+        if isinstance(e, BinOp):
+            if e.op == "&":
+                return self.holds_member(e.left, var) and self.holds_member(e.right, var)
+            if e.op == "|":
+                return self.holds_member(e.left, var) or self.holds_member(e.right, var)
+            return self.holds_member(e.left, var) and self.is_row_of(e.right, var)
+        return False
+
+    def row_of_member(self, e: BinOp, a: SetInfo, b: SetInfo) -> float | None:
+        """Bound of ``S & N(j)`` when the loop variable ``j`` ranges over ``S`` itself: ``j``
+        is in ``S`` but not in ``N(j)`` (``G'`` has no self-loops), so at most ``|S| - 1``."""
+        for side, other, info in ((e.left, e.right, b), (e.right, e.left, a)):
+            side = self.resolve(side)
+            if isinstance(side, Call) and side.func == "N" and isinstance(side.args[0], Name):
+                var = side.args[0].id
+                if var in self.members and self.members[var] == self.canon(other):
+                    self.trace.append(f"{var} ranges over S and N({var}) has no self-loop: |S & N({var})| <= |S| - 1")
+                    return max(0.0, info.max_size - 1)
+        return None
 
     # -- numbers -------------------------------------------------------------
     def num(self, e: Expr, rows: dict[str, _Row]) -> NumInfo:
@@ -349,12 +416,99 @@ class _Deriver:
             a = self.num(e.operand, rows)
             return NumInfo(a.private, a.delta, -a.hi, -a.lo, a.integer)
         if isinstance(e, BinOp):
-            return self.binop(e, rows)
+            return self.univariate(e, rows, self.binop(e, rows))
         if isinstance(e, Sum):
             return self.sum(e, rows)
         if isinstance(e, Call):
-            return self.call(e, rows)
+            info = self.call(e, rows)
+            return self.univariate(e, rows, info) if e.func in ("comb", "pow", "clip", "min", "max") else info
         raise SensitivityError(f"cannot analyse {type(e).__name__}")
+
+    # -- one private count ------------------------------------------------------
+    UNIVARIATE_MAX_RANGE = 20000
+    UNIVARIATE_MAX_STEP = 64
+
+    def univariate(self, e: Expr, rows: dict[str, _Row], info: NumInfo) -> NumInfo:
+        """Exact bound for an expression that reads private data only through one count.
+
+        If every read of ``P`` in ``e`` is inside one subexpression ``X = size(S)`` (an
+        integer in ``[lo, hi]`` that changes by at most ``dx``), then ``e = g(X)`` for a
+        public function ``g`` and ``|e(P) - e(P')| <= max |g(x) - g(y)|`` over integers
+        ``x, y`` in ``[lo, hi]`` with ``|x - y| <= dx``, which is evaluated exactly. This
+        makes equivalent forms agree: ``d * (d - 1) * (d - 2) / 6`` gets the bound of
+        ``comb(d, 3)`` and ``s * s`` the bound of ``pow(s, 2)``; the interval rules for
+        products bound each factor separately and are looser."""
+        if not info.private or info.delta == 0:
+            return info
+        target = self._private_count(e)
+        if target is None or not self.only_via(e, target):
+            return info
+        x = self.num(target, rows)
+        if not (x.integer and math.isfinite(x.lo) and math.isfinite(x.hi)):
+            return info
+        lo, hi, step = math.ceil(x.lo - 1e-9), math.floor(x.hi + 1e-9), math.ceil(x.delta - 1e-9)
+        if hi < lo or hi - lo > self.UNIVARIATE_MAX_RANGE or step > self.UNIVARIATE_MAX_STEP:
+            return info
+        try:
+            values = [self._eval_at(e, target, float(t)) for t in range(lo, hi + 1)]
+        except (_NotUnivariate, ArithmeticError, ValueError, OverflowError):
+            return info
+        if not all(math.isfinite(v) for v in values):
+            return info
+        delta = 0.0
+        for i, v in enumerate(values):
+            for w in values[i + 1: i + 1 + step]:
+                delta = max(delta, abs(v - w))
+        if delta < info.delta:
+            self.trace.append(f"{type(e).__name__} reads P only through one count in [{lo}, {hi}] with change <= "
+                              f"{step}: exact delta = {delta:g} (interval rules: {info.delta:g})")
+            return NumInfo(True, delta, max(info.lo, min(values)), min(info.hi, max(values)), info.integer)
+        return info
+
+    def _private_count(self, e: Expr) -> Expr | None:
+        """The canonical form of the first ``size(...)`` in ``e`` that reads ``P``."""
+        c = self.canon(e)
+        stack = [c]
+        while stack:
+            cur = stack.pop()
+            if isinstance(cur, Call) and cur.func == "size" and "P" in _names_in(cur):
+                return cur
+            if isinstance(cur, BinOp):
+                stack += [cur.right, cur.left]
+            elif isinstance(cur, Neg):
+                stack.append(cur.operand)
+            elif isinstance(cur, Call):
+                stack += list(reversed(cur.args))
+        return None
+
+    def _eval_at(self, e: Expr, target: Expr, x: float) -> float:
+        """``g(x)``: ``e`` with the count ``target`` set to ``x`` (the interpreter's semantics)."""
+        if self.canon(e) == target:
+            return x
+        if isinstance(e, Const):
+            return float(e.value)
+        if isinstance(e, Name):
+            if e.id in ("D", "dmax", "n"):
+                return self.p.value(e.id)
+            sub = self.program.lookup(e.id)
+            if sub is None:
+                raise _NotUnivariate(e.id)
+            return self._eval_at(sub, target, x)
+        if isinstance(e, Neg):
+            return -self._eval_at(e.operand, target, x)
+        if isinstance(e, BinOp) and e.op in ("+", "-", "*", "/"):
+            a, b = self._eval_at(e.left, target, x), self._eval_at(e.right, target, x)
+            return a + b if e.op == "+" else a - b if e.op == "-" else a * b if e.op == "*" else a / b
+        if isinstance(e, Call) and e.func in ("comb", "pow", "clip", "min", "max"):
+            args = [self._eval_at(a, target, x) for a in e.args]
+            if e.func == "comb":
+                return float(math.comb(max(0, int(args[0])), int(args[1])))
+            if e.func == "pow":
+                return float(args[0]) ** int(args[1])
+            if e.func == "clip":
+                return min(max(args[0], args[1]), args[2])
+            return min(args) if e.func == "min" else max(args)
+        raise _NotUnivariate(type(e).__name__)
 
     def binop(self, e: BinOp, rows: dict[str, _Row]) -> NumInfo:
         a, b = self.num(e.left, rows), self.num(e.right, rows)
@@ -391,7 +545,8 @@ class _Deriver:
             return NumInfo(False, 0.0, low, high, False)
         if f == "size":
             s = self.set(e.args[0], rows)
-            return NumInfo(s.private, s.dsize, 0.0, s.max_size, True)
+            lo = 1.0 if s.max_size >= 1 and any(self.holds_member(e.args[0], v) for v in self.members) else 0.0
+            return NumInfo(s.private, s.dsize, lo, s.max_size, True)
         if f in ("comb", "pow"):
             x = self.num(e.args[0], rows)
             k = int(e.args[1].value)  # checked by the parser

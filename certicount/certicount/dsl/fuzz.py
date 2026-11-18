@@ -163,9 +163,13 @@ class _Generator:
         return f"sum({op.join(terms)} for {var} in {domain})"
 
 
-def random_source(rng: random.Random, depth: int = 3, focus: float = 0.5) -> str:
+def random_source(rng: random.Random, depth: int = 3, focus: float = 0.5, shapes: float = 0.0) -> str:
     """The local part of one random program (the aggregate plays no part in the
-    GS); with probability ``focus`` a program around a sum of rows."""
+    GS); with probability ``focus`` a program around a sum of rows, with probability
+    ``shapes`` (checked first; ``0`` keeps the sequences of earlier campaigns) one of
+    the shapes of :func:`shape_source`."""
+    if shapes and rng.random() < shapes:
+        return shape_source(rng)
     g = _Generator(rng)
     lines = []
     if rng.random() < focus:
@@ -187,9 +191,37 @@ def random_source(rng: random.Random, depth: int = 3, focus: float = 0.5) -> str
     return "\n".join(lines)
 
 
-def sources(count: int, seed: int = 0, depth: int = 3, focus: float = 0.5) -> list[str]:
+SHAPE_SETS = ("project(P, D)", "project(P, D - 1)", "project(P, 2)", "P", "(P & N(self))",
+              "project((P & N(self)), D)", "(project(P, D) - N(self))", "(project(P, D) | N(self))")
+
+
+def shape_source(rng: random.Random) -> str:
+    """Programs for the rules that bound one private count exactly and the rows of a
+    loop variable over its own domain (:meth:`certicount.dsl.sensitivity._Deriver.univariate`,
+    ``row_of_member``, ``fixed_side_dsize``): polynomials / clips of one ``size(S)``, and
+    sums over ``S`` of ``|S & N(j)|`` (the pair counts LLM curators write)."""
+    s = rng.choice(SHAPE_SETS)
+    if rng.random() < 0.5:
+        a, b = rng.randint(0, 3), rng.choice((1, 2, 6, -3))
+        body = rng.choice((
+            f"d * (d - {a})", f"d * (d - 1) * (d - {a}) / {b}", f"(d - {a}) * (d - {a})", f"d * d - {a} * d",
+            f"clip(d * d - D, 0, D * D)", f"min(d * (d - 1), D) + comb(d, 2)", f"-(d * (d + {a})) / {b}",
+            f"pow(d - {a}, 2) + d", f"max(d * d, {a} * D) - comb(d, 3)",
+        ))
+        return f"d = size({s})\nreturn {body}"
+    j, k = "j", "k"
+    row = rng.choice((f"(N({j}) & Q)", f"(Q & N({j}))", f"(N({j}) & Q & N(self))", f"(Q - N({j}))",
+                      f"(N({j}) | Q)", f"project((N({j}) & Q), 2)"))
+    body = rng.choice((f"size({row})", f"comb(size({row}), 2)", f"size({row}) * size({row})", f"size({row}) - 1",
+                       f"size({row}) + size(P & N({j}))", f"sum(size(N({k}) & Q) for {k} in (N({j}) & Q))",
+                       f"size((Q - N({j})) & (Q | N({j})))"))
+    scale = rng.choice(("", "0.5 * ", "-1 * "))
+    return f"Q = {s}\nreturn {scale}sum({body} for {j} in Q)"
+
+
+def sources(count: int, seed: int = 0, depth: int = 3, focus: float = 0.5, shapes: float = 0.0) -> list[str]:
     rng = random.Random(seed)
-    return [random_source(rng, depth, focus) for _ in range(count)]
+    return [random_source(rng, depth, focus, shapes) for _ in range(count)]
 
 
 @dataclass
@@ -217,8 +249,8 @@ def run_case(index: int, source: str, settings: Sequence[Setting] = DEFAULT_SETT
 
 
 def fuzz(count: int, seed: int = 0, depth: int = 3, settings: Sequence[Setting] = DEFAULT_SETTINGS,
-         focus: float = 0.5) -> Iterator[FuzzCase]:
-    for i, src in enumerate(sources(count, seed, depth, focus)):
+         focus: float = 0.5, shapes: float = 0.0) -> Iterator[FuzzCase]:
+    for i, src in enumerate(sources(count, seed, depth, focus, shapes)):
         yield run_case(i, src, settings, seed)
 
 

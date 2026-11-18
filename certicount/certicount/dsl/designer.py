@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from agentscope.formatter import FormatterBase
@@ -37,9 +37,9 @@ from .lang import DSLError, Program, parse_program
 from .library import NODE_PROGRAMS, PROGRAMS, infer_program_task, kstar_source
 from .matrix import REFERENCE_EPS1
 from .noisy_gate import NoisyGate, noise_free_check
-from .prompt_spec import PromptSpec
+from .prompt_spec import V0, PromptSpec
 from .sensitivity import PublicParams, SensitivityError, derive
-from .utility import utility_test
+from .utility import named_graphs, random_graphs, run_exact, utility_test
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ DESIGNER_SYSTEM = (
     "node executes it. Answer with the program only, in the requested format."
 )
 
-DSL_REFERENCE = """The program language (a small subset of Python):
+DSL_REFERENCE_LEGACY = """The program language (a small subset of Python):
 - P: the set of this node's true neighbors (private and exact; it never contains the node itself)
 - self: this node's id; n: number of nodes
 - D: public degree threshold, dmax: public maximum degree of the public noisy graph (equal to D here)
@@ -73,6 +73,34 @@ Smaller sensitivity means less noise: bound degrees with project(P, D) before no
 The sensitivity checker bounds comb(size(S), k) tightly; products of expressions get looser bounds.
 Reading D or dmax, or calling N, makes the system spend part of the budget on a noisy degree bound."""
 
+# Core "v1": the language facts of the legacy core, without angle-bracket placeholders (drafts of
+# CS4/CS5 copied '<program>' from the format) and with the constructs the parse failures of CS4/CS5
+# asked for spelled out (one 'for' clause, nested sums, no '//', a set is not a number, no name 'u').
+# Facts only; no program of a task.
+DSL_REFERENCE = """The program language (a small subset of Python):
+- P: the set of this node's true neighbors (private and exact; it never contains the node itself)
+- self: this node's id (the only name for this node); n: number of nodes
+- D: public degree threshold, dmax: public maximum degree of the public noisy graph (equal to D here)
+- N(x): public neighbor set of node x in the public noisy graph. It is a randomized-response copy of the
+  real graph: it misses some real edges and contains some fake ones. Reading N(...) at all costs privacy
+  budget (the noisy graph must be published first). No node is in its own row: x is never in N(x).
+- size(S); project(S, k): at most k elements of S; comb(x, k); pow(x, k); clip(x, lo, hi); min(a, b); max(a, b)
+- sum(EXPR for j in SET) is the only loop: exactly one 'for' clause, j ranges over the node ids in SET.
+  Pairs are nested sums: sum(sum(EXPR for k in SET2) for j in SET1).
+- set operators & (intersection), | (union), - (difference) between two sets. A set is not a number:
+  take size(S) before arithmetic, comb or pow.
+- number operators + - * and / by public values only (no //, % or **)
+- straight-line code: lines NAME = EXPR (each name assigned once), then one final line return EXPR
+Not supported (the parser rejects them): set or list literals such as {self} or [j], the 'in' / 'not in'
+operators, comparisons (==, <, >), if/else, for-loops outside sum(...), conditions inside sum(...),
+lambda, len (use size), math.*, keyword arguments, and any function not listed above.
+How the result is computed: every node reports its return value plus Laplace noise scaled to the
+program's sensitivity (the most one changed edge can change all reports together), and the aggregate
+is an arithmetic expression over total (the sum of all node reports) and n. If one substructure is
+counted by several nodes or several times, correct for it with constant factors.
+Smaller sensitivity means less noise: bound degrees with project(P, D) before nonlinear functions.
+Reading D or dmax, or calling N, makes the system spend part of the budget on a noisy degree bound."""
+
 # Added to DSL_REFERENCE in the per-node architecture (TrustOptions.node_bounds) only, so the
 # prompt of the PSC architecture is unchanged.
 MATRIX_REFERENCE = """Per-node architecture (this run):
@@ -82,9 +110,77 @@ MATRIX_REFERENCE = """Per-node architecture (this run):
   Each value is noisy (between -1/(e^eps1 - 1) and e^eps1/(e^eps1 - 1)) but sums of A are unbiased counts.
   A program reads either N(...) or A(...), not both; reading A costs the same budget as N."""
 
-_FORMAT = (
+_FORMAT_LEGACY = (
     "Reply with exactly two parts:\n```dsl\n<program>\n```\naggregate: <expression over total and n>"
 )
+_FORMAT = (
+    "Reply with exactly two parts after your reasoning:\n"
+    "1. one code block that opens with the line ```dsl and closes with the line ```, holding only the "
+    "program lines (no tags, no aggregate line inside the block);\n"
+    "2. after the block, one line that starts with 'aggregate:' followed by an arithmetic expression over "
+    "total and n."
+)
+
+# The prohibition paragraph of DSL_REFERENCE, verbatim (core "v1-repeat3" states it three times).
+NOT_SUPPORTED = """Not supported (the parser rejects them): set or list literals such as {self} or [j], the 'in' / 'not in'
+operators, comparisons (==, <, >), if/else, for-loops outside sum(...), conditions inside sum(...),
+lambda, len (use size), math.*, keyword arguments, and any function not listed above."""
+
+# Core "v1-alt": positive rewrites of the Python constructs the CS2-CS5 parse failures used, over a
+# generic set S (language facts: no task statistic, no aggregate, no program of a task).
+ALTERNATIVES = """How to write common Python constructs in this language (S is any set expression, x any number):
+- unordered pairs of distinct elements of S, instead of sum(1 for v in S for w in S if v < w):
+  0.5 * sum(size(S) - 1 for v in S)
+- unordered pairs of elements of S that are neighbors in the noisy graph, instead of a condition
+  'if v < w and w in N(v)': 0.5 * sum(size(S & N(v)) for v in S)
+- unordered pairs of elements of S that are not neighbors in the noisy graph, instead of 'w not in N(v)':
+  0.5 * sum(size(S - N(v)) - 1 for v in S)   (v itself is in S - N(v), hence the - 1)
+- in general, never test membership or order: count the matching elements with size(...) of a set
+  expression and correct repeated counting with a constant factor (0.5 for pairs counted in both orders)
+- x ** 2 is pow(x, 2); comb(x, k) and pow(x, k) need k written as a number
+- a running total in a for loop is sum(EXPR for v in S); a name is assigned once (use a new name per step)
+- this node is self; other nodes exist only as loop variables of sum(...)"""
+
+CHECKLIST = """Before you answer, check the program line by line:
+1. no if, in, not in, <, >, == and no {...} or [...] anywhere;
+2. no **, // or %;
+3. every argument of comb, pow, + - * / is a number: size(S), never a set S;
+4. the only node names are self and the loop variables of sum(...);
+5. every name is assigned once and the last line is the return line."""
+
+CORES = ("v1", "legacy", "v1-repeat3", "v1-alt")
+
+
+def _check_core(core: str) -> None:
+    if core not in CORES:
+        raise ValueError(f"unknown prompt core {core!r}; known: {', '.join(CORES)}")
+
+
+def dsl_reference(core: str = "v1", matrix: bool = False) -> str:
+    """Language reference of a prompt core: ``legacy`` (the CS2-CS5 text), ``v1``, ``v1-repeat3``
+    (v1 with :data:`NOT_SUPPORTED` also stated first; :func:`prompt_tail` states it a third time)
+    or ``v1-alt`` (v1 plus :data:`ALTERNATIVES`)."""
+    _check_core(core)
+    if core == "legacy":
+        base = DSL_REFERENCE_LEGACY
+    elif core == "v1-repeat3":
+        base = NOT_SUPPORTED + "\n\n" + DSL_REFERENCE
+    elif core == "v1-alt":
+        base = DSL_REFERENCE + "\n" + ALTERNATIVES
+    else:
+        base = DSL_REFERENCE
+    return base + ("\n" + MATRIX_REFERENCE if matrix else "")
+
+
+def prompt_tail(core: str = "v1") -> str:
+    """Text placed right before the reply format ("" for ``v1`` / ``legacy``)."""
+    _check_core(core)
+    return {"v1-repeat3": NOT_SUPPORTED, "v1-alt": CHECKLIST}.get(core, "")
+
+
+def reply_format(core: str = "v1") -> str:
+    _check_core(core)
+    return _FORMAT_LEGACY if core == "legacy" else _FORMAT
 
 _CODE_BLOCK = re.compile(r"```(?:dsl|python)?[ \t]*\n(.*?)```", re.S)
 
@@ -109,22 +205,36 @@ def render_attempt(i: int, h: dict) -> str:
             head += f"\nbudget: {h['budget']}"
     else:
         head = f"Attempt {i}: no program could be read from your reply (it began: \"{_excerpt(h.get('reply', ''))}\")"
+    if h.get("normalized"):
+        head += "\nNote: the system rewrote your reply before checking it: " + "; ".join(h["normalized"])
+    if h.get("tighten_request") and h.get("feedback") == "accepted":
+        return f"{head}\nResult: accepted, but {h['tighten_request']}"
     return f"{head}\nResult: {h['feedback']}"
 
 
 def design_prompt(input_prompt: str, n: int, history: list[dict], matrix: bool = False,
                   spec: PromptSpec | None = None) -> str:
-    """``spec``: evolvable modules (:mod:`certicount.dsl.prompt_spec`); ``None`` / V0 gives the
-    original prompt byte for byte."""
+    """``spec``: evolvable modules and prompt core (:mod:`certicount.dsl.prompt_spec`); a spec with
+    ``core="legacy"`` and empty modules gives the CS2-CS5 prompt byte for byte."""
     payload = {"phase": "design_program", "input_prompt": input_prompt, "attempt": len(history) + 1}
-    reference = DSL_REFERENCE + ("\n" + MATRIX_REFERENCE if matrix else "")
+    core = spec.core if spec is not None else V0.core
+    reference = dsl_reference(core, matrix)
     guidance = spec.guidance() if spec is not None else ""
     parts = [reference] + ([guidance] if guidance else [])
     parts += [f"The input prompt from the analyst is:\n\"\"\"\n{input_prompt}\n\"\"\"", f"The graph has {n} nodes."]
     if history:
-        parts.append("Your previous attempts were rejected:\n\n" + "\n\n".join(render_attempt(i, h) for i, h in enumerate(history, 1)))
-        parts.append("Write a corrected program. Do not repeat a rejected program.")
-    parts.append(_FORMAT)
+        attempts = "\n\n".join(render_attempt(i, h) for i, h in enumerate(history, 1))
+        if any(h.get("tighten_request") for h in history):
+            parts.append("Your previous attempts:\n\n" + attempts)
+            parts.append("Write an equivalent program (the same statistic) whose sensitivity the checker bounds more "
+                         "tightly. If you see none, repeat the accepted program unchanged.")
+        else:
+            parts.append("Your previous attempts were rejected:\n\n" + attempts)
+            parts.append("Write a corrected program. Do not repeat a rejected program.")
+    tail = prompt_tail(core)
+    if tail:
+        parts.append(tail)
+    parts.append(reply_format(core))
     return "\n\n".join(parts) + f"\n\n{structured_block(payload)}"
 
 
@@ -188,8 +298,27 @@ _REPAIR_HINTS: tuple[tuple[str, str], ...] = (
 )
 
 
-def repair_hint(message: str, source: str = "") -> str | None:
-    """How to express what the parser rejected (``None``: no specific hint)."""
+# Core "v1-alt" only: hints that give the rewrite (over a generic set S) instead of the prohibition.
+_ALT_HINTS: tuple[tuple[str, str], ...] = (
+    (r"without conditions",
+     "drop the condition and count with size(...) of a set expression: unordered pairs of elements of S that are "
+     "neighbors in the noisy graph are 0.5 * sum(size(S & N(v)) for v in S), unordered pairs of distinct elements "
+     "of S are 0.5 * sum(size(S) - 1 for v in S)"),
+    (r"only 'name = <expr>' lines",
+     "write a running total as sum(EXPR for v in S), assign every name once and end with the return line; "
+     "there are no for / if statements"),
+)
+
+
+def repair_hint(message: str, source: str = "", core: str = "v1") -> str | None:
+    """How to express what the parser rejected (``None``: no specific hint). ``core="v1-alt"``
+    uses the rewrite hints :data:`_ALT_HINTS` first."""
+    if core == "v1-alt":
+        if "**" in source and re.search(r"unsupported syntax BinOp|syntax", message):
+            return "write pow(x, 2) instead of x ** 2 (pow takes a constant exponent)"
+        for pattern, hint in _ALT_HINTS:
+            if re.search(pattern, message):
+                return hint
     if re.search(r"<[a-z][a-z _-]*>", source):
         return ("replace the placeholder in angle brackets with your actual program; "
                 "do not copy '<...>' from the format description")
@@ -207,13 +336,48 @@ def repair_hint(message: str, source: str = "") -> str | None:
     return None
 
 
-def _rejected(exc: Exception, source: str) -> str:
-    hint = repair_hint(str(exc), source)
+def _rejected(exc: Exception, source: str, core: str = "v1") -> str:
+    hint = repair_hint(str(exc), source, core)
     return f"rejected: not a valid program: {exc}" + (f". Hint: {hint}" if hint else "")
 
 
-def read_draft(text: str) -> tuple[Program | None, dict]:
-    """Parse a reply; returns the program (or ``None``) and its history entry."""
+_TAG_LINE = re.compile(r"^\s*</?\s*[A-Za-z][A-Za-z _-]*>\s*$")
+_FLOOR_DIV = re.compile(r"//")
+
+
+def normalize_source(local: str) -> tuple[str, str | None, list[str]]:
+    """Format-only repairs of a drafted program: ``(program, aggregate found inside the block or
+    None, notes)``. Lines that are a single tag (``<program>``, ``</program>``) are dropped, an
+    ``aggregate:`` / ``budget:`` line written inside the code block is taken out of it, and ``//``
+    becomes ``/`` (the language has real division only). The rewritten program is the one that is
+    checked, certified and executed, so the repair does not touch privacy; the utility test still
+    decides whether it computes the requested statistic."""
+    notes: list[str] = []
+    lines = local.splitlines()
+    kept = [ln for ln in lines if not _TAG_LINE.match(ln)]
+    if len(kept) != len(lines):
+        notes.append("removed the tag line(s) " + ", ".join(sorted({ln.strip() for ln in lines if _TAG_LINE.match(ln)})))
+    agg = None
+    body = []
+    for ln in kept:
+        m = re.match(r"\s*(aggregate|budget):\s*(.*)$", ln)
+        if m:
+            if m.group(1) == "aggregate":
+                agg = m.group(2).strip().strip("`")
+            notes.append(f"moved the line '{ln.strip()}' out of the code block")
+            continue
+        body.append(ln)
+    out = "\n".join(body).strip()
+    if _FLOOR_DIV.search(out):
+        out = _FLOOR_DIV.sub("/", out)
+        notes.append("replaced '//' by '/'")
+    return out, agg, notes
+
+
+def read_draft(text: str, normalize: bool = False, core: str = "v1") -> tuple[Program | None, dict]:
+    """Parse a reply; returns the program (or ``None``) and its history entry.
+    ``normalize``: apply :func:`normalize_source` first (recorded in ``entry["normalized"]``).
+    ``core``: prompt core of the run (selects the repair hints, :func:`repair_hint`)."""
     if is_truncated(text):
         return None, {"program": "", "aggregate": "", "reply": text[-2000:], "truncated": True,
                       "feedback": TRUNCATED_FEEDBACK}
@@ -221,12 +385,21 @@ def read_draft(text: str) -> tuple[Program | None, dict]:
         local, agg, budget = parse_design_reply(text)
     except DSLError as exc:
         return None, {"program": "", "aggregate": "", "reply": answer_part(text)[:2000],
-                      "feedback": _rejected(exc, answer_part(text))}
+                      "feedback": _rejected(exc, answer_part(text), core)}
+    notes: list[str] = []
+    if normalize:
+        local, inner_agg, notes = normalize_source(local)
+        m = _CODE_BLOCK.search(answer_part(text))
+        after = answer_part(text)[m.end():] if m else ""
+        if inner_agg and not re.search(r"aggregate:", after):
+            agg = inner_agg
     entry = {"program": local, "aggregate": agg, "budget": budget}
+    if notes:
+        entry["normalized"] = notes
     try:
         return parse_program(local, agg, budget=budget), entry
     except DSLError as exc:
-        return None, {**entry, "feedback": _rejected(exc, local)}
+        return None, {**entry, "feedback": _rejected(exc, local, core)}
 
 
 @dataclass
@@ -242,13 +415,14 @@ class DesignResult:
     attempts: list[dict] = field(default_factory=list)  # one summary per independent loop
     mode: str = "exact"
     score: dict | None = None  # search mode: simulated accuracy of the chosen program
+    selection: dict | None = None  # design_with_restarts(select="min_gs"): the candidates and the choice
 
     def to_dict(self) -> dict:
         return {
             "accepted": self.accepted, "iterations": self.iterations, "llm_calls": self.llm_calls,
             "program": self.program.text() if self.program else None, "gs_reference": self.gs_reference,
             "history": self.history, "restarts": self.restarts, "attempts": self.attempts, "mode": self.mode,
-            "score": self.score,
+            "score": self.score, "selection": self.selection,
         }
 
 
@@ -306,7 +480,8 @@ def draft_stage(feedback: str | None) -> str:
                           ("identical to attempt", "duplicate"), ("sensitivity check failed", "gs_failed"),
                           ("sensitivity GS", "gs_loose"), ("utility test failed", "semantic"),
                           ("noise-free check failed", "noisy"), ("sensitivity certification failed", "refuted"),
-                          ("the program fails on a public test graph", "refuted")):
+                          ("the program fails on a public test graph", "refuted"), ("superseded", "superseded"),
+                          ("not tighter", "not_tighter")):
         if f.startswith(prefix):
             return stage
     return "other"
@@ -315,6 +490,7 @@ def draft_stage(feedback: str | None) -> str:
 # Falsifier runs of the design-time check: (n, dmax, random symmetric graphs; None = every graph)
 FALSIFIER_CHECKS: tuple[tuple[int, int, int | None], ...] = ((5, 3, None), (7, 4, 500))
 _FALSIFIER_CACHE: dict[str, str | None] = {}
+_FALSIFIER_RUNS: dict[str, list] = {}  # digest -> the DerivationChecks behind the cached feedback
 
 
 def falsifier_feedback(program: Program) -> str | None:
@@ -327,8 +503,10 @@ def falsifier_feedback(program: Program) -> str | None:
 
 
 def _falsify_draft(program: Program) -> str | None:
+    runs = _FALSIFIER_RUNS[program.digest] = []
     for n, dmax, samples in FALSIFIER_CHECKS:
         chk = check_derivation(program, n, dmax, samples)
+        runs.append(chk)
         if chk.error:
             return f"the program fails on a public test graph with {n} nodes: {chk.error}"
         if chk.refuted:
@@ -342,70 +520,226 @@ def _falsify_draft(program: Program) -> str | None:
     return None
 
 
+@dataclass(frozen=True)
+class BoundSlack:
+    """Derived GS against the largest change the falsifier found, on its small public graphs."""
+
+    ratio: float  # max over the falsifier runs of derived GS / largest observed change
+    n: int
+    dmax: int
+    gs: float
+    observed: float
+
+
+def bound_slack(program: Program) -> BoundSlack | None:
+    """How loose the derived bound of ``program`` is on the falsifier's graphs (public; ``None``
+    if nothing could be compared). The derived GS is an upper bound of the true sensitivity and
+    the observed change a lower bound, so ``ratio`` bounds the slack the deriver adds; a ratio
+    near 1 means the noise is already scaled to what the program needs."""
+    if program.digest not in _FALSIFIER_RUNS or program.digest not in _FALSIFIER_CACHE:
+        _FALSIFIER_CACHE[program.digest] = _falsify_draft(program)
+    best = None
+    for chk in _FALSIFIER_RUNS[program.digest]:
+        if chk.gs is None or chk.witness is None or chk.witness.max_delta <= 0:
+            continue
+        r = chk.gs / chk.witness.max_delta
+        if best is None or r > best.ratio:
+            best = BoundSlack(r, chk.n, chk.dmax, chk.gs, chk.witness.max_delta)
+    return best
+
+
+def tighten_request(slack: BoundSlack) -> str:
+    """Feedback for an accepted program whose bound is loose (no program, no task knowledge)."""
+    return (f"the system's sensitivity bound for this program is loose: on a public test graph with {slack.n} nodes "
+            f"and maximum degree {slack.dmax} it derives GS = {slack.gs:g}, but one changed neighbor never changes the "
+            f"result by more than {slack.observed:g}. The noise is scaled to the derived bound. The checker bounds "
+            "exactly any expression that reads the private data through a single size(...); it bounds products of "
+            "different counts, and sets that are counted before being intersected, more loosely")
+
+
 def _duplicate_of(program: Program, seen: dict[str, int]) -> int | None:
     return seen.get(program.digest)
+
+
+@dataclass(frozen=True)
+class DesignOptions:
+    """Behaviour of the design loop beyond the prompt.
+
+    ``normalize``: format-only repairs of a reply (:func:`normalize_source`).
+    ``tighten``: extra calls after an acceptance whose bound is loose on the falsifier's graphs
+    (:func:`bound_slack` above ``slack_tol``); a rewrite replaces the accepted program only if it
+    passes every check and its derived GS is smaller.
+    ``early_stop``: stages (:func:`draft_stage`) after which two rejections in a row end the loop
+    (e.g. ``("noisy", "gs_loose")``: the feedback did not help, more calls rarely do).
+    ``select`` / ``min_accepted`` (:func:`design_with_restarts`): ``"first"`` keeps the first accepted
+    program; ``"min_gs"`` runs restarts until ``min_accepted`` behaviourally different programs
+    are accepted (or the restarts run out) and keeps the one with the smallest derived GS, then the
+    smallest noise-free error on the public graphs. Everything compared is public."""
+
+    normalize: bool = True
+    tighten: int = 0
+    slack_tol: float = 1.2
+    early_stop: tuple[str, ...] = ()
+    select: str = "first"
+    min_accepted: int = 1
+
+    def to_dict(self) -> dict:
+        return {k: (list(v) if isinstance(v, tuple) else v) for k, v in asdict(self).items()}
+
+
+LEGACY_OPTIONS = DesignOptions(normalize=False)
 
 
 async def design_program(
     model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
     params: PublicParams, task: str | None = None, max_iterations: int = 3, matrix: bool = False,
-    noisy: NoisyGate | None = None, spec: PromptSpec | None = None,
+    noisy: NoisyGate | None = None, spec: PromptSpec | None = None, options: DesignOptions | None = None,
 ) -> DesignResult:
     """``task`` names the reference counter used by the utility test (``None``
     skips it, e.g. for a task without a brute-force reference). ``matrix``: the
     per-node architecture, whose prompt documents ``A`` (:data:`MATRIX_REFERENCE`).
     ``noisy``: the noise-aware utility gate (:mod:`certicount.dsl.noisy_gate`).
-    ``spec``: evolvable prompt modules (guidance and extra repair hints)."""
+    ``spec``: evolvable prompt modules (guidance and extra repair hints).
+    ``options``: :class:`DesignOptions` (default: normalisation on, no tightening, no early stop)."""
+    opts = options or DesignOptions()
     history: list[dict] = []
     seen: dict[str, int] = {}
+    calls = 0
 
     def reject(entry: dict, feedback: str) -> None:
         extra = spec.hints_for(feedback) if spec is not None else []
         history.append({**entry, "feedback": feedback + "".join(f" Hint: {h}" for h in extra)})
 
-    for it in range(1, max_iterations + 1):
+    def stop_early() -> bool:
+        if not opts.early_stop or len(history) < 2:
+            return False
+        a, b = draft_stage(history[-1]["feedback"]), draft_stage(history[-2]["feedback"])
+        return a == b and a in opts.early_stop
+
+    async def draft() -> tuple[Program | None, dict]:
+        nonlocal calls
+        calls += 1
         text = await chat(model, formatter, DESIGNER_SYSTEM, design_prompt(input_prompt, n, history, matrix, spec),
                           agent="Curator")
-        program, entry = read_draft(text)
+        return read_draft(text, normalize=opts.normalize, core=(spec or V0).core)
+
+    for it in range(1, max_iterations + 1):
+        program, entry = await draft()
         if program is None:
             reject(entry, entry["feedback"])
-            continue
-        dup = _duplicate_of(program, seen)
-        if dup is not None:
+        elif (dup := _duplicate_of(program, seen)) is not None:
             reject(entry, f"rejected: identical to attempt {dup}, which was already rejected")
+        else:
+            seen[program.digest] = it
+            feedback = check_draft(program, task, params, public_n=n, noisy=noisy)
+            if feedback is None:
+                gs = derive(program, params).gs
+                history.append({**entry, "feedback": "accepted", "gs": gs})
+                program, gs = await _tighten(program, gs, entry, history, seen, draft, task, params, n, noisy, opts)
+                return DesignResult(program, task, it, True, gs, history, calls)
+            reject(entry, f"rejected: {feedback}")
+        if stop_early():
+            history[-1]["early_stop"] = True
+            return DesignResult(None, task, it, False, None, history, calls)
+    return DesignResult(None, task, max_iterations, False, None, history, calls)
+
+
+async def _tighten(program: Program, gs: float, entry: dict, history: list[dict], seen: dict[str, int], draft,
+                   task: str | None, params: PublicParams, n: int, noisy: NoisyGate | None,
+                   opts: DesignOptions) -> tuple[Program, float]:
+    """Ask for an equivalent program with a tighter bound while the accepted one is loose."""
+    for _ in range(max(0, opts.tighten)):
+        slack = bound_slack(program)
+        if slack is None or slack.ratio <= opts.slack_tol:
+            break
+        accepted = next(h for h in reversed(history) if h.get("feedback") == "accepted")
+        accepted["tighten_request"] = tighten_request(slack)
+        cand, centry = await draft()
+        centry = {**centry, "round": "tighten"}
+        if cand is None:
+            history.append(centry)
             continue
-        seen[program.digest] = it
-        feedback = check_draft(program, task, params, public_n=n, noisy=noisy)
-        if feedback is None:
-            gs = derive(program, params).gs
-            history.append({**entry, "feedback": "accepted", "gs": gs})
-            return DesignResult(program, task, it, True, gs, history, it)
-        reject(entry, f"rejected: {feedback}")
-    return DesignResult(None, task, max_iterations, False, None, history, max_iterations)
+        if cand.digest in seen:
+            history.append({**centry, "feedback": "not tighter: the same program as an earlier attempt"})
+            break
+        seen[cand.digest] = len(history) + 1
+        feedback = check_draft(cand, task, params, public_n=n, noisy=noisy)
+        if feedback is not None:
+            history.append({**centry, "feedback": f"rejected: {feedback}"})
+            continue
+        cgs = derive(cand, params).gs
+        if cgs < gs * (1 - 1e-9):
+            accepted["feedback"] = f"superseded: a later attempt has the smaller GS {cgs:g} (this one {gs:g})"
+            history.append({**centry, "feedback": "accepted", "gs": cgs})
+            program, gs = cand, cgs
+        else:
+            history.append({**centry, "feedback": f"not tighter: GS {cgs:g} is not below {gs:g}"})
+    return program, gs
+
+
+def behavior_key(program: Program, params: PublicParams) -> str:
+    """Programs with the same answers on public test graphs and the same derived GS are one
+    candidate for :func:`design_with_restarts` (AlphaCode-style clustering by behaviour)."""
+    graphs = [g for _, g in named_graphs()] + random_graphs(6, seed=7)
+    try:
+        values = [round(run_exact(program, g), 6) for g in graphs]
+        gs = round(derive(program, params).gs, 6)
+    except (ArithmeticError, ValueError, SensitivityError):
+        return program.digest
+    return json.dumps([values, gs])
 
 
 async def design_with_restarts(
     model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
     params: PublicParams, task: str | None = None, max_iterations: int = 3, restarts: int = 1,
     matrix: bool = False, noisy: NoisyGate | None = None, spec: PromptSpec | None = None,
+    options: DesignOptions | None = None,
 ) -> DesignResult:
-    """Up to ``restarts`` independent design loops (fresh history each); the
-    first accepted program is used. All loops are recorded in ``attempts``."""
+    """Up to ``restarts`` independent design loops (fresh history each). ``options.select``:
+    ``"first"`` uses the first accepted program; ``"min_gs"`` collects up to
+    ``options.min_accepted`` behaviourally different accepted programs and keeps the one with the
+    smallest derived GS, then the smallest noise-free error on the public graphs (both public, so
+    the choice spends no budget). All loops are recorded in ``attempts``; ``selection`` lists the
+    candidates of ``min_gs``."""
+    opts = options or DesignOptions()
+    if opts.select not in ("first", "min_gs"):
+        raise ValueError(f"unknown selection rule {opts.select!r}")
     attempts: list[dict] = []
     calls = 0
     last: DesignResult | None = None
+    pool: dict[str, tuple[DesignResult, int]] = {}  # behaviour -> first accepted loop with it
     for r in range(1, max(1, restarts) + 1):
         res = await design_program(model, formatter, input_prompt, n, params, task, max_iterations, matrix, noisy,
-                                   spec)
+                                   spec, opts)
         calls += res.llm_calls
         attempts.append({"restart": r, "accepted": res.accepted, "iterations": res.iterations,
                          "program": res.program.text() if res.program else None, "history": res.history})
         last = res
         if res.accepted:
-            break
+            if opts.select == "first":
+                break
+            pool.setdefault(behavior_key(res.program, params), (res, r))
+            if len(pool) >= max(1, opts.min_accepted):
+                break
     assert last is not None
-    return DesignResult(last.program, task, last.iterations, last.accepted, last.gs_reference, last.history,
-                        calls, restarts=len(attempts), attempts=attempts)
+    if opts.select == "first" or not pool:
+        return DesignResult(last.program, task, last.iterations, last.accepted, last.gs_reference, last.history,
+                            calls, restarts=len(attempts), attempts=attempts)
+    cands = []
+    for res, r in pool.values():
+        bias = None
+        if noisy is not None and task is not None:
+            bias = max(row["bias"] for row in noise_free_check(res.program, task, noisy).rows)
+        cands.append({"restart": r, "gs": res.gs_reference, "noise_free_bias": bias, "program": res.program.text(),
+                      "result": res})
+    best = min(cands, key=lambda c: (c["gs"], c["noise_free_bias"] if c["noise_free_bias"] is not None else 0.0,
+                                     c["restart"]))
+    chosen: DesignResult = best["result"]
+    out = DesignResult(chosen.program, task, chosen.iterations, True, chosen.gs_reference, chosen.history, calls,
+                       restarts=len(attempts), attempts=attempts)
+    out.selection = {"rule": "min_gs", "chosen_restart": best["restart"],
+                     "candidates": [{k: v for k, v in c.items() if k != "result"} for c in cands]}
+    return out
 
 
 class MockDesignerModel(ChatModelBase):

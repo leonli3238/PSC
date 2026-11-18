@@ -47,13 +47,16 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--depth", type=int, default=3, help="expression depth of the generator")
     ap.add_argument("--focus", type=float, default=0.5, help="share of programs built around a sum of rows")
+    ap.add_argument("--shapes", type=float, default=0.0,
+                    help="share of programs of certicount.dsl.fuzz.shape_source (one-count polynomials, pair sums)")
     ap.add_argument("--checks", default="5x3,7x4:200", help="n x dmax, ':k' for k random symmetric graphs")
     ap.add_argument("--workers", type=int, default=1)
     args = ap.parse_args()
 
     settings = parse_checks(args.checks)
     out = out_dir("dsl", args.tag, "dsl_fuzz")
-    jobs = [(i, src, settings, args.seed) for i, src in enumerate(sources(args.count, args.seed, args.depth, args.focus))]
+    jobs = [(i, src, settings, args.seed)
+            for i, src in enumerate(sources(args.count, args.seed, args.depth, args.focus, args.shapes))]
     t0 = time.perf_counter()
     cases = []
     if args.workers > 1:
@@ -83,7 +86,8 @@ def main() -> None:
                 "summary": rows, "failures": len(failures), "loosest": loose_rows}, out / "summary.json")
     md = [
         "# Deriver fuzz", "",
-        f"{args.count} random programs (seed {args.seed}, depth {args.depth}, focus {args.focus}); GS derived at "
+        f"{args.count} random programs (seed {args.seed}, depth {args.depth}, focus {args.focus}, "
+        f"shapes {args.shapes}); GS derived at "
         "`PublicParams(n, D = dmax, dmax)` vs the falsifier's largest change on the same parameters "
         f"(node 0, every P, every flip); {elapsed:.0f}s with {args.workers} worker(s).", "",
         "`refuted`: falsifier change > derived GS (a deriver bug, must be 0); `tight`: equal; "

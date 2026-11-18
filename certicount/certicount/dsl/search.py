@@ -44,7 +44,8 @@ from psc.mechanism import DEFAULT_MECHANISM
 from psc.models import chat
 from psc.prompts import structured_block
 
-from .designer import DESIGNER_SYSTEM, DSL_REFERENCE, DesignResult, check_draft, design_reference_params, read_draft
+from .designer import DESIGNER_SYSTEM, DesignResult, check_draft, design_reference_params, read_draft
+from .designer import DSL_REFERENCE_LEGACY as DSL_REFERENCE  # the search prompt keeps the core it was run with
 from .ground_truth import dp_execute, reference_program
 from .lang import Interpreter, Program, parse_program
 from .library import PROGRAMS

@@ -9,7 +9,8 @@ The design prompt (:func:`certicount.dsl.designer.design_prompt`) is assembled f
     repair_hints  (regex over a rejection message, hint) pairs added to the feedback of a
                 rejected draft, on top of the built-in parser hints
 
-``V0`` has empty modules: its prompt is byte-identical to the one of the CS2/CS3 runs.
+``V0`` has empty modules and the core ``v1``; ``LEGACY_V0`` (``load_spec("legacy")``) has empty
+modules and the core ``legacy``: its prompt is byte-identical to the one of the CS2-CS5 runs.
 Every spec has a content hash recorded in the run manifests.
 
 :func:`leak_check` guards the evolvable modules: no example may compute a statistic of the
@@ -30,7 +31,8 @@ from .lang import DSLError, parse_program
 from .utility import utility_test
 
 # tasks whose programs must never appear in a prompt (every task with a brute-force counter)
-GUARDED_TASKS: tuple[str, ...] = ("degree", "triangle", "degree-moment2", *(f"{k}-star" for k in range(2, 9)))
+GUARDED_TASKS: tuple[str, ...] = ("degree", "triangle", "degree-moment2", "open-wedge",
+                                  *(f"{k}-star" for k in range(2, 9)))
 MAX_MODULE_CHARS = 3000  # all evolvable text together
 _CODE = re.compile(r"```|\breturn\b")
 
@@ -50,6 +52,10 @@ class PromptSpec:
     examples: tuple[Example, ...] = ()
     repair_hints: tuple[tuple[str, str], ...] = ()
     parent: str | None = None
+    # frozen core of the prompt (certicount.dsl.designer.dsl_reference): "v1" (no angle-bracket
+    # placeholders, the constructs CS4/CS5 drafts failed on spelled out), "legacy" (CS2-CS5 text),
+    # "v1-repeat3" / "v1-alt" (the prompt-core comparison CS6a)
+    core: str = "v1"
 
     # ------------------------------------------------------------- rendering
     def guidance(self) -> str:
@@ -86,19 +92,24 @@ class PromptSpec:
 
     @property
     def digest(self) -> str:
-        return hashlib.sha256(json.dumps(self.modules(), sort_keys=True).encode()).hexdigest()[:16]
+        """Content hash of the modules (and of the core unless it is ``legacy``, so the digests of
+        the CS2-CS5 specs are unchanged)."""
+        content = self.modules() if self.core == "legacy" else {**self.modules(), "core": self.core}
+        return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()[:16]
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "parent": self.parent, "digest": self.digest, **self.modules()}
+        return {"name": self.name, "parent": self.parent, "digest": self.digest, "core": self.core, **self.modules()}
 
     @classmethod
     def from_dict(cls, d: dict) -> "PromptSpec":
+        """A dict without ``core`` was written before cores existed: its prompt used the legacy core."""
         return cls(
             name=d.get("name", "spec"),
             rules=tuple(d.get("rules", ())),
             examples=tuple(Example(**e) for e in d.get("examples", ())),
             repair_hints=tuple((h[0], h[1]) for h in d.get("repair_hints", ())),
             parent=d.get("parent"),
+            core=d.get("core", "legacy"),
         )
 
     def save(self, path: str | Path) -> None:
@@ -106,12 +117,21 @@ class PromptSpec:
 
 
 V0 = PromptSpec()
+LEGACY_V0 = PromptSpec(name="legacy", core="legacy")  # the prompt of CS2-CS5, byte for byte
+# empty-module specs of the prompt-core comparison (CS6a): B = prohibition stated three times,
+# C = positive rewrites + closing checklist + rewrite hints (certicount.dsl.designer.dsl_reference)
+CORE_SPECS = {c: PromptSpec(name=c, core=c) for c in ("v1-repeat3", "v1-alt")}
 
 
 def load_spec(ref: str | None) -> PromptSpec:
-    """``None`` / ``"v0"`` -> :data:`V0`; otherwise a JSON file written by :meth:`PromptSpec.save`."""
-    if ref in (None, "", "v0"):
+    """``None`` / ``"v0"`` / ``"v1"`` -> :data:`V0` (core v1, empty modules); ``"legacy"`` -> :data:`LEGACY_V0`;
+    ``"v1-repeat3"`` / ``"v1-alt"`` -> :data:`CORE_SPECS`; otherwise a JSON file written by :meth:`PromptSpec.save`."""
+    if ref in (None, "", "v0", "v1"):
         return V0
+    if ref == "legacy":
+        return LEGACY_V0
+    if ref in CORE_SPECS:
+        return CORE_SPECS[ref]
     return PromptSpec.from_dict(json.loads(Path(ref).read_text(encoding="utf-8")))
 
 

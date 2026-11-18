@@ -64,18 +64,24 @@ class MockModel(ChatModelBase):
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--start", default="v0", help="starting spec: v0 or a JSON file")
-    ap.add_argument("--train-tasks", default="degree,2-star,4-star")
+    ap.add_argument("--start", default="v0", help="starting spec: v0 (core v1), legacy (the CS2-CS5 prompt) or a JSON file")
+    ap.add_argument("--train-tasks", default="degree,2-star,4-star,open-wedge")
     ap.add_argument("--n", type=int, default=400, help="public number of nodes of the training setting")
     ap.add_argument("--node-bounds", action="store_true")
     ap.add_argument("--clip-alpha", type=float, default=0.0)
     ap.add_argument("--eps", type=float, default=2.0)
     ap.add_argument("--mechanism", default=DEFAULT_MECHANISM, choices=MECHANISMS)
-    ap.add_argument("--designs", type=int, default=4, help="designs per task and evaluation")
+    ap.add_argument("--designs", type=int, default=8, help="designs per task and evaluation")
     ap.add_argument("--max-iterations", type=int, default=3)
     ap.add_argument("--generations", type=int, default=5)
     ap.add_argument("--children", type=int, default=3)
     ap.add_argument("--patience", type=int, default=2)
+    ap.add_argument("--confirm-evals", type=int, default=2, help="evaluations a child needs before it can replace the incumbent")
+    ap.add_argument("--z", type=float, default=1.0, help="required margin in standard errors of the score difference")
+    ap.add_argument("--nu-gs", type=float, default=0.1, help="weight of log(GS / reference GS) in the design score")
+    ap.add_argument("--max-rules", type=int, default=4)
+    ap.add_argument("--no-pareto", action="store_true", help="always edit the incumbent (CS5 behaviour)")
+    ap.add_argument("--no-normalize", action="store_true", help="no format-only repairs of the curator's replies")
     ap.add_argument("--design-concurrency", type=int, default=8)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--provider", default="mock", choices=PROVIDERS)
@@ -98,9 +104,10 @@ def main() -> None:
     cfg = EvolveConfig(train_tasks=tasks, n=a.n, node_bounds=a.node_bounds, alpha=a.clip_alpha, eps=a.eps,
                        mechanism=a.mechanism, designs=a.designs, max_iterations=a.max_iterations,
                        concurrency=a.design_concurrency, generations=a.generations, children=a.children,
-                       patience=a.patience, seed=a.seed)
+                       patience=a.patience, confirm_evals=a.confirm_evals, z=a.z, nu_gs=a.nu_gs,
+                       max_rules=a.max_rules, pareto=not a.no_pareto, normalize=not a.no_normalize, seed=a.seed)
     per_eval = len(tasks) * a.designs * a.max_iterations
-    per_gen = (a.children + 2) * per_eval + 2 * a.children
+    per_gen = (a.children + 1 + max(0, a.confirm_evals - 1)) * per_eval + 2 * a.children
     print(f"at most {per_eval} design calls per evaluation, {per_gen} per generation, "
           f"{per_eval + a.generations * per_gen} in total ({a.provider})")
     if a.dry_run:
@@ -129,11 +136,13 @@ def main() -> None:
             e = rec["evaluation"]
             rows.append({"generation": rec["generation"], "kind": rec["kind"], "name": rec["name"],
                          "parent": rec["parent"], "score": e["score"], "mean_score": rec["mean_score"],
-                         "qualified_rate": e["qualified_rate"], "accept_rate": e["accept_rate"],
+                         "se": rec.get("se"), "qualified_rate": e["qualified_rate"],
+                         "qualified_ci95": "[%.2f, %.2f]" % tuple(e["qualified_ci95"]), "accept_rate": e["accept_rate"],
                          "mean_calls": e["mean_calls"], "refuted": e["stages"].get("refuted", 0),
                          "patch": json.dumps((rec.get("reflection") or {}).get("patch"), ensure_ascii=False)[:160]})
             print(f"[gen {rec['generation']}] {rec['kind']:7s} {rec['name']:6s} score {e['score']:.3f} "
-                  f"(mean {rec['mean_score']:.3f}) qualified {e['qualified_rate']:.2f} calls {e['mean_calls']:.2f}")
+                  f"(mean {rec['mean_score']:.3f} ± {rec['se'] if rec.get('se') is not None else float('nan'):.3f}) "
+                  f"qualified {e['qualified_rate']:.2f} calls {e['mean_calls']:.2f}")
         elif rec["kind"] == "refused":
             print(f"[gen {rec['generation']}] refused {rec['name']}: {rec['attempts'][-1].get('problems')}")
 
@@ -145,8 +154,8 @@ def main() -> None:
           f"{'per-node (α = %g)' % a.clip_alpha if a.node_bounds else 'PSC'}, ε = {a.eps}, {a.designs} designs per task "
           f"and evaluation. Best: {best.name} ({best.digest}). Falsifier refutations during evolution: {refuted} "
           "(must be 0: privacy does not depend on the prompt).", "",
-          markdown_table(rows, ["generation", "kind", "name", "parent", "score", "mean_score", "qualified_rate",
-                                "accept_rate", "mean_calls", "refuted", "patch"]), "",
+          markdown_table(rows, ["generation", "kind", "name", "parent", "score", "mean_score", "se", "qualified_rate",
+                                "qualified_ci95", "accept_rate", "mean_calls", "refuted", "patch"]), "",
           "## Best prompt modules", "", "```json", json.dumps(best.to_dict(), indent=2, ensure_ascii=False), "```", ""]
     (out / "table.md").write_text("\n".join(md), encoding="utf-8")
     print(f"best {best.name} ({best.digest}); results in {out}")
