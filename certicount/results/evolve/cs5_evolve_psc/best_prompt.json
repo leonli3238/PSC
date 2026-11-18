@@ -1,0 +1,15 @@
+{
+  "name": "g2c2",
+  "parent": "g1c1",
+  "digest": "243d5046cbd39614",
+  "rules": [
+    "Always apply project(P, D) to bound set sizes before using comb or other nonlinear functions; use size(S) to get the count."
+  ],
+  "examples": [],
+  "repair_hints": [
+    [
+      "comb expects \\(num, num\\), got \\(set, num\\)",
+      "Use size(S) instead of the set directly as the first argument to comb"
+    ]
+  ]
+}

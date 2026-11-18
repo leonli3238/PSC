@@ -1,0 +1,11 @@
+{
+  "name": "g2c1",
+  "parent": "g1c2",
+  "digest": "d32f1bda36412f26",
+  "rules": [
+    "Use project(P, D) to bound degrees before applying comb or other nonlinear functions, and avoid range() in loops; use only N(...) or A(...) but not both in a single program.",
+    "Avoid angle brackets and ensure all expressions use valid syntax; use project(P, D) before comb or other nonlinear functions to tightly bound sensitivity."
+  ],
+  "examples": [],
+  "repair_hints": []
+}
