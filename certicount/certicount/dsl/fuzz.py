@@ -25,7 +25,8 @@ from typing import Iterable, Iterator, Sequence
 from .falsifier import DerivationCheck, check_derivation
 from .lang import parse_program
 
-Setting = tuple[int, int, int | None]  # (n, dmax, random symmetric graphs; None = every graph)
+# (n, dmax, random symmetric graphs; None = every graph[, D: the node's own bound, default dmax])
+Setting = tuple[int, ...] | tuple
 DEFAULT_SETTINGS: tuple[Setting, ...] = ((5, 3, None),)
 
 LOOP_VARS = ("j", "k", "u")
@@ -163,11 +164,112 @@ class _Generator:
         return f"sum({op.join(terms)} for {var} in {domain})"
 
 
-def random_source(rng: random.Random, depth: int = 3, focus: float = 0.5, shapes: float = 0.0) -> str:
+class _MatrixGenerator(_Generator):
+    """Programs of the per-node architecture that read the unbiased matrix ``A`` (never ``N``):
+    sets built from ``P`` only, numbers that include entries and sums of ``A``."""
+
+    BASE_SETS = ("P", "project(P, D)", "project(P, D)", "project(P, dmax)", "project(P, D - 1)", "project(P, 2)")
+
+    def row(self, var: str) -> str:  # no rows in this architecture: a P-only set
+        return self.set(1, ())
+
+    def set(self, depth: int, loops: tuple[str, ...]) -> str:
+        r = self.rng.random()
+        if depth <= 0 or r < 0.5:
+            return self.pick([*self.BASE_SETS, *self.sets])
+        a, b = self.set(depth - 1, loops), self.set(depth - 1, loops)
+        if r < 0.65:
+            return f"({a} & {b})"
+        if r < 0.72:
+            return f"({a} | {b})"
+        if r < 0.85:
+            return f"({a} - {b})"
+        return f"project({a}, {self.pick(THRESHOLDS)})"
+
+    def sum(self, depth: int, loops: tuple[str, ...], integer: bool = False) -> str:
+        free = [v for v in LOOP_VARS if v not in loops]
+        if not free:
+            return self.count(0, loops) if integer else self.num(0, loops)
+        var = free[0]
+        inner = loops + (var,)
+        body = self.count(depth, inner) if integer or self.rng.random() < 0.5 else self.num(depth, inner)
+        return f"sum({body} for {var} in {self.set(depth, loops)})"
+
+    def entry(self, loops: tuple[str, ...]) -> str:
+        nodes = ["self", *loops, *loops]
+        return f"A({self.pick(nodes)}, {self.pick(nodes)})"
+
+    def num(self, depth: int, loops: tuple[str, ...]) -> str:
+        r = self.rng.random()
+        if r < 0.2:
+            return self.entry(loops)
+        if r < 0.45:
+            return self.matrix_sum(depth - 1, loops)
+        return super().num(depth, loops)
+
+    def matrix_sum(self, depth: int, loops: tuple[str, ...]) -> str:
+        free = [v for v in LOOP_VARS if v not in loops]
+        if not free:
+            return self.entry(loops)
+        var = free[0]
+        inner = loops + (var,)
+        domain = self.set(depth, loops)
+        r = self.rng.random()
+        if r < 0.4:
+            body = self.entry(inner)
+        elif r < 0.6:
+            body = f"{self.entry(inner)} * {self.pick(SCALARS)}"
+        elif r < 0.8 and depth > 0:
+            body = self.matrix_sum(depth - 1, inner)
+        else:
+            body = f"({self.entry(inner)} {self.pick('+-*')} {self.num(depth - 1, inner)})"
+        return f"sum({body} for {var} in {domain})"
+
+
+MATRIX_SETS = ("project(P, D)", "project(P, D - 1)", "project(P, 2)", "P", "project(P, dmax)")
+
+
+def matrix_shape_source(rng: random.Random) -> str:
+    """The ``A`` programs LLM curators write in the per-node architecture: pair sums over
+    one or two bounded sets (triangles), degree estimates ``sum(A(self, j))`` and their
+    powers, pair counts minus pair sums (open wedges), with the diagonal and repeated
+    entries the deriver's zero-diagonal rule must handle."""
+    s, t = rng.choice(MATRIX_SETS), rng.choice(MATRIX_SETS)
+    pair = rng.choice((
+        "sum(sum(A(j, k) for k in Q) for j in Q)", "sum(sum(A(k, j) for k in Q) for j in Q)",
+        "sum(sum(A(j, k) for k in T) for j in Q)", "sum(sum(A(j, k) * A(j, k) for k in Q) for j in Q)",
+        "sum(sum(A(j, k) * A(self, k) for k in Q) for j in Q)", "sum(A(self, j) for j in Q)",
+        "sum(A(j, self) * size(Q) for j in Q)", "sum(sum(A(j, k) for k in (Q - T)) for j in Q)",
+        "sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T))", "sum(A(j, j) + A(self, j) for j in Q)",
+    ))
+    body = rng.choice(("comb(size(Q), 2) - 0.5 * x", "x * x", "x * (x - 1) * (x - 2) / 6", "clip(x, 0, D * D)",
+                       "x * size(Q)", "x", "0.5 * x", "-1 * x", "x + size(T)"))
+    lines = [f"Q = {s}"] + ([f"T = {t}"] if "T" in pair or "T" in body else []) + [f"x = {pair}", f"return {body}"]
+    return "\n".join(lines)
+
+
+def random_source(rng: random.Random, depth: int = 3, focus: float = 0.5, shapes: float = 0.0,
+                  matrix: float = 0.0) -> str:
     """The local part of one random program (the aggregate plays no part in the
     GS); with probability ``focus`` a program around a sum of rows, with probability
     ``shapes`` (checked first; ``0`` keeps the sequences of earlier campaigns) one of
-    the shapes of :func:`shape_source`."""
+    the shapes of :func:`shape_source`. ``matrix`` (checked before ``shapes``; ``0`` keeps
+    the earlier sequences): share of programs that read ``A`` (half of them shapes of
+    :func:`matrix_shape_source`, half random :class:`_MatrixGenerator` programs)."""
+    if matrix and rng.random() < matrix:
+        if rng.random() < 0.5:
+            return matrix_shape_source(rng)
+        g = _MatrixGenerator(rng)
+        lines = []
+        for i in range(rng.choice((0, 1, 1, 2))):
+            if rng.random() < 0.5:
+                lines.append(f"S{i} = {g.set(depth - 1, ())}")
+                g.sets.append(f"S{i}")
+            else:
+                lines.append(f"x{i} = {g.num(depth - 1, ())}")
+                g.nums.append(f"x{i}")
+        lines.append(f"return {g.matrix_sum(depth - 1, ()) if rng.random() < 0.5 else g.num(depth, ())}")
+        return "\n".join(lines)
     if shapes and rng.random() < shapes:
         return shape_source(rng)
     g = _Generator(rng)
@@ -219,9 +321,17 @@ def shape_source(rng: random.Random) -> str:
     return f"Q = {s}\nreturn {scale}sum({body} for {j} in Q)"
 
 
-def sources(count: int, seed: int = 0, depth: int = 3, focus: float = 0.5, shapes: float = 0.0) -> list[str]:
+def sources(count: int, seed: int = 0, depth: int = 3, focus: float = 0.5, shapes: float = 0.0,
+            matrix: float = 0.0) -> list[str]:
     rng = random.Random(seed)
-    return [random_source(rng, depth, focus, shapes) for _ in range(count)]
+    return [random_source(rng, depth, focus, shapes, matrix) for _ in range(count)]
+
+
+def unpack(setting: Sequence) -> tuple[int, int, int | None, int | None]:
+    """``(n, dmax, samples, D)`` of a setting; ``D`` (the node's own bound of the per-node
+    architecture) is optional and ``None`` means ``D = dmax``."""
+    n, dmax, samples, *rest = setting
+    return n, dmax, samples, (rest[0] if rest else None)
 
 
 @dataclass
@@ -245,12 +355,16 @@ class FuzzCase:
 
 def run_case(index: int, source: str, settings: Sequence[Setting] = DEFAULT_SETTINGS, seed: int = 0) -> FuzzCase:
     program = parse_program(source)
-    return FuzzCase(index, source, [check_derivation(program, n, dmax, samples, seed) for n, dmax, samples in settings])
+    checks = []
+    for s in settings:
+        n, dmax, samples, D = unpack(s)
+        checks.append(check_derivation(program, n, dmax, samples, seed, D=D))
+    return FuzzCase(index, source, checks)
 
 
 def fuzz(count: int, seed: int = 0, depth: int = 3, settings: Sequence[Setting] = DEFAULT_SETTINGS,
-         focus: float = 0.5, shapes: float = 0.0) -> Iterator[FuzzCase]:
-    for i, src in enumerate(sources(count, seed, depth, focus, shapes)):
+         focus: float = 0.5, shapes: float = 0.0, matrix: float = 0.0) -> Iterator[FuzzCase]:
+    for i, src in enumerate(sources(count, seed, depth, focus, shapes, matrix)):
         yield run_case(i, src, settings, seed)
 
 
@@ -259,13 +373,16 @@ def summarize(cases: Iterable[FuzzCase], settings: Sequence[Setting]) -> list[di
     how tight the bounds are (``gs / max_delta`` over programs with ``max_delta > 0``)."""
     cases = list(cases)
     rows = []
-    for k, (n, dmax, samples) in enumerate(settings):
+    for k, s in enumerate(settings):
+        n, dmax, samples, D = unpack(s)
         checks = [c.checks[k] for c in cases]
         checked = [c for c in checks if c.witness is not None]
         ratios = [c.gs / c.witness.max_delta for c in checked if c.witness.max_delta > 0]
         rows.append({
-            "n": n, "dmax": dmax, "graphs": "every" if samples is None else f"{samples} random",
+            "n": n, "dmax": dmax, "D": dmax if D is None else D,
+            "graphs": "every" if samples is None else f"{samples} random",
             "programs": len(checks), "derived": sum(c.gs is not None for c in checks),
+            "reads_matrix": sum(parse_program(c.source).uses_matrix for c in cases),
             "rejected_by_deriver": sum(c.skipped is not None for c in checks),
             "interpreter_errors": sum(c.error is not None for c in checks),
             "falsified": len(checked), "refuted": sum(c.refuted for c in checked),

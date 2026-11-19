@@ -1,0 +1,171 @@
+{
+  "settings": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      200
+    ],
+    [
+      7,
+      4,
+      200,
+      2
+    ],
+    [
+      6,
+      3,
+      200,
+      5
+    ]
+  ],
+  "count": 3000,
+  "elapsed_seconds": 303.520840852987,
+  "summary": [
+    {
+      "n": 5,
+      "dmax": 3,
+      "D": 3,
+      "graphs": "every",
+      "programs": 3000,
+      "derived": 3000,
+      "reads_matrix": 2825,
+      "rejected_by_deriver": 0,
+      "interpreter_errors": 0,
+      "falsified": 3000,
+      "refuted": 0,
+      "tight": 730,
+      "median_gs_over_max": 2.0,
+      "max_gs_over_max": 7565.029146762671,
+      "zero_change": 955
+    },
+    {
+      "n": 7,
+      "dmax": 4,
+      "D": 4,
+      "graphs": "200 random",
+      "programs": 3000,
+      "derived": 3000,
+      "reads_matrix": 2825,
+      "rejected_by_deriver": 0,
+      "interpreter_errors": 0,
+      "falsified": 3000,
+      "refuted": 0,
+      "tight": 742,
+      "median_gs_over_max": 1.959172466899035,
+      "max_gs_over_max": 1389.2553075009525,
+      "zero_change": 943
+    },
+    {
+      "n": 7,
+      "dmax": 4,
+      "D": 2,
+      "graphs": "200 random",
+      "programs": 3000,
+      "derived": 3000,
+      "reads_matrix": 2825,
+      "rejected_by_deriver": 0,
+      "interpreter_errors": 0,
+      "falsified": 3000,
+      "refuted": 0,
+      "tight": 876,
+      "median_gs_over_max": 2.0,
+      "max_gs_over_max": 10648.116360708531,
+      "zero_change": 1070
+    },
+    {
+      "n": 6,
+      "dmax": 3,
+      "D": 5,
+      "graphs": "200 random",
+      "programs": 3000,
+      "derived": 3000,
+      "reads_matrix": 2825,
+      "rejected_by_deriver": 0,
+      "interpreter_errors": 0,
+      "falsified": 3000,
+      "refuted": 0,
+      "tight": 680,
+      "median_gs_over_max": 1.9999999999999998,
+      "max_gs_over_max": 962.3558012661963,
+      "zero_change": 945
+    }
+  ],
+  "failures": 0,
+  "loosest": [
+    {
+      "index": 1777,
+      "gs": 20095.69064299104,
+      "max_delta": 2.656393022833317,
+      "gs_over_max": 7565.029146762671,
+      "program": "Q = project(P, D - 1) ; T = project(P, 2) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 1948,
+      "gs": 20095.69064299104,
+      "max_delta": 2.656393022833317,
+      "gs_over_max": 7565.029146762671,
+      "program": "Q = project(P, D - 1) ; T = project(P, 2) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 2865,
+      "gs": 20095.69064299104,
+      "max_delta": 2.656393022833317,
+      "gs_over_max": 7565.029146762671,
+      "program": "Q = project(P, 2) ; T = project(P, D - 1) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 423,
+      "gs": 12665.282692334878,
+      "max_delta": 8.13615551986808,
+      "gs_over_max": 1556.6667403796423,
+      "program": "Q = P ; T = project(P, D) ; x = sum(sum(A(j, k) for k in (Q - T)) for j in Q) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 1328,
+      "gs": 12665.282692334878,
+      "max_delta": 8.13615551986808,
+      "gs_over_max": 1556.6667403796423,
+      "program": "Q = P ; T = project(P, dmax) ; x = sum(sum(A(j, k) for k in (Q - T)) for j in Q) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 1412,
+      "gs": 12665.282692334878,
+      "max_delta": 8.13615551986808,
+      "gs_over_max": 1556.6667403796423,
+      "program": "Q = P ; T = project(P, dmax) ; x = sum(sum(A(j, k) for k in (Q - T)) for j in Q) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 1421,
+      "gs": 33880.732913688,
+      "max_delta": 24.38769370234331,
+      "gs_over_max": 1389.2553075009525,
+      "program": "Q = project(P, D) ; T = project(P, D - 1) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 1789,
+      "gs": 33880.732913688,
+      "max_delta": 24.38769370234331,
+      "gs_over_max": 1389.2553075009525,
+      "program": "Q = project(P, D - 1) ; T = project(P, dmax) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 2209,
+      "gs": 33880.732913688,
+      "max_delta": 24.38769370234331,
+      "gs_over_max": 1389.2553075009525,
+      "program": "Q = project(P, D) ; T = project(P, D - 1) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    },
+    {
+      "index": 655,
+      "gs": 63815.43538990009,
+      "max_delta": 100.6184982991796,
+      "gs_over_max": 634.2316419804927,
+      "program": "Q = project(P, D) ; T = project(P, D) ; x = sum(sum(A(j, k) for k in (Q | T)) for j in (Q & T)) ; return x * (x - 1) * (x - 2) / 6"
+    }
+  ]
+}

@@ -75,16 +75,20 @@ def degree_class(task: str | None, program: Program) -> str:
 def dp_execute(
     graph: Graph, program: Program, eps: float, rng: np.random.Generator, task: str | None = None,
     mechanism: str | MechanismProfile = DEFAULT_MECHANISM, r1: float = 0.5, r2: float = 0.2,
-    node_bounds: bool = False, alpha: float = 0.0,
+    node_bounds: bool = False, alpha: float = 0.0, degree_reports: list[float] | None = None,
 ) -> DSLTrace:
     """One DP run of ``program`` on ``graph`` (GS derived from the program).
 
     ``r1`` / ``r2`` are the default budget fractions; a program that sets its own
     ``budget`` uses that instead (as the framework does). ``node_bounds``: every
     node clips its list to its own bound ``D_i`` (edge clipping, Imola et al.
-    2022, :mod:`certicount.dsl.clipping`) and reports with the GS at ``D_i``."""
+    2022, :mod:`certicount.dsl.clipping`) and reports with the GS at ``D_i``.
+    ``degree_reports``: the noisy degrees ``d_i + Lap(1/ε2)`` already published in this run
+    (:func:`degree_release`; the run-time choice among candidates reads them before the
+    program is fixed), used instead of drawing them."""
     if program.uses_matrix:
-        return _dp_execute_matrix(graph, program, eps, rng, task, mechanism, r1, r2, node_bounds, alpha)
+        return _dp_execute_matrix(graph, program, eps, rng, task, mechanism, r1, r2, node_bounds, alpha,
+                                  degree_reports)
     n = graph.n
     mech = get_mechanism(mechanism)
     cls = degree_class(task, program)
@@ -102,7 +106,7 @@ def dp_execute(
     projectors = [smallest_projector] * n
     limits: list[int] | None = None
     if split.eps2 > 0:  # Algorithm 2
-        reports = [len(real[i]) + laplace_noise(1.0, split.eps2, rng) for i in range(n)]
+        reports = _reports(real, split.eps2, rng, degree_reports)
         d_hat = mech.degree_bound(reports, cls).projection_degree
         if noisy is not None:
             noisy = graph_projection(noisy, d_hat, rng)
@@ -133,9 +137,24 @@ def dp_execute(
                     interp.aggregate_coefficient(n), node_gs if node_bounds else None)
 
 
+def degree_release(graph: Graph, eps2: float, rng: np.random.Generator) -> list[float]:
+    """Algorithm 2's release ``y_i = d_i + Lap(1/ε2)`` node by node, in the order of :func:`dp_execute`."""
+    return [len(graph.adj[i]) + laplace_noise(1.0, eps2, rng) for i in range(graph.n)]
+
+
+def _reports(real: list[list[int]], eps2: float, rng: np.random.Generator,
+             given: list[float] | None) -> list[float]:
+    if given is None:
+        return [len(real[i]) + laplace_noise(1.0, eps2, rng) for i in range(len(real))]
+    if len(given) != len(real):
+        raise ValueError(f"{len(given)} degree reports for {len(real)} nodes")
+    return [float(y) for y in given]
+
+
 def _dp_execute_matrix(
     graph: Graph, program: Program, eps: float, rng: np.random.Generator, task: str | None,
     mechanism: str | MechanismProfile, r1: float, r2: float, node_bounds: bool, alpha: float,
+    degree_reports: list[float] | None = None,
 ) -> DSLTrace:
     """NAM-DPRD release (:mod:`certicount.dsl.matrix`) for a program that reads ``A``:
     noisy degrees (ε2) -> per-node (``node_bounds``) or global bound -> projection
@@ -152,7 +171,7 @@ def _dp_execute_matrix(
     d_hat = None
     limits: list[int] | None = None
     if split.eps2 > 0:
-        reports = [len(real[i]) + laplace_noise(1.0, split.eps2, rng) for i in range(n)]
+        reports = _reports(real, split.eps2, rng, degree_reports)
         d_hat = mech.degree_bound(reports, cls).projection_degree
         limits = edge_clipping_bounds(reports, alpha) if node_bounds else [d_hat] * n
         for i in range(n):
@@ -210,6 +229,13 @@ def gs_ratio(gs: float | None, reference: float | None) -> float | None:
     if reference == 0:
         return 1.0 if gs == 0 else math.inf
     return gs / reference
+
+
+def estimate_gs(program: Program, gs: float, n: int) -> float:
+    """The GS in units of the estimate: ``|c| · GS`` with ``c`` the slope of the aggregate in
+    ``total``. ``return count`` with ``aggregate: total / 6`` and ``return count / 6`` with
+    ``aggregate: total`` add the same noise to the estimate; their local GS differ by 6."""
+    return abs(Interpreter(program).aggregate_coefficient(n)) * gs
 
 
 def noise_ratio(scale: float | None, reference: float | None) -> float | None:

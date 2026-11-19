@@ -25,7 +25,7 @@ from dataclasses import asdict, dataclass, field
 from psc.graph import TaskRecord
 
 from .falsifier import falsify
-from .ground_truth import gs_ratio, reference_program
+from .ground_truth import estimate_gs, gs_ratio, reference_program
 from .lang import Program
 from .library import analyst_prompt
 from .matrix import REFERENCE_EPS1
@@ -45,9 +45,11 @@ class DesignQuality:
     sound: bool | None
     falsifier_max_delta: float | None
     problems: list[str] = field(default_factory=list)
+    gs_ratio_raw: float | None = None  # local GS / reference local GS, without the aggregate coefficient
 
     def to_dict(self) -> dict:
         return asdict(self)
+
 
 
 def same_structure(a: Program, b: Program) -> bool:
@@ -66,12 +68,15 @@ def design_quality(
     ref = reference_program(task, node_bounds)
     problems: list[str] = []
     ratios: dict[int, float | None] = {}
+    raw: dict[int, float | None] = {}
     for b in sorted({*bounds, reference_bound}):
         p = PublicParams(n, D=b, dmax=b, eps1=REFERENCE_EPS1)
         try:
-            ratios[b] = gs_ratio(derive(program, p).gs, derive(ref, p).gs)
+            g, gr = derive(program, p).gs, derive(ref, p).gs
+            raw[b] = gs_ratio(g, gr)
+            ratios[b] = gs_ratio(estimate_gs(program, g, n), estimate_gs(ref, gr, n))
         except SensitivityError as exc:
-            ratios[b] = None
+            ratios[b] = raw[b] = None
             problems.append(f"D={b}: {exc}")
     rep = utility_test(program, task, count=utility_graphs, seed=utility_seed, n_range=utility_n, truncate=truncate)
     if not rep.passed:
@@ -90,7 +95,7 @@ def design_quality(
         same_as_reference=same_structure(program, ref),
         split_match=((program.uses_rows, program.uses_matrix, program.needs_degree_bound)
                      == (ref.uses_rows, ref.uses_matrix, ref.needs_degree_bound)),
-        gs_ratio=ratios.get(reference_bound), gs_ratios=ratios,
+        gs_ratio=ratios.get(reference_bound), gs_ratios=ratios, gs_ratio_raw=raw.get(reference_bound),
         semantic_pass=rep.passed, semantic_failures=len(rep.failures), semantic_graphs=rep.graphs,
         sound=sound, falsifier_max_delta=delta, problems=problems,
     )

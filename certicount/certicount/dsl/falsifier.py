@@ -203,6 +203,7 @@ class DerivationCheck:
     n: int
     dmax: int
     samples: int | None  # random symmetric graphs; None: every symmetric graph
+    D: int | None = None  # the node's own bound (per-node architecture); None: D = dmax
     gs: float | None = None
     witness: Counterexample | None = None
     skipped: str | None = None  # the deriver rejects the program at these parameters
@@ -223,18 +224,20 @@ class DerivationCheck:
 
 
 def check_derivation(program: Program, n: int = 5, dmax: int = 3, samples: int | None = None, seed: int = 0,
-                     facts: Facts | None = None) -> DerivationCheck:
-    """Derive the GS at small public parameters (``D = dmax``) and search for a
-    flip that exceeds it on every symmetric graph (``samples=None``) or on
-    ``samples`` random ones (every ``P`` and flip of node 0 on each)."""
-    out = DerivationCheck(n, dmax, samples)
+                     facts: Facts | None = None, D: int | None = None) -> DerivationCheck:
+    """Derive the GS at small public parameters (``D = dmax`` unless ``D`` is given: the
+    per-node architecture, where the node's own bound differs from the bound ``dmax`` of
+    the public rows) and search for a flip that exceeds it on every symmetric graph
+    (``samples=None``) or on ``samples`` random ones (every ``P`` and flip of node 0 on each)."""
+    out = DerivationCheck(n, dmax, samples, D)
+    bound = dmax if D is None else D
     try:
-        out.gs = derive(program, PublicParams(n, D=dmax, dmax=dmax, eps1=REFERENCE_EPS1), facts).gs
+        out.gs = derive(program, PublicParams(n, D=bound, dmax=dmax, eps1=REFERENCE_EPS1), facts).gs
     except SensitivityError as exc:
         out.skipped = str(exc)
         return out
     try:
-        _, out.witness = falsify(program, out.gs, n=n, dmax=dmax, samples=samples or 0, seed=seed,
+        _, out.witness = falsify(program, out.gs, n=n, dmax=dmax, D=bound, samples=samples or 0, seed=seed,
                                  exhaustive=samples is None)
     except (ArithmeticError, ValueError) as exc:
         out.error = f"{type(exc).__name__}: {exc}"

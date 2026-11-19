@@ -18,6 +18,10 @@
 #   CS6   fixes of the four CS5 problems: tighter deriver, prompt core v1 + format repairs, evolution with
 #         GS term / Pareto parents / confirmed replacement, min-GS selection + tighten round; CS6a compares
 #         the prompt cores A v1 / B v1-repeat3 / C v1-alt
+#   CS7   per-node architecture only: the curator writes one program per release (rows N / matrix A), the system
+#         certifies both and chooses by simulating the release on public graphs (design time: Holme-Kim graphs of
+#         the public n; run time: Chung-Lu graphs of the published noisy degrees); own-row check; fuzzing of A
+#         programs and own bounds D != dmax; normalised GS ratio
 #
 # Order:
 #   scripts/run_cscwd.sh check                      # code version + offline tests (no GPU)
@@ -43,6 +47,8 @@
 #   scripts/run_cscwd.sh cs6-all                    # CS6 (fixes of the four CS5 problems), same server:
 #                                                   # check, cs6b (background, no model), cs6a, cs6c-evolve,
 #                                                   # cs6c-eval, cs6-summary -> results/cs6_summary.md
+#   scripts/run_cscwd.sh cs7-all                    # CS7, same server: check, cs7-offline (background, no model),
+#                                                   # cs7-eval, cs7-summary -> results/cs7_summary.md
 #
 # Every executed command is appended to results/cscwd_commands.log with UTC time and git revision.
 # Existing tags are refused by the scripts (no overwrite): to rerun a stage, move its directory away.
@@ -134,7 +140,7 @@ case $cmd in
     [ -f tests/test_matrix.py ] && [ -f certicount/dsl/matrix.py ] \
       || { echo "this checkout lacks the per-node architecture (dsl/matrix.py, tests/test_matrix.py)" >&2; exit 1; }
     git --no-pager log --oneline -1; git --no-pager status --short -- . ../psc | head -30
-    run "$PY" -m pytest tests -q ;;                                   # expected: 323 passed, 1 skipped
+    run "$PY" -m pytest tests -q ;;                                   # expected: 332 passed, 1 skipped
 
   serve)  # $1 = 8b | 1.7b; both on one GPU: 8B first (0.55), then 1.7B (0.35)
     # MAXLEN: context length (default 16384, as CS1-CS3). CS4/CS5 design and reflection prompts (up to ~4k
@@ -370,6 +376,50 @@ print('$1: refuted or failing programs', f); sys.exit(1 if f else 0)" \
     "$0" cs6-summary
     echo "[cs6-all] $(date -u +%FT%TZ) done: results/cs6_summary.md" ;;
 
+  # ---------------- CS7: per-node architecture only; release rounds + simulated choice ----------------
+  # CS7-offline (no model): fuzzing of the deriver on programs that read A and on own bounds D != dmax (must report
+  #       0 refuted), and the replay of the CS4/CS5 per-node runs through the new checks (own-row check, no gate,
+  #       simulated choice between pairs of designs).
+  cs7-offline)
+    for spec in "cs7_fuzz_matrix 2 0 1.0 5x3,7x4:200,7x4d2:200,6x3d5:200" \
+                "cs7_fuzz_node_rows 3 0.5 0 5x3d2,7x4d2:200,6x3d5:200"; do
+      set -- $spec
+      done_or_reset "results/dsl/$1" table.md || \
+        run "$PY" scripts/run_dsl_fuzz.py --tag "$1" --count 3000 --seed "$2" --shapes "$3" --matrix "$4" \
+          --checks "$5" --workers 8
+      "$PY" -c "import json, sys; f = json.load(open('results/dsl/$1/summary.json'))['failures']; \
+print('$1: refuted or failing programs', f); sys.exit(1 if f else 0)" \
+        || { echo "PRIVACY CHECK FAILED in results/dsl/$1" >&2; exit 3; }
+    done
+    done_or_reset results/dsl_eval/cs7_offline_replay table.md || \
+      run "$PY" scripts/replay_selection_offline.py results/dsl_eval/cs4_online_node-arch_d10_a5.0 \
+        results/dsl_eval/cs5_eval_node_v0 results/dsl_eval/cs5_eval_node_evolved results/dsl_eval/cs5_eval_node_v0-r2 \
+        --tag cs7_offline_replay ;;
+  # CS7-eval: held-out tasks on PM, per-node architecture (alpha of cs0), prompt core v1-alt, 20 designs per task:
+  #   gate        one loop, noise-free gate (the CS6 setting moved to the per-node architecture)
+  #   sim         one loop per release (rows, matrix), own-row check, 1 tighten round, simulated choice (no gate)
+  #   sim-noown   the same without the own-row check (its ablation)
+  #   small       sim on CU and Do triangle (the graphs where the row program beats the matrix program)
+  cs7-eval)
+    NODE=(--node-bounds --clip-alpha "$(alpha)" --tasks "$HELD_OUT" --designs 20 --prompt v1-alt)
+    design_run cs7_node_v1alt_gate "${NODE[@]}" --restarts 1
+    design_run cs7_node_v1alt_sim "${NODE[@]}" --select simulated --own-row-check --tighten 1
+    design_run cs7_node_v1alt_sim-noown "${NODE[@]}" --select simulated --tighten 1
+    design_run cs7_node_v1alt_sim_cudo "${NODE[@]}" --datasets CU,Do --tasks triangle --select simulated \
+      --own-row-check --tighten 1 ;;
+  cs7-summary)
+    run "$PY" scripts/summarize_cs7.py --out results/cs7_summary.md ;;
+  cs7-all)
+    echo "[cs7-all] $(date -u +%FT%TZ) start"
+    "$0" check
+    "$0" cs7-offline > results/cs7_offline.log 2>&1 &
+    offline_pid=$!
+    until curl -sf "$URL_8B/models" >/dev/null; do echo "waiting for $URL_8B"; sleep 15; done
+    "$0" cs7-eval
+    wait "$offline_pid" || { echo "[cs7-all] cs7-offline failed, see results/cs7_offline.log" >&2; exit 1; }
+    "$0" cs7-summary
+    echo "[cs7-all] $(date -u +%FT%TZ) done: results/cs7_summary.md" ;;
+
   *)
-    sed -n '2,49p' "$0"; exit 2 ;;
+    sed -n '2,55p' "$0"; exit 2 ;;
 esac

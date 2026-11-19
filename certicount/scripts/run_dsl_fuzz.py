@@ -27,12 +27,15 @@ from certicount.dsl.fuzz import Setting, run_case, sources, summarize  # noqa: E
 
 
 def parse_checks(text: str) -> list[Setting]:
-    """``"5x3,7x4:200"`` -> ``[(5, 3, None), (7, 4, 200)]`` (``:k`` = k random graphs)."""
+    """``"5x3,7x4:200,7x4d2:200"`` -> ``[(5, 3, None), (7, 4, 200), (7, 4, 200, 2)]`` (``:k`` = k random
+    graphs; ``dK``: the node's own bound D = K of the per-node architecture, default D = dmax)."""
     out: list[Setting] = []
     for part in text.split(","):
         size, _, samples = part.strip().partition(":")
+        size, _, own = size.partition("d")
         n, dmax = (int(x) for x in size.split("x"))
-        out.append((n, dmax, int(samples) if samples else None))
+        s = (n, dmax, int(samples) if samples else None)
+        out.append(s + (int(own),) if own else s)
     return out
 
 
@@ -49,14 +52,18 @@ def main() -> None:
     ap.add_argument("--focus", type=float, default=0.5, help="share of programs built around a sum of rows")
     ap.add_argument("--shapes", type=float, default=0.0,
                     help="share of programs of certicount.dsl.fuzz.shape_source (one-count polynomials, pair sums)")
-    ap.add_argument("--checks", default="5x3,7x4:200", help="n x dmax, ':k' for k random symmetric graphs")
+    ap.add_argument("--matrix", type=float, default=0.0,
+                    help="share of programs that read the unbiased matrix A (per-node architecture; checked first)")
+    ap.add_argument("--checks", default="5x3,7x4:200",
+                    help="n x dmax, 'dK' for the node's own bound D = K (per-node architecture), "
+                         "':k' for k random symmetric graphs / sign matrices")
     ap.add_argument("--workers", type=int, default=1)
     args = ap.parse_args()
 
     settings = parse_checks(args.checks)
     out = out_dir("dsl", args.tag, "dsl_fuzz")
     jobs = [(i, src, settings, args.seed)
-            for i, src in enumerate(sources(args.count, args.seed, args.depth, args.focus, args.shapes))]
+            for i, src in enumerate(sources(args.count, args.seed, args.depth, args.focus, args.shapes, args.matrix))]
     t0 = time.perf_counter()
     cases = []
     if args.workers > 1:
@@ -87,18 +94,18 @@ def main() -> None:
     md = [
         "# Deriver fuzz", "",
         f"{args.count} random programs (seed {args.seed}, depth {args.depth}, focus {args.focus}, "
-        f"shapes {args.shapes}); GS derived at "
-        "`PublicParams(n, D = dmax, dmax)` vs the falsifier's largest change on the same parameters "
+        f"shapes {args.shapes}, matrix {args.matrix}); GS derived at "
+        "`PublicParams(n, D, dmax)` (D = dmax unless the setting gives the node's own bound) vs the falsifier's largest change on the same parameters "
         f"(node 0, every P, every flip); {elapsed:.0f}s with {args.workers} worker(s).", "",
         "`refuted`: falsifier change > derived GS (a deriver bug, must be 0); `tight`: equal; "
         "`median_gs_over_max` / `max_gs_over_max` over programs with a nonzero change (> 1: possibly loose).", "",
-        markdown_table(rows, ["n", "dmax", "graphs", "programs", "derived", "rejected_by_deriver", "interpreter_errors",
+        markdown_table(rows, ["n", "dmax", "D", "graphs", "programs", "reads_matrix", "derived", "rejected_by_deriver", "interpreter_errors",
                               "falsified", "refuted", "tight", "zero_change", "median_gs_over_max", "max_gs_over_max"]), "",
         f"## Refuted or failing programs: {len(failures)}", "",
     ]
     if failures:
         md += [markdown_table([{"index": c.index, "program": c.source.replace("\n", " ; "),
-                                "checks": "; ".join(f"n={k.n} dmax={k.dmax}: gs={k.gs} max="
+                                "checks": "; ".join(f"n={k.n} dmax={k.dmax} D={k.D}: gs={k.gs} max="
                                                     f"{k.witness.max_delta if k.witness else None} {k.error or ''}"
                                                     for k in c.checks)} for c in failures[:20]],
                               ["index", "program", "checks"]), "", "Details in `failures.jsonl`.", ""]

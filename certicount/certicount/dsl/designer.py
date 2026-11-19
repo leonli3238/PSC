@@ -19,10 +19,11 @@ the program of a task.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 
 from agentscope.formatter import FormatterBase
@@ -33,11 +34,13 @@ from psc.models import chat
 from psc.prompts import extract_structured, structured_block
 
 from .falsifier import check_derivation
-from .lang import DSLError, Program, parse_program
-from .library import NODE_PROGRAMS, PROGRAMS, infer_program_task, kstar_source
+from .ground_truth import estimate_gs
+from .lang import BinOp, Call, DSLError, Name, Neg, Program, Sum, parse_program
+from .library import NODE_PROGRAMS, PROGRAMS, ProgramSource, infer_program_task, kstar_source
 from .matrix import REFERENCE_EPS1
 from .noisy_gate import NoisyGate, noise_free_check
 from .prompt_spec import V0, PromptSpec
+from .selection import Selection, SimOptions, select_program
 from .sensitivity import PublicParams, SensitivityError, derive
 from .utility import named_graphs, random_graphs, run_exact, utility_test
 
@@ -109,6 +112,16 @@ MATRIX_REFERENCE = """Per-node architecture (this run):
   bits of the projected neighbor lists: E[A(x, y)] = 1 if the edge is kept, 0 otherwise; A(x, x) = 0.
   Each value is noisy (between -1/(e^eps1 - 1) and e^eps1/(e^eps1 - 1)) but sums of A are unbiased counts.
   A program reads either N(...) or A(...), not both; reading A costs the same budget as N."""
+
+# Release of one design round of design_candidates (per-node architecture): the curator writes one
+# program per release and the system keeps the more accurate one (certicount.dsl.selection).
+RELEASE_NOTES = {
+    "rows": ("This design round: do not use A(...). If the statistic needs edges between other nodes, read the "
+             "noisy rows N(...); if it does not, use P only."),
+    "matrix": ("This design round: do not use N(...). If the statistic needs edges between other nodes, read the "
+               "unbiased matrix A(...); if it does not, use P only."),
+}
+RELEASES = tuple(RELEASE_NOTES)
 
 _FORMAT_LEGACY = (
     "Reply with exactly two parts:\n```dsl\n<program>\n```\naggregate: <expression over total and n>"
@@ -213,14 +226,17 @@ def render_attempt(i: int, h: dict) -> str:
 
 
 def design_prompt(input_prompt: str, n: int, history: list[dict], matrix: bool = False,
-                  spec: PromptSpec | None = None) -> str:
+                  spec: PromptSpec | None = None, release: str | None = None) -> str:
     """``spec``: evolvable modules and prompt core (:mod:`certicount.dsl.prompt_spec`); a spec with
-    ``core="legacy"`` and empty modules gives the CS2-CS5 prompt byte for byte."""
+    ``core="legacy"`` and empty modules gives the CS2-CS5 prompt byte for byte. ``release``: the
+    release of this design round (:data:`RELEASE_NOTES`; per-node architecture)."""
     payload = {"phase": "design_program", "input_prompt": input_prompt, "attempt": len(history) + 1}
+    if release is not None:
+        payload["release"] = release
     core = spec.core if spec is not None else V0.core
     reference = dsl_reference(core, matrix)
     guidance = spec.guidance() if spec is not None else ""
-    parts = [reference] + ([guidance] if guidance else [])
+    parts = [reference] + ([RELEASE_NOTES[release]] if release is not None else []) + ([guidance] if guidance else [])
     parts += [f"The input prompt from the analyst is:\n\"\"\"\n{input_prompt}\n\"\"\"", f"The graph has {n} nodes."]
     if history:
         attempts = "\n\n".join(render_attempt(i, h) for i, h in enumerate(history, 1))
@@ -454,6 +470,43 @@ def check_draft(program: Program, task: str | None, params: PublicParams, utilit
     return None
 
 
+def _own_row_calls(e) -> list[str]:
+    """``N(self)`` / ``A(self, .)`` / ``A(., self)`` calls in an expression."""
+    out: list[str] = []
+    if isinstance(e, Call):
+        if e.func in ("N", "A") and any(isinstance(a, Name) and a.id == "self" for a in e.args):
+            out.append(f"{e.func}(...self...)")
+        for a in e.args:
+            out += _own_row_calls(a)
+    elif isinstance(e, BinOp):
+        out += _own_row_calls(e.left) + _own_row_calls(e.right)
+    elif isinstance(e, Neg):
+        out += _own_row_calls(e.operand)
+    elif isinstance(e, Sum):
+        out += _own_row_calls(e.body) + _own_row_calls(e.domain)
+    return out
+
+
+def reads_own_row(program: Program) -> bool:
+    return any(_own_row_calls(e) for _, e in program.assigns) or bool(_own_row_calls(program.ret))
+
+
+OWN_ROW_FEEDBACK = (
+    "the program reads this node's own entries of the release (N(self), A(self, ...) or A(..., self)). In this "
+    "architecture they are only randomized copies of this node's own edges, which it knows exactly as P: they add "
+    "noise and no information. Use P (bounded: project(P, D)) for this node's own neighbors and read the release "
+    "only for edges between other nodes")
+
+
+def release_feedback(program: Program, release: str | None) -> str | None:
+    """Rejection if the draft reads the release the design round excludes (:data:`RELEASE_NOTES`)."""
+    if release == "rows" and program.uses_matrix:
+        return "this design round must not read A(...): read the noisy rows N(...) or P only"
+    if release == "matrix" and program.uses_rows:
+        return "this design round must not read N(...): read the unbiased matrix A(...) or P only"
+    return None
+
+
 def growth_feedback(program: Program, params: PublicParams, gs: float | None = None) -> str | None:
     """Rejection if the derived GS grows with the number of nodes at fixed public degree bounds:
     some set reaching the count is bounded only by ``n - 1`` (e.g. ``P`` without ``project``), so the
@@ -480,6 +533,8 @@ def draft_stage(feedback: str | None) -> str:
                           ("identical to attempt", "duplicate"), ("sensitivity check failed", "gs_failed"),
                           ("sensitivity GS", "gs_loose"), ("utility test failed", "semantic"),
                           ("noise-free check failed", "noisy"), ("sensitivity certification failed", "refuted"),
+                          ("this design round must not", "release"),
+                          ("the program reads this node's own entries", "own_row"),
                           ("the program fails on a public test graph", "refuted"), ("superseded", "superseded"),
                           ("not tighter", "not_tighter")):
         if f.startswith(prefix):
@@ -554,7 +609,17 @@ def tighten_request(slack: BoundSlack) -> str:
             f"and maximum degree {slack.dmax} it derives GS = {slack.gs:g}, but one changed neighbor never changes the "
             f"result by more than {slack.observed:g}. The noise is scaled to the derived bound. The checker bounds "
             "exactly any expression that reads the private data through a single size(...); it bounds products of "
-            "different counts, and sets that are counted before being intersected, more loosely")
+            "different counts, and sets that are counted before being intersected, more loosely. A difference of two "
+            "counts over the same sets is bounded by the sum of both bounds, although one changed neighbor moves "
+            "both: count the difference inside one sum instead")
+
+
+def static_feedback(program: Program, opts: "DesignOptions") -> str | None:
+    """Checks of the draft's text before any derivation: the release of the round, own rows."""
+    fb = release_feedback(program, opts.release)
+    if fb is None and opts.own_row and reads_own_row(program):
+        fb = OWN_ROW_FEEDBACK
+    return fb
 
 
 def _duplicate_of(program: Program, seen: dict[str, int]) -> int | None:
@@ -574,7 +639,14 @@ class DesignOptions:
     ``select`` / ``min_accepted`` (:func:`design_with_restarts`): ``"first"`` keeps the first accepted
     program; ``"min_gs"`` runs restarts until ``min_accepted`` behaviourally different programs
     are accepted (or the restarts run out) and keeps the one with the smallest derived GS, then the
-    smallest noise-free error on the public graphs. Everything compared is public."""
+    smallest noise-free error on the public graphs. Everything compared is public.
+    GS comparisons (``tighten``, ``min_gs``) use the GS in units of the estimate, ``|c| · GS``
+    (:func:`certicount.dsl.ground_truth.estimate_gs`): moving a constant factor between the
+    local program and the aggregate is not a tighter program.
+    ``release`` (per-node architecture, :func:`design_candidates`): ``"rows"`` rejects drafts that
+    read ``A``, ``"matrix"`` drafts that read ``N``; ``None``: no restriction.
+    ``own_row``: reject drafts that read this node's own entries of the release (``N(self)``,
+    ``A(self, .)``, :data:`OWN_ROW_FEEDBACK`); for the per-node architecture only."""
 
     normalize: bool = True
     tighten: int = 0
@@ -582,6 +654,8 @@ class DesignOptions:
     early_stop: tuple[str, ...] = ()
     select: str = "first"
     min_accepted: int = 1
+    release: str | None = None
+    own_row: bool = False
 
     def to_dict(self) -> dict:
         return {k: (list(v) if isinstance(v, tuple) else v) for k, v in asdict(self).items()}
@@ -619,8 +693,8 @@ async def design_program(
     async def draft() -> tuple[Program | None, dict]:
         nonlocal calls
         calls += 1
-        text = await chat(model, formatter, DESIGNER_SYSTEM, design_prompt(input_prompt, n, history, matrix, spec),
-                          agent="Curator")
+        text = await chat(model, formatter, DESIGNER_SYSTEM,
+                          design_prompt(input_prompt, n, history, matrix, spec, opts.release), agent="Curator")
         return read_draft(text, normalize=opts.normalize, core=(spec or V0).core)
 
     for it in range(1, max_iterations + 1):
@@ -631,7 +705,7 @@ async def design_program(
             reject(entry, f"rejected: identical to attempt {dup}, which was already rejected")
         else:
             seen[program.digest] = it
-            feedback = check_draft(program, task, params, public_n=n, noisy=noisy)
+            feedback = static_feedback(program, opts) or check_draft(program, task, params, public_n=n, noisy=noisy)
             if feedback is None:
                 gs = derive(program, params).gs
                 history.append({**entry, "feedback": "accepted", "gs": gs})
@@ -663,17 +737,20 @@ async def _tighten(program: Program, gs: float, entry: dict, history: list[dict]
             history.append({**centry, "feedback": "not tighter: the same program as an earlier attempt"})
             break
         seen[cand.digest] = len(history) + 1
-        feedback = check_draft(cand, task, params, public_n=n, noisy=noisy)
+        feedback = static_feedback(cand, opts) or check_draft(cand, task, params, public_n=n, noisy=noisy)
         if feedback is not None:
             history.append({**centry, "feedback": f"rejected: {feedback}"})
             continue
         cgs = derive(cand, params).gs
-        if cgs < gs * (1 - 1e-9):
-            accepted["feedback"] = f"superseded: a later attempt has the smaller GS {cgs:g} (this one {gs:g})"
+        ce, pe = estimate_gs(cand, cgs, n), estimate_gs(program, gs, n)
+        if ce < pe * (1 - 1e-9):
+            accepted["feedback"] = (f"superseded: a later attempt has the smaller GS {cgs:g} (this one {gs:g}; "
+                                    f"in units of the estimate {ce:g} against {pe:g})")
             history.append({**centry, "feedback": "accepted", "gs": cgs})
             program, gs = cand, cgs
         else:
-            history.append({**centry, "feedback": f"not tighter: GS {cgs:g} is not below {gs:g}"})
+            history.append({**centry, "feedback": f"not tighter: GS {cgs:g} ({ce:g} in units of the estimate, the "
+                                                  f"aggregate's factor included) is not below {pe:g}"})
     return program, gs
 
 
@@ -731,15 +808,78 @@ async def design_with_restarts(
         if noisy is not None and task is not None:
             bias = max(row["bias"] for row in noise_free_check(res.program, task, noisy).rows)
         cands.append({"restart": r, "gs": res.gs_reference, "noise_free_bias": bias, "program": res.program.text(),
-                      "result": res})
-    best = min(cands, key=lambda c: (c["gs"], c["noise_free_bias"] if c["noise_free_bias"] is not None else 0.0,
-                                     c["restart"]))
+                      "estimate_gs": estimate_gs(res.program, res.gs_reference, n), "result": res})
+    best = min(cands, key=lambda c: (c["estimate_gs"],
+                                     c["noise_free_bias"] if c["noise_free_bias"] is not None else 0.0, c["restart"]))
     chosen: DesignResult = best["result"]
     out = DesignResult(chosen.program, task, chosen.iterations, True, chosen.gs_reference, chosen.history, calls,
                        restarts=len(attempts), attempts=attempts)
     out.selection = {"rule": "min_gs", "chosen_restart": best["restart"],
                      "candidates": [{k: v for k, v in c.items() if k != "result"} for c in cands]}
     return out
+
+
+async def design_candidates(
+    model: ChatModelBase, formatter: FormatterBase, input_prompt: str, n: int,
+    params: PublicParams, task: str, sim: SimOptions, max_iterations: int = 3, restarts: int = 1,
+    spec: PromptSpec | None = None, options: DesignOptions | None = None,
+    releases: tuple[str, ...] = RELEASES,
+) -> tuple[DesignResult, list[Program], Selection | None]:
+    """Per-node architecture: the curator designs one program per release (``releases``, one
+    independent design loop each, :data:`RELEASE_NOTES`), the system certifies each with the
+    usual checks and chooses by simulating the whole release on public graphs
+    (:func:`certicount.dsl.selection.select_program`; ``sim``: its
+    :class:`~certicount.dsl.selection.SimOptions`). Behaviourally identical programs (the same
+    ``P``-only program from both rounds) are one candidate.
+
+    Returns ``(result, candidates, selection)``: ``result.program`` is the design-time choice
+    (``None`` if no candidate is usable), ``result.selection`` records every candidate, its
+    simulated score and the alternatives left to the run-time choice
+    (:func:`certicount.dsl.selection.execute_selected`)."""
+    base = options or DesignOptions()
+    loops = await asyncio.gather(*(
+        design_with_restarts(model, formatter, input_prompt, n, params, task, max_iterations, restarts, True, None,
+                             spec, replace(base, release=r, select="first"))
+        for r in releases))
+    attempts, cands, origin, keys = [], [], [], {}
+    for r, res in zip(releases, loops):
+        for a in res.attempts:
+            attempts.append({**a, "release": r})
+        if res.accepted and res.program is not None:
+            key = behavior_key(res.program, params)
+            if key in keys:
+                origin[keys[key]].append(r)
+                continue
+            keys[key] = len(cands)
+            cands.append((res, r))
+            origin.append([r])
+    programs = [res.program for res, _ in cands]
+    sel = select_program(programs, task, sim) if programs else None
+    calls = sum(res.llm_calls for res in loops)
+    rows = []
+    for i, (res, r) in enumerate(cands):
+        rows.append({**sel.rows[i], "releases": origin[i], "program": res.program.text(), "gs": res.gs_reference,
+                     "estimate_gs": estimate_gs(res.program, res.gs_reference, n)})
+    selection = {"rule": "simulated", "releases": list(releases), "sim": sim.to_dict(),
+                 "chosen": sel.chosen if sel else None, "runtime": sel.runtime if sel else [], "candidates": rows,
+                 "accepted_by_release": {r: res.accepted for r, res in zip(releases, loops)}}
+    if sel is None or sel.chosen is None:
+        last = loops[-1]
+        out = DesignResult(None, task, max(res.iterations for res in loops), False, None, last.history, calls,
+                           restarts=max(res.restarts for res in loops), attempts=attempts)
+    else:
+        chosen = cands[sel.chosen][0]
+        out = DesignResult(chosen.program, task, chosen.iterations, True, chosen.gs_reference, chosen.history, calls,
+                           restarts=chosen.restarts, attempts=attempts)
+    out.selection = selection
+    return out, programs, sel
+
+
+# Row programs of the mock curator in a "rows" design round: the PSC references, except the triangle
+# count, whose PSC reference reads N(self) (rejected by the own-row check of the per-node architecture).
+MOCK_ROW_PROGRAMS = {
+    "triangle": ProgramSource("Q = project(P, D)\nreturn 0.5 * sum(size(N(v) & Q) for v in Q)", "total / 3"),
+}
 
 
 class MockDesignerModel(ChatModelBase):
@@ -766,8 +906,13 @@ class MockDesignerModel(ChatModelBase):
         task = infer_program_task(payload.get("input_prompt", ""))
         if task is None:
             return _text("I cannot express this task.")
-        # the per-node architecture documents A: answer with that architecture's reference
-        src = (NODE_PROGRAMS if "A(x, y)" in user else PROGRAMS).get(task)
+        # the per-node architecture documents A: answer with that architecture's reference; a design
+        # round restricted to the rows (design_candidates) gets the row program of MOCK_ROW_PROGRAMS
+        release = payload.get("release")
+        if release == "rows":
+            src = MOCK_ROW_PROGRAMS.get(task) or PROGRAMS.get(task)
+        else:
+            src = (NODE_PROGRAMS if "A(x, y)" in user else PROGRAMS).get(task)
         m = re.fullmatch(r"(\d+)-star", task)
         if src is None and m:
             src = kstar_source(int(m.group(1)))
