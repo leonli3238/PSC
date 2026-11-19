@@ -1,0 +1,3 @@
+{"time": "2026-11-19T04:05:52.706", "kind": "api_error", "dataset": "PM", "task": "5-star", "design": 8, "model": "Qwen3-8B", "attempt": 1, "elapsed": 6.93, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-11-19T04:05:52.965", "kind": "api_error", "dataset": "PM", "task": "5-star", "design": 3, "model": "Qwen3-8B", "attempt": 1, "elapsed": 0.75, "status": null, "message": "APIConnectionError: Connection error."}
+{"time": "2026-11-19T04:15:26.801", "kind": "api_error", "dataset": "PM", "task": "degree-moment2", "design": 8, "model": "Qwen3-8B", "attempt": 1, "elapsed": 6.36, "status": null, "message": "APITimeoutError: Request timed out."}

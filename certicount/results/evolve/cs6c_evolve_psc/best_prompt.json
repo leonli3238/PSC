@@ -1,0 +1,11 @@
+{
+  "name": "g1c3",
+  "parent": "v0",
+  "digest": "f4723269c9dad172",
+  "core": "v1",
+  "rules": [
+    "Always apply project(P, D) before using comb or pow on the size of P to ensure tight bounds and correct sensitivity."
+  ],
+  "examples": [],
+  "repair_hints": []
+}

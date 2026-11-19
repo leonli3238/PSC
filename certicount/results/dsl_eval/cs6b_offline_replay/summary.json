@@ -1,0 +1,347 @@
+{
+  "dirs": [
+    "results/dsl_eval/cs2_pm_psc-arch_d10",
+    "results/dsl_eval/cs4_online_psc-arch_d10",
+    "results/dsl_eval/cs5_eval_psc_v0",
+    "results/dsl_eval/cs5_eval_psc_v0-r2",
+    "results/dsl_eval/cs5_eval_psc_evolved"
+  ],
+  "format": [
+    {
+      "source": "cs2_pm_psc-arch_d10",
+      "parse_failures": 16,
+      "rescued": 5,
+      "left": 11
+    },
+    {
+      "source": "cs4_online_psc-arch_d10",
+      "parse_failures": 21,
+      "rescued": 2,
+      "left": 19
+    },
+    {
+      "source": "cs5_eval_psc_v0",
+      "parse_failures": 18,
+      "rescued": 3,
+      "left": 15
+    },
+    {
+      "source": "cs5_eval_psc_v0-r2",
+      "parse_failures": 21,
+      "rescued": 6,
+      "left": 15
+    },
+    {
+      "source": "cs5_eval_psc_evolved",
+      "parse_failures": 26,
+      "rescued": 12,
+      "left": 14
+    }
+  ],
+  "categories": [
+    {
+      "category": "set_as_number",
+      "drafts": 16,
+      "example": "degree = project(P, D) ; return comb(degree, 2)"
+    },
+    {
+      "category": "condition_in_sum",
+      "drafts": 14,
+      "example": "name = sum(1 for a in N(self) for b in N(self) if a < b) ; return name"
+    },
+    {
+      "category": "unknown_node_name",
+      "drafts": 13,
+      "example": "sum_val = sum( size(N(v) & N(u)) for v in N(u) ) ; return sum_val / 2"
+    },
+    {
+      "category": "floor_div_in_aggregate",
+      "drafts": 7,
+      "example": "name = comb(size(N(self)), 2) ; return name"
+    },
+    {
+      "category": "name_reassigned",
+      "drafts": 5,
+      "example": "name = size(project(P, D)) ; name = comb(name, 2) ; return name"
+    },
+    {
+      "category": "project_args",
+      "drafts": 3,
+      "example": "k = size(P) ; k_proj = project(k, D) ; return comb(k_proj, 2)"
+    },
+    {
+      "category": "procedural_loop",
+      "drafts": 3,
+      "example": "count = 0 ; for v in P: ;     for w in P - {v}: ;         count += size(N(v) & N(w)) ; return count"
+    },
+    {
+      "category": "literal_or_index",
+      "drafts": 3,
+      "example": "name = sum( size(N(y) & {z}) * size(N(z) & {y}) for y in project(P, D) for z in project(P, D) ) ; return name"
+    },
+    {
+      "category": "comb_nonconstant_k",
+      "drafts": 3,
+      "example": "s = project(P, D) ; k = 5 ; name = comb(size(s), k) ; return name"
+    },
+    {
+      "category": "power_operator",
+      "drafts": 3,
+      "example": "s = project(P, D) ; return size(s) ** 2"
+    },
+    {
+      "category": "missing_return",
+      "drafts": 3,
+      "example": "name = sum( sum( (size(P & N(v)) - size(P & N(v) - {v})) * (size(N(v) & P) - size(N(v) & P - {v})) for v in P ) )"
+    },
+    {
+      "category": "unknown_function",
+      "drafts": 1,
+      "example": "degree = size(P) ; count = degree * (degree - 1) * (degree - 2) / 6 ; return count + LaplaceNoise((D - 1) * (D - 2) / 2)"
+    }
+  ],
+  "gs": [
+    {
+      "source": "cs2_pm_psc-arch_d10",
+      "task": "degree",
+      "accepted": 10,
+      "gs_ratio_old": 1.0,
+      "gs_ratio_new": 1.0,
+      "loose_old": 0,
+      "loose_new": 0,
+      "re_old": 0.002998364002014019,
+      "re_new": 0.002998364002014019,
+      "re_reference": 0.002998364002014019
+    },
+    {
+      "source": "cs2_pm_psc-arch_d10",
+      "task": "2-star",
+      "accepted": 10,
+      "gs_ratio_old": 5.822222222222222,
+      "gs_ratio_new": 5.811111111111112,
+      "loose_old": 1,
+      "loose_new": 1,
+      "re_old": 4.464370604778167,
+      "re_new": 4.464355267006188,
+      "re_reference": 0.044316802727777604
+    },
+    {
+      "source": "cs2_pm_psc-arch_d10",
+      "task": "3-star",
+      "accepted": 9,
+      "gs_ratio_old": 315.16975308641975,
+      "gs_ratio_new": 313.75,
+      "loose_old": 2,
+      "loose_new": 1,
+      "re_old": 14.750372564019353,
+      "re_new": 14.750086726187519,
+      "re_reference": 0.12268692275297165
+    },
+    {
+      "source": "cs2_pm_psc-arch_d10",
+      "task": "triangle",
+      "accepted": 8,
+      "gs_ratio_old": 0.8055555555555556,
+      "gs_ratio_new": 0.6666666666666667,
+      "loose_old": 3,
+      "loose_new": 1,
+      "re_old": 63.61890558548555,
+      "re_new": 63.5923748789986,
+      "re_reference": 1.029455832336833
+    },
+    {
+      "source": "cs4_online_psc-arch_d10",
+      "task": "degree",
+      "accepted": 10,
+      "gs_ratio_old": 1.0,
+      "gs_ratio_new": 1.0,
+      "loose_old": 0,
+      "loose_new": 0,
+      "re_old": 0.003047323247261721,
+      "re_new": 0.003047323247261721,
+      "re_reference": 0.002998364002014019
+    },
+    {
+      "source": "cs4_online_psc-arch_d10",
+      "task": "2-star",
+      "accepted": 9,
+      "gs_ratio_old": 1.0123456790123457,
+      "gs_ratio_new": 1.0,
+      "loose_old": 1,
+      "loose_new": 0,
+      "re_old": 0.04433677111976538,
+      "re_new": 0.0443168027277776,
+      "re_reference": 0.044316802727777604
+    },
+    {
+      "source": "cs4_online_psc-arch_d10",
+      "task": "3-star",
+      "accepted": 10,
+      "gs_ratio_old": 1.1,
+      "gs_ratio_new": 1.0,
+      "loose_old": 4,
+      "loose_new": 0,
+      "re_old": 0.12308423079801072,
+      "re_new": 0.12268692275297166,
+      "re_reference": 0.12268692275297165
+    },
+    {
+      "source": "cs4_online_psc-arch_d10",
+      "task": "triangle",
+      "accepted": 2,
+      "gs_ratio_old": 1.5555555555555556,
+      "gs_ratio_new": 1.0,
+      "loose_old": 2,
+      "loose_new": 0,
+      "re_old": 1.692922811213569,
+      "re_new": 1.5867999852657446,
+      "re_reference": 1.029455832336833
+    },
+    {
+      "source": "cs5_eval_psc_v0",
+      "task": "3-star",
+      "accepted": 9,
+      "gs_ratio_old": 1.1388888888888888,
+      "gs_ratio_new": 1.0,
+      "loose_old": 5,
+      "loose_new": 0,
+      "re_old": 0.12323873948219258,
+      "re_new": 0.12268692275297166,
+      "re_reference": 0.12268692275297165
+    },
+    {
+      "source": "cs5_eval_psc_v0",
+      "task": "5-star",
+      "accepted": 9,
+      "gs_ratio_old": 1.0,
+      "gs_ratio_new": 1.0,
+      "loose_old": 0,
+      "loose_new": 0,
+      "re_old": 0.2873892481954168,
+      "re_new": 0.28738924819541684,
+      "re_reference": 0.2873892481954168
+    },
+    {
+      "source": "cs5_eval_psc_v0",
+      "task": "triangle",
+      "accepted": 4,
+      "gs_ratio_old": 1.9444444444444444,
+      "gs_ratio_new": 1.25,
+      "loose_old": 4,
+      "loose_new": 1,
+      "re_old": 1.692922811213569,
+      "re_new": 1.5867999852657446,
+      "re_reference": 1.029455832336833
+    },
+    {
+      "source": "cs5_eval_psc_v0",
+      "task": "degree-moment2",
+      "accepted": 10,
+      "gs_ratio_old": 1.105263157894737,
+      "gs_ratio_new": 1.0,
+      "loose_old": 10,
+      "loose_new": 0,
+      "re_old": 0.04347862199316256,
+      "re_new": 0.04330338839763486,
+      "re_reference": 0.043303388397634854
+    },
+    {
+      "source": "cs5_eval_psc_v0-r2",
+      "task": "3-star",
+      "accepted": 10,
+      "gs_ratio_old": 1.15,
+      "gs_ratio_new": 1.0,
+      "loose_old": 6,
+      "loose_new": 0,
+      "re_old": 0.12328288482053026,
+      "re_new": 0.12268692275297166,
+      "re_reference": 0.12268692275297165
+    },
+    {
+      "source": "cs5_eval_psc_v0-r2",
+      "task": "5-star",
+      "accepted": 10,
+      "gs_ratio_old": 1.0,
+      "gs_ratio_new": 1.0,
+      "loose_old": 0,
+      "loose_new": 0,
+      "re_old": 0.2873892481954168,
+      "re_new": 0.28738924819541684,
+      "re_reference": 0.2873892481954168
+    },
+    {
+      "source": "cs5_eval_psc_v0-r2",
+      "task": "triangle",
+      "accepted": 6,
+      "gs_ratio_old": 1.6604938271604939,
+      "gs_ratio_new": 1.1666666666666667,
+      "loose_old": 5,
+      "loose_new": 2,
+      "re_old": 1.693948593075142,
+      "re_new": 1.6055129047852883,
+      "re_reference": 1.029455832336833
+    },
+    {
+      "source": "cs5_eval_psc_v0-r2",
+      "task": "degree-moment2",
+      "accepted": 10,
+      "gs_ratio_old": 1.105263157894737,
+      "gs_ratio_new": 1.0,
+      "loose_old": 10,
+      "loose_new": 0,
+      "re_old": 0.04347862199316256,
+      "re_new": 0.04330338839763486,
+      "re_reference": 0.043303388397634854
+    },
+    {
+      "source": "cs5_eval_psc_evolved",
+      "task": "3-star",
+      "accepted": 8,
+      "gs_ratio_old": 1.0,
+      "gs_ratio_new": 1.0,
+      "loose_old": 0,
+      "loose_new": 0,
+      "re_old": 0.12268692275297165,
+      "re_new": 0.12268692275297166,
+      "re_reference": 0.12268692275297165
+    },
+    {
+      "source": "cs5_eval_psc_evolved",
+      "task": "5-star",
+      "accepted": 10,
+      "gs_ratio_old": 1.0,
+      "gs_ratio_new": 1.0,
+      "loose_old": 0,
+      "loose_new": 0,
+      "re_old": 0.2873892481954168,
+      "re_new": 0.28738924819541684,
+      "re_reference": 0.2873892481954168
+    },
+    {
+      "source": "cs5_eval_psc_evolved",
+      "task": "triangle",
+      "accepted": 3,
+      "gs_ratio_old": 2.074074074074074,
+      "gs_ratio_new": 1.3333333333333333,
+      "loose_old": 3,
+      "loose_new": 1,
+      "re_old": 1.692922811213569,
+      "re_new": 1.5867999852657446,
+      "re_reference": 1.029455832336833
+    },
+    {
+      "source": "cs5_eval_psc_evolved",
+      "task": "degree-moment2",
+      "accepted": 8,
+      "gs_ratio_old": 1.0789473684210527,
+      "gs_ratio_new": 1.0,
+      "loose_old": 6,
+      "loose_new": 0,
+      "re_old": 0.043434813594280634,
+      "re_new": 0.04330338839763486,
+      "re_reference": 0.043303388397634854
+    }
+  ],
+  "parse_failures": 102,
+  "rescued": 28
+}

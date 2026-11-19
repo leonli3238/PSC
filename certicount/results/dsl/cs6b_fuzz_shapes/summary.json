@@ -1,0 +1,121 @@
+{
+  "settings": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      200
+    ]
+  ],
+  "count": 3000,
+  "elapsed_seconds": 180.4207474142313,
+  "summary": [
+    {
+      "n": 5,
+      "dmax": 3,
+      "graphs": "every",
+      "programs": 3000,
+      "derived": 2891,
+      "rejected_by_deriver": 109,
+      "interpreter_errors": 0,
+      "falsified": 2891,
+      "refuted": 0,
+      "tight": 1940,
+      "median_gs_over_max": 1.0,
+      "max_gs_over_max": 4.666666666666667,
+      "zero_change": 82
+    },
+    {
+      "n": 7,
+      "dmax": 4,
+      "graphs": "200 random",
+      "programs": 3000,
+      "derived": 2891,
+      "rejected_by_deriver": 109,
+      "interpreter_errors": 0,
+      "falsified": 2891,
+      "refuted": 0,
+      "tight": 1704,
+      "median_gs_over_max": 1.0,
+      "max_gs_over_max": 6.0,
+      "zero_change": 84
+    }
+  ],
+  "failures": 0,
+  "loosest": [
+    {
+      "index": 151,
+      "gs": 14.0,
+      "max_delta": 3.0,
+      "gs_over_max": 4.666666666666667,
+      "program": "Q = project(P, 2) ; return -1 * sum(size((Q - N(j))) + size(P & N(j)) for j in Q)"
+    },
+    {
+      "index": 671,
+      "gs": 14.0,
+      "max_delta": 3.0,
+      "gs_over_max": 4.666666666666667,
+      "program": "Q = project(P, D - 1) ; return -1 * sum(size((Q - N(j))) + size(P & N(j)) for j in Q)"
+    },
+    {
+      "index": 1163,
+      "gs": 14.0,
+      "max_delta": 3.0,
+      "gs_over_max": 4.666666666666667,
+      "program": "Q = project(P, 2) ; return -1 * sum(size((Q - N(j))) + size(P & N(j)) for j in Q)"
+    },
+    {
+      "index": 1340,
+      "gs": 14.0,
+      "max_delta": 3.0,
+      "gs_over_max": 4.666666666666667,
+      "program": "Q = project(P, D - 1) ; return sum(size((Q - N(j))) + size(P & N(j)) for j in Q)"
+    },
+    {
+      "index": 1846,
+      "gs": 7.0,
+      "max_delta": 1.5,
+      "gs_over_max": 4.666666666666667,
+      "program": "Q = project(P, D - 1) ; return 0.5 * sum(size((Q - N(j))) + size(P & N(j)) for j in Q)"
+    },
+    {
+      "index": 2651,
+      "gs": 7.0,
+      "max_delta": 1.5,
+      "gs_over_max": 4.666666666666667,
+      "program": "Q = project(P, D - 1) ; return 0.5 * sum(size((Q - N(j))) + size(P & N(j)) for j in Q)"
+    },
+    {
+      "index": 266,
+      "gs": 4.0,
+      "max_delta": 1.0,
+      "gs_over_max": 4.0,
+      "program": "Q = (project(P, D) - N(self)) ; return sum(size((N(j) & Q & N(self))) - 1 for j in Q)"
+    },
+    {
+      "index": 610,
+      "gs": 2.0,
+      "max_delta": 0.5,
+      "gs_over_max": 4.0,
+      "program": "Q = (project(P, D) - N(self)) ; return 0.5 * sum(size((N(j) & Q & N(self))) - 1 for j in Q)"
+    },
+    {
+      "index": 1840,
+      "gs": 2.0,
+      "max_delta": 0.5,
+      "gs_over_max": 4.0,
+      "program": "Q = (project(P, D) - N(self)) ; return 0.5 * sum(size((N(j) & Q & N(self))) - 1 for j in Q)"
+    },
+    {
+      "index": 2487,
+      "gs": 2.0,
+      "max_delta": 0.5,
+      "gs_over_max": 4.0,
+      "program": "Q = (project(P, D) - N(self)) ; return 0.5 * sum(size((N(j) & Q & N(self))) - 1 for j in Q)"
+    }
+  ]
+}

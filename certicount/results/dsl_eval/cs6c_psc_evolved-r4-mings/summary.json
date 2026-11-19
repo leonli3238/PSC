@@ -1,0 +1,2510 @@
+{
+  "settings": {
+    "datasets": "PM",
+    "tasks": "3-star,5-star,triangle,degree-moment2",
+    "designs": 10,
+    "max_iterations": 3,
+    "restarts": 4,
+    "design_mode": "exact",
+    "search_rounds": 4,
+    "search_proposals": 3,
+    "search_sims": 50,
+    "runs": 100,
+    "eps": 2.0,
+    "seed": 0,
+    "mechanism": "floor_tight",
+    "bounds": "5,10,20",
+    "utility_graphs": 100,
+    "utility_max_n": 16,
+    "no_falsify": false,
+    "node_bounds": false,
+    "clip_alpha": 0.0,
+    "noisy_gate": true,
+    "noisy_tau": 2.0,
+    "noisy_reps": 8,
+    "prompt": "results/evolve/cs6c_evolve_psc/best_prompt.json",
+    "select": "min_gs",
+    "min_accepted": 3,
+    "early_stop": "noisy,gs_loose",
+    "tighten": 1,
+    "slack_tol": 1.2,
+    "no_normalize": false,
+    "design_concurrency": 8,
+    "data": "/jizhicfs/leonlanli/work/PSC/psc/data",
+    "provider": "vllm",
+    "profile": null,
+    "config": "configs/vllm_qwen3-8b-think_design.toml",
+    "curator_model": "Qwen3-8B",
+    "temperature": 0.6,
+    "flawed_first": false,
+    "dry_run": false,
+    "tag": "cs6c_psc_evolved-r4-mings"
+  },
+  "summary": [
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "designs": 10,
+      "accept_rate": 1.0,
+      "accept_ci95": "[0.72, 1.00]",
+      "first_loop_rate": 1.0,
+      "first_try_rate": 0.0,
+      "mean_iterations": 1.0,
+      "mean_restarts": 4.0,
+      "mean_llm_calls": 4.5,
+      "distinct_programs": 7,
+      "same_as_reference": 0.0,
+      "split_match": 1.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 1.0,
+      "relative_error": 0.12268692275297163,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_max": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 0.12268692275297165
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "designs": 10,
+      "accept_rate": 1.0,
+      "accept_ci95": "[0.72, 1.00]",
+      "first_loop_rate": 1.0,
+      "first_try_rate": 0.0,
+      "mean_iterations": 1.1,
+      "mean_restarts": 4.0,
+      "mean_llm_calls": 4.5,
+      "distinct_programs": 10,
+      "same_as_reference": 0.0,
+      "split_match": 1.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 1.0,
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_max": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 0.2873892481954168
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "designs": 10,
+      "accept_rate": 0.7,
+      "accept_ci95": "[0.40, 0.89]",
+      "first_loop_rate": 0.2,
+      "first_try_rate": 0.0,
+      "mean_iterations": 1.4285714285714286,
+      "mean_restarts": 4.0,
+      "mean_llm_calls": 10.7,
+      "distinct_programs": 7,
+      "same_as_reference": 0.0,
+      "split_match": 1.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 1.0,
+      "relative_error": 1.5867999852657444,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_max": 0.5573441529289118,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 1.5867999852657446
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "designs": 10,
+      "accept_rate": 1.0,
+      "accept_ci95": "[0.72, 1.00]",
+      "first_loop_rate": 1.0,
+      "first_try_rate": 0.0,
+      "mean_iterations": 1.1,
+      "mean_restarts": 4.0,
+      "mean_llm_calls": 4.9,
+      "distinct_programs": 7,
+      "same_as_reference": 0.0,
+      "split_match": 1.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 1.0,
+      "relative_error": 0.04330338839763486,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_max": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 0.043303388397634854
+    }
+  ],
+  "designs": [
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 0,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 267.679,
+      "program": "size_proj = size(project(P, D))\nreturn (size_proj * (size_proj - 1) * (size_proj - 2)) / 6\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "parse",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "size_proj = size(project(P, D))\nreturn (size_proj * (size_proj - 1) * (size_proj - 2)) / 6\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 281.327,
+      "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 2,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 241.962,
+      "program": "d = size(project(P, D))\nreturn comb(d, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "d = size(project(P, D))\nreturn comb(d, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 3,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 274.456,
+      "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 4,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 192.49,
+      "program": "size_P_proj = project(P, D)\nsize_P = size(size_P_proj)\nresult = comb(size_P, 3)\nreturn result\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "size_P_proj = project(P, D)\nsize_P = size(size_P_proj)\nresult = comb(size_P, 3)\nreturn result\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 5,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 256.085,
+      "program": "P_projected = project(P, D)\ndegree = size(P_projected)\nvalue = degree * (degree - 1) * (degree - 2) / 6\nreturn value\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "P_projected = project(P, D)\ndegree = size(P_projected)\nvalue = degree * (degree - 1) * (degree - 2) / 6\nreturn value\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 6,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 232.126,
+      "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 7,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 248.791,
+      "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "s = size(project(P, D))\nreturn comb(s, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 8,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 234.087,
+      "program": "projected_p = project(P, D)\ndegree = size(projected_p)\nreturn comb(degree, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "projected_p = project(P, D)\ndegree = size(projected_p)\nreturn comb(degree, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "3-star",
+      "design": 9,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 6,
+      "design_seconds": 282.668,
+      "program": "k = size(project(P, D))\nreturn comb(k, 3)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "parse",
+        "accepted",
+        "parse",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 36.0,
+            "noise_free_bias": 0.019895117498633735,
+            "program": "k = size(project(P, D))\nreturn comb(k, 3)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "relative_error": 0.12268692275297165,
+      "gt_dsl_relative_error": 0.12268692275297165,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.019895117498633735,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 0,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 168.804,
+      "program": "projected_P = project(P, D)\ncount = comb(size(projected_P), 5)\nreturn count\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected_P = project(P, D)\ncount = comb(size(projected_P), 5)\nreturn count\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 182.539,
+      "program": "projected_P = project(P, D)\nreturn comb(size(projected_P), 5)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected_P = project(P, D)\nreturn comb(size(projected_P), 5)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 2,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 189.392,
+      "program": "projected = project(P, D)\nsize_proj = size(projected)\ncount = comb(size_proj, 5)\nreturn count\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected = project(P, D)\nsize_proj = size(projected)\ncount = comb(size_proj, 5)\nreturn count\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 3,
+      "accepted": true,
+      "iterations": 2,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 6,
+      "design_seconds": 237.764,
+      "program": "s_proj = project(P, D)\nreturn comb(size(s_proj), 5)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "rejected: not a valid program: comb expects (num, num), got (set, num) (line 2). Hint: comb takes a number: write comb(size(S), k)",
+        "accepted"
+      ],
+      "stages": [
+        "parse",
+        "accepted",
+        "accepted",
+        "accepted",
+        "gs_loose",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "s_proj = project(P, D)\nreturn comb(size(s_proj), 5)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 4,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 196.334,
+      "program": "projected = project(P, D)\nreturn comb(size(projected), 5)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected = project(P, D)\nreturn comb(size(projected), 5)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 5,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 228.375,
+      "program": "projected_P = project(P, D)\ndegree = size(projected_P)\nreturn comb(degree, 5)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected_P = project(P, D)\ndegree = size(projected_P)\nreturn comb(degree, 5)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 6,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 203.236,
+      "program": "projected_p = project(P, D)\nc = comb(size(projected_p), 5)\nreturn c\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected_p = project(P, D)\nc = comb(size(projected_p), 5)\nreturn c\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 7,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 250.803,
+      "program": "size_P = size(project(P, D))\ncount = comb(size_P, 5)\nreturn count\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "noisy",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "size_P = size(project(P, D))\ncount = comb(size_P, 5)\nreturn count\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 8,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 226.406,
+      "program": "projected_P = project(P, D)\nsize_p = size(projected_P)\nreturn comb(size_p, 5)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected_P = project(P, D)\nsize_p = size(projected_P)\nreturn comb(size_p, 5)\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "5-star",
+      "design": 9,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 205.786,
+      "program": "projected = project(P, D)\nk = size(projected)\nc = comb(k, 5)\nreturn c\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 126.0,
+            "noise_free_bias": 0.052682608139026914,
+            "program": "projected = project(P, D)\nk = size(projected)\nc = comb(k, 5)\nreturn c\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 0.0,
+      "problems": [],
+      "relative_error": 0.2873892481954168,
+      "gt_dsl_relative_error": 0.2873892481954168,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.052682608139026914,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 0,
+      "accepted": false,
+      "iterations": 2,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 11,
+      "design_seconds": 1173.384,
+      "program": null,
+      "search_score": null,
+      "feedback": [
+        "rejected: noise-free check failed: run through the actual randomized release on a public random graph (Holme-Kim(n=453, m=2, p=0.6); exact answer 284) with the final Laplace noise left out, the estimate is 74.6 times the exact answer (median over 8 releases). The published N(...) / A(...) are randomized copies of the graph with missing and fake edges, not the graph itself.",
+        "rejected: noise-free check failed: run through the actual randomized release on a public random graph (Holme-Kim(n=453, m=2, p=0.6); exact answer 284) with the final Laplace noise left out, the estimate is 74.6 times the exact answer (median over 8 releases). The published N(...) / A(...) are randomized copies of the graph with missing and fake edges, not the graph itself."
+      ],
+      "stages": [
+        "semantic",
+        "semantic",
+        "semantic",
+        "parse",
+        "parse",
+        "parse",
+        "parse",
+        "parse",
+        "parse",
+        "noisy",
+        "noisy"
+      ],
+      "normalized_drafts": 0,
+      "selection": null
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 10,
+      "design_seconds": 1035.759,
+      "program": "projected_P = project(P, D)\ntotal = sum(size(N(v) & projected_P) for v in projected_P)\ncount = total / 2\nreturn count\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "parse",
+        "parse",
+        "parse",
+        "semantic",
+        "semantic",
+        "semantic",
+        "noisy",
+        "semantic",
+        "noisy"
+      ],
+      "normalized_drafts": 1,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "projected_P = project(P, D)\ntotal = sum(size(N(v) & projected_P) for v in projected_P)\ncount = total / 2\nreturn count\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 2,
+      "accepted": false,
+      "iterations": 3,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 12,
+      "design_seconds": 1107.562,
+      "program": null,
+      "search_score": null,
+      "feedback": [
+        "rejected: noise-free check failed: run through the actual randomized release on a public random graph (Holme-Kim(n=453, m=2, p=0.6); exact answer 284) with the final Laplace noise left out, the estimate is 74.6 times the exact answer (median over 8 releases). The published N(...) / A(...) are randomized copies of the graph with missing and fake edges, not the graph itself.",
+        "rejected: utility test failed on 36/43 public test graphs. Examples: on a single triangle the program gives 0.666667, the exact answer is 1; on a triangle with a pendant edge the program gives 0.666667, the exact answer is 1; on two disjoint triangles the program gives 1.33333, the exact answer is 2. On every failing graph the answer is exactly 0.666667 times the exact answer: a constant factor (local formula or aggregate) is off.",
+        "rejected: not a valid program: line 3: 'total' is already defined. Hint: assign each name once: use a new name for every step"
+      ],
+      "stages": [
+        "semantic",
+        "semantic",
+        "parse",
+        "parse",
+        "gs_loose",
+        "semantic",
+        "gs_loose",
+        "semantic",
+        "gs_loose",
+        "noisy",
+        "semantic",
+        "parse"
+      ],
+      "normalized_drafts": 0,
+      "selection": null
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 3,
+      "accepted": true,
+      "iterations": 2,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 10,
+      "design_seconds": 917.871,
+      "program": "projected_P = project(P, D)\nsum_edges = sum(size(projected_P & N(v)) for v in projected_P)\nreturn sum_edges / 2\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "rejected: utility test failed on 40/43 public test graphs. Examples: on a path 0-1-2-3-4 (no triangle) the program gives 0.333333, the exact answer is 0; on a star with center 0 and 5 leaves (no triangle) the program gives 1.11111, the exact answer is 0; on a 5-cycle (no triangle) the program gives 0.555556, the exact answer is 0. The program is non-zero on 4 graph(s) whose exact answer is 0, so it counts something that is not the requested structure.",
+        "accepted"
+      ],
+      "stages": [
+        "gs_loose",
+        "semantic",
+        "parse",
+        "semantic",
+        "gs_loose",
+        "duplicate",
+        "semantic",
+        "accepted",
+        "parse",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 3,
+        "candidates": [
+          {
+            "restart": 3,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "projected_P = project(P, D)\nsum_edges = sum(size(projected_P & N(v)) for v in projected_P)\nreturn sum_edges / 2\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 4,
+      "accepted": true,
+      "iterations": 2,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 11,
+      "design_seconds": 1122.512,
+      "program": "projected_P = project(P, D)\nsum_val = sum( size( projected_P & N(v) ) for v in projected_P )\ncount = sum_val / 2\nreturn count\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "rejected: utility test failed on 36/43 public test graphs. Examples: on a path 0-1-2-3-4 (no triangle) the program gives 1, the exact answer is 0; on a star with center 0 and 5 leaves (no triangle) the program gives 3.33333, the exact answer is 0; on a 5-cycle (no triangle) the program gives 1.66667, the exact answer is 0. The program is non-zero on 4 graph(s) whose exact answer is 0, so it counts something that is not the requested structure. The program over-counts on every failing graph.",
+        "accepted"
+      ],
+      "stages": [
+        "parse",
+        "parse",
+        "parse",
+        "parse",
+        "gs_loose",
+        "parse",
+        "parse",
+        "parse",
+        "gs_loose",
+        "semantic",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 4,
+        "candidates": [
+          {
+            "restart": 4,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "projected_P = project(P, D)\nsum_val = sum( size( projected_P & N(v) ) for v in projected_P )\ncount = sum_val / 2\nreturn count\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 5,
+      "accepted": true,
+      "iterations": 2,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 11,
+      "design_seconds": 1079.735,
+      "program": "return sum( size(N(v) & project(P, D)) for v in project(P, D) ) / 2\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "rejected: sensitivity GS = 451 is too loose: comb(..., 2) of a count bounded only by n-1 = 452: the bound is loose; apply project(P, D) first",
+        "accepted"
+      ],
+      "stages": [
+        "gs_loose",
+        "semantic",
+        "parse",
+        "parse",
+        "semantic",
+        "semantic",
+        "gs_loose",
+        "accepted",
+        "parse",
+        "parse",
+        "parse"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 3,
+        "candidates": [
+          {
+            "restart": 3,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "return sum( size(N(v) & project(P, D)) for v in project(P, D) ) / 2\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 6,
+      "accepted": false,
+      "iterations": 3,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 12,
+      "design_seconds": 1251.803,
+      "program": null,
+      "search_score": null,
+      "feedback": [
+        "rejected: utility test failed on 36/43 public test graphs. Examples: on a single triangle the program gives 2, the exact answer is 1; on a triangle with a pendant edge the program gives 2, the exact answer is 1; on two disjoint triangles the program gives 4, the exact answer is 2. On every failing graph the answer is exactly 2 times the exact answer: a constant factor (local formula or aggregate) is off.",
+        "rejected: utility test failed on 35/43 public test graphs. Examples: on a single triangle the program gives 0, the exact answer is 1; on a triangle with a pendant edge the program gives 0, the exact answer is 1; on two disjoint triangles the program gives 0, the exact answer is 2.",
+        "rejected: not a valid program: unknown function (line 1); allowed: N, A, size, project, comb, pow, clip, min, max, sum. Hint: only N, A, size, project, comb, pow, clip, min, max and sum are available"
+      ],
+      "stages": [
+        "noisy",
+        "semantic",
+        "parse",
+        "parse",
+        "semantic",
+        "parse",
+        "parse",
+        "parse",
+        "semantic",
+        "semantic",
+        "semantic",
+        "parse"
+      ],
+      "normalized_drafts": 0,
+      "selection": null
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 7,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 10,
+      "design_seconds": 1086.057,
+      "program": "projected_P = project(P, D)\nsum_val = sum( size(N(v) & projected_P) for v in projected_P )\nreturn sum_val / 2\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "gs_loose",
+        "semantic",
+        "duplicate",
+        "semantic",
+        "noisy",
+        "noisy",
+        "accepted",
+        "parse",
+        "parse",
+        "parse"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 3,
+        "candidates": [
+          {
+            "restart": 3,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "projected_P = project(P, D)\nsum_val = sum( size(N(v) & projected_P) for v in projected_P )\nreturn sum_val / 2\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 8,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 10,
+      "design_seconds": 781.2,
+      "program": "projected_P = project(P, D)\ncount = sum( size(N(v) & projected_P) for v in projected_P )\nreturn count / 2\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "gs_loose",
+        "semantic",
+        "duplicate",
+        "semantic",
+        "semantic",
+        "parse",
+        "parse",
+        "parse",
+        "parse"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "projected_P = project(P, D)\ncount = sum( size(N(v) & projected_P) for v in projected_P )\nreturn count / 2\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "triangle",
+      "design": 9,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": false,
+      "llm_calls": 10,
+      "design_seconds": 856.312,
+      "program": "projected_P = project(P, D)\nsum_val = sum( size(N(v) & projected_P) for v in projected_P )\ncount = sum_val / 2\nreturn count\naggregate: total / 3",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "semantic",
+        "parse",
+        "gs_loose",
+        "accepted",
+        "parse",
+        "gs_loose",
+        "semantic",
+        "semantic",
+        "semantic",
+        "parse"
+      ],
+      "normalized_drafts": 1,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 2,
+        "candidates": [
+          {
+            "restart": 2,
+            "gs": 9.0,
+            "noise_free_bias": 0.25058685446009393,
+            "program": "projected_P = project(P, D)\nsum_val = sum( size(N(v) & projected_P) for v in projected_P )\ncount = sum_val / 2\nreturn count\naggregate: total / 3"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 2.0,
+      "problems": [],
+      "relative_error": 1.5867999852657446,
+      "gt_dsl_relative_error": 1.029455832336833,
+      "design_error": 0.5573441529289118,
+      "design_error_se": 0.034423487027682526,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.25058685446009393,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 0,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 297.917,
+      "program": "s = size(project(P, D))\nreturn s * s\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "s = size(project(P, D))\nreturn s * s\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 6,
+      "design_seconds": 346.772,
+      "program": "degree = size(project(P, D))\nreturn degree * degree\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "gs_loose",
+        "accepted",
+        "parse",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "degree = size(project(P, D))\nreturn degree * degree\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 2,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 322.434,
+      "program": "projected_p = project(P, D)\ndegree = size(projected_p)\nreturn degree * degree\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "projected_p = project(P, D)\ndegree = size(projected_p)\nreturn degree * degree\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 3,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 276.785,
+      "program": "projected = project(P, D)\ndegree = size(projected)\nsquared = pow(degree, 2)\nreturn squared\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "projected = project(P, D)\ndegree = size(projected)\nsquared = pow(degree, 2)\nreturn squared\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 4,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 258.166,
+      "program": "s = size(project(P, D))\nreturn s * s\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "gs_loose",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "s = size(project(P, D))\nreturn s * s\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 5,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 339.263,
+      "program": "projected_P = project(P, D)\nsize_p = size(projected_P)\nsquared = pow(size_p, 2)\nreturn squared\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "projected_P = project(P, D)\nsize_p = size(projected_P)\nsquared = pow(size_p, 2)\nreturn squared\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 6,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 4,
+      "design_seconds": 248.701,
+      "program": "s = size(project(P, D))\nreturn s * s\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "s = size(project(P, D))\nreturn s * s\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 7,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 354.373,
+      "program": "size_projected = size(project(P, D))\nreturn size_projected * size_projected\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "parse",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "size_projected = size(project(P, D))\nreturn size_projected * size_projected\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 8,
+      "accepted": true,
+      "iterations": 2,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 5,
+      "design_seconds": 266.376,
+      "program": "projected = project(P, D)\nprojected_size = size(projected)\nsquared = pow(projected_size, 2)\nreturn squared\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "rejected: not a valid program: pow expects (num, num), got (set, num) (line 2). Hint: check the argument types: N(node), A(node, node), size(set), project(set, number), comb(number, k)",
+        "accepted"
+      ],
+      "stages": [
+        "parse",
+        "accepted",
+        "accepted",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "projected = project(P, D)\nprojected_size = size(projected)\nsquared = pow(projected_size, 2)\nreturn squared\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    },
+    {
+      "dataset": "PM",
+      "task": "degree-moment2",
+      "design": 9,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 4,
+      "first_loop_accepted": true,
+      "llm_calls": 6,
+      "design_seconds": 309.09,
+      "program": "degree = size(project(P, D))\nreturn degree * degree\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "gs_loose",
+        "accepted",
+        "gs_loose",
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "min_gs",
+        "chosen_restart": 1,
+        "candidates": [
+          {
+            "restart": 1,
+            "gs": 19.0,
+            "noise_free_bias": 0.006194690265486726,
+            "program": "degree = size(project(P, D))\nreturn degree * degree\naggregate: total"
+          }
+        ]
+      },
+      "same_as_reference": false,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 5.0,
+      "problems": [],
+      "relative_error": 0.043303388397634854,
+      "gt_dsl_relative_error": 0.043303388397634854,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.006194690265486726,
+      "noise_free_pass": true
+    }
+  ]
+}
