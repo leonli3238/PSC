@@ -1,0 +1,61 @@
+{
+  "run_dir": "results/dsl_eval/cs7_node_v1alt_sim_cudo",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 160,
+  "designs": 40,
+  "table": [
+    {
+      "task": "triangle",
+      "drafts": 160,
+      "truncated": 0,
+      "parse": 22,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 17,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 121,
+      "rejected_share": 0.2437,
+      "runnable": 138,
+      "uncertified_violations": 13,
+      "uncertified_violation_share": 0.0942,
+      "max_eps_ratio": 3.6666666666666665,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 25,
+      "semantic_errors_published_without_check": 17
+    },
+    {
+      "task": "all",
+      "drafts": 160,
+      "truncated": 0,
+      "parse": 22,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 17,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 121,
+      "rejected_share": 0.2437,
+      "runnable": 138,
+      "uncertified_violations": 13,
+      "uncertified_violation_share": 0.0942,
+      "max_eps_ratio": 3.6666666666666665,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 25,
+      "semantic_errors_published_without_check": 17
+    }
+  ]
+}
