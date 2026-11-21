@@ -668,8 +668,8 @@ VLLM_NODE_BASE_URL=http://127.0.0.1:8003/v1 \
 
 ## 附录 B：结果文件
 
-- A1 联合报告：`results/audit/sensitivity/probe_pm_degree_report/report.md`
-- A1 program 对照：`results/audit/sensitivity/probe_pm_degree_report_certicount/report.md`
+- A1 联合报告：`results/reports/sensitivity/probe_pm_degree_report/report.md`
+- A1 program 对照：`results/reports/sensitivity/probe_pm_degree_report_certicount/report.md`
 - A1 8B-thinking：`results/audit/sensitivity/probe_pm_degree_qwen3-8b-think/confirm_nodes/table.md`
 - A2：`results/execution/A2_pm_degree_program_8bthink_r100/table.md`
 - A3 库内：`results/dsl_eval/A3_pm_design_8bthink_d10/designs.jsonl`（该轮被中途停止，无 `table.md`）

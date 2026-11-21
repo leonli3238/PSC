@@ -3,7 +3,7 @@
 #
 # It re-implements nothing: every experiment command is one stage of scripts/run_cscwd.sh,
 # executed in the order documented in that file's header. This script only adds
-#   - a clean-tree precondition (no "-dirty" revision in results/cscwd_commands.log),
+#   - a clean-tree precondition (no "-dirty" revision in results/logs/cscwd_commands.log),
 #   - one log per stage (/tmp/<stage>.log, truncated at start),
 #   - fail-fast on non-zero exit and on fatal patterns,
 #   - a gate before cs1-audit so the planned call volume can be reported first,
@@ -62,8 +62,8 @@ for st in $STAGES; do
     log "ABORT after $st: fatal pattern in $out: $(grep -ioE "$FATAL" "$out" | head -1)"
     exit 1
   fi
-  if tail -1 results/cscwd_commands.log | grep -q -- "-dirty"; then
-    log "ABORT after $st: results/cscwd_commands.log records a -dirty revision"
+  if tail -1 results/logs/cscwd_commands.log | grep -q -- "-dirty"; then
+    log "ABORT after $st: results/logs/cscwd_commands.log records a -dirty revision"
     exit 1
   fi
   log "DONE $st in $(( $(date +%s) - t0 ))s"

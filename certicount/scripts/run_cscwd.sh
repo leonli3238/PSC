@@ -46,11 +46,11 @@
 #                                                   # cs5-eval-psc, cs5-evolve-node, cs5-eval-node, summary
 #   scripts/run_cscwd.sh cs6-all                    # CS6 (fixes of the four CS5 problems), same server:
 #                                                   # check, cs6b (background, no model), cs6a, cs6c-evolve,
-#                                                   # cs6c-eval, cs6-summary -> results/cs6_summary.md
+#                                                   # cs6c-eval, cs6-summary -> results/reports/cs6_summary.md
 #   scripts/run_cscwd.sh cs7-all                    # CS7, same server: check, cs7-offline (background, no model),
-#                                                   # cs7-eval, cs7-summary -> results/cs7_summary.md
+#                                                   # cs7-eval, cs7-summary -> results/reports/cs7_summary.md
 #
-# Every executed command is appended to results/cscwd_commands.log with UTC time and git revision.
+# Every executed command is appended to results/logs/cscwd_commands.log with UTC time and git revision.
 # Existing tags are refused by the scripts (no overwrite): to rerun a stage, move its directory away.
 # Environment: PY, VLLM_BIN, MODELS, URL_8B, URL_17B.
 set -euo pipefail
@@ -61,7 +61,7 @@ VLLM_BIN=${VLLM_BIN:-vllm}
 MODELS=${MODELS:-/models}
 URL_8B=${URL_8B:-http://127.0.0.1:8003/v1}
 URL_17B=${URL_17B:-http://127.0.0.1:8001/v1}
-LOG=$PWD/results/cscwd_commands.log
+LOG=$PWD/results/logs/cscwd_commands.log
 
 EPS=2.0
 PM_TASKS=degree,2-star,3-star,triangle          # CertiCount stages (code execution)
@@ -81,7 +81,7 @@ T_CS2=cs2_pm_psc-arch_d10
 
 export VLLM_CURATOR_BASE_URL=$URL_8B VLLM_NODE_BASE_URL=$URL_17B
 
-mkdir -p results
+mkdir -p results/logs results/reports
 run() {  # log, echo and execute one command (in the current directory)
   local rev; rev=$(git rev-parse --short HEAD)$(git -C "$(git rev-parse --show-toplevel)" diff --quiet HEAD || echo "-dirty")
   printf '%s git=%s cwd=%s VLLM_CURATOR_BASE_URL=%s VLLM_NODE_BASE_URL=%s %s\n' \
@@ -302,15 +302,15 @@ EOF
     echo "[cs45-all] $(date -u +%FT%TZ) start"
     "$0" check
     until curl -sf "$URL_8B/models" >/dev/null; do echo "waiting for $URL_8B"; sleep 15; done
-    "$0" cs4-replay > results/cs4_replay.log 2>&1 &
+    "$0" cs4-replay > results/logs/cs4_replay.log 2>&1 &
     replay_pid=$!
     for stage in cs4-online cs5-evolve-psc cs5-eval-psc cs5-evolve-node cs5-eval-node; do
       echo "[cs45-all] $(date -u +%FT%TZ) $stage"
       "$0" "$stage"
     done
-    wait "$replay_pid" || { echo "[cs45-all] cs4-replay failed, see results/cs4_replay.log" >&2; exit 1; }
-    run "$PY" scripts/summarize_cs45.py --out results/cs45_summary.md
-    echo "[cs45-all] $(date -u +%FT%TZ) done: results/cs45_summary.md" ;;
+    wait "$replay_pid" || { echo "[cs45-all] cs4-replay failed, see results/logs/cs4_replay.log" >&2; exit 1; }
+    run "$PY" scripts/summarize_cs45.py --out results/reports/cs45_summary.md
+    echo "[cs45-all] $(date -u +%FT%TZ) done: results/reports/cs45_summary.md" ;;
 
   # ---------------- CS6: the fixes of the four CS5 problems (PSC architecture, held-out tasks on PM) ----------------
   # CS6a  prompt cores, one loop per design (the parse question): A = v1, B = v1-repeat3 (the prohibition paragraph
@@ -360,21 +360,21 @@ print('$1: refuted or failing programs', f); sys.exit(1 if f else 0)" \
     design_run cs6c_psc_evolved --tasks "$HELD_OUT" --prompt "$best" --restarts 1
     design_run cs6c_psc_evolved-r4-mings --tasks "$HELD_OUT" --prompt "$best" "${SELECT[@]}" ;;
   cs6-summary)
-    run "$PY" scripts/summarize_cs6.py --out results/cs6_summary.md ;;
+    run "$PY" scripts/summarize_cs6.py --out results/reports/cs6_summary.md ;;
   # Everything of CS6 unattended and resumable (8B server with MAXLEN=32768); stops at any privacy-check failure.
   cs6-all)
     echo "[cs6-all] $(date -u +%FT%TZ) start"
     "$0" check
-    "$0" cs6b > results/cs6b.log 2>&1 &
+    "$0" cs6b > results/logs/cs6b.log 2>&1 &
     offline_pid=$!
     until curl -sf "$URL_8B/models" >/dev/null; do echo "waiting for $URL_8B"; sleep 15; done
     for stage in cs6a cs6c-evolve cs6c-eval; do
       echo "[cs6-all] $(date -u +%FT%TZ) $stage"
       "$0" "$stage"
     done
-    wait "$offline_pid" || { echo "[cs6-all] cs6b failed, see results/cs6b.log" >&2; exit 1; }
+    wait "$offline_pid" || { echo "[cs6-all] cs6b failed, see results/logs/cs6b.log" >&2; exit 1; }
     "$0" cs6-summary
-    echo "[cs6-all] $(date -u +%FT%TZ) done: results/cs6_summary.md" ;;
+    echo "[cs6-all] $(date -u +%FT%TZ) done: results/reports/cs6_summary.md" ;;
 
   # ---------------- CS7: per-node architecture only; release rounds + simulated choice ----------------
   # CS7-offline (no model): fuzzing of the deriver on programs that read A and on own bounds D != dmax (must report
@@ -408,17 +408,17 @@ print('$1: refuted or failing programs', f); sys.exit(1 if f else 0)" \
     design_run cs7_node_v1alt_sim_cudo "${NODE[@]}" --datasets CU,Do --tasks triangle --select simulated \
       --own-row-check --tighten 1 ;;
   cs7-summary)
-    run "$PY" scripts/summarize_cs7.py --out results/cs7_summary.md ;;
+    run "$PY" scripts/summarize_cs7.py --out results/reports/cs7_summary.md ;;
   cs7-all)
     echo "[cs7-all] $(date -u +%FT%TZ) start"
     "$0" check
-    "$0" cs7-offline > results/cs7_offline.log 2>&1 &
+    "$0" cs7-offline > results/logs/cs7_offline.log 2>&1 &
     offline_pid=$!
     until curl -sf "$URL_8B/models" >/dev/null; do echo "waiting for $URL_8B"; sleep 15; done
     "$0" cs7-eval
-    wait "$offline_pid" || { echo "[cs7-all] cs7-offline failed, see results/cs7_offline.log" >&2; exit 1; }
+    wait "$offline_pid" || { echo "[cs7-all] cs7-offline failed, see results/logs/cs7_offline.log" >&2; exit 1; }
     "$0" cs7-summary
-    echo "[cs7-all] $(date -u +%FT%TZ) done: results/cs7_summary.md" ;;
+    echo "[cs7-all] $(date -u +%FT%TZ) done: results/reports/cs7_summary.md" ;;
 
   *)
     sed -n '2,55p' "$0"; exit 2 ;;

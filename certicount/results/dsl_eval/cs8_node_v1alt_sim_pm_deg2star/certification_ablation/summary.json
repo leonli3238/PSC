@@ -1,0 +1,82 @@
+{
+  "run_dir": "results/dsl_eval/cs8_node_v1alt_sim_pm_deg2star",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 150,
+  "designs": 40,
+  "table": [
+    {
+      "task": "degree",
+      "drafts": 73,
+      "truncated": 7,
+      "parse": 24,
+      "duplicate": 6,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 4,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 32,
+      "rejected_share": 0.4795,
+      "runnable": 36,
+      "uncertified_violations": 0,
+      "uncertified_violation_share": 0.0,
+      "max_eps_ratio": 1.0,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 0,
+      "semantic_errors_published_without_check": 4
+    },
+    {
+      "task": "2-star",
+      "drafts": 77,
+      "truncated": 6,
+      "parse": 21,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 8,
+      "semantic": 0,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 42,
+      "rejected_share": 0.4545,
+      "runnable": 50,
+      "uncertified_violations": 11,
+      "uncertified_violation_share": 0.22,
+      "max_eps_ratio": 3.4233238952849114,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 3,
+      "semantic_errors_published_without_check": 0
+    },
+    {
+      "task": "all",
+      "drafts": 150,
+      "truncated": 13,
+      "parse": 45,
+      "duplicate": 6,
+      "gs_failed": 0,
+      "gs_loose": 8,
+      "semantic": 4,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 74,
+      "rejected_share": 0.4667,
+      "runnable": 86,
+      "uncertified_violations": 11,
+      "uncertified_violation_share": 0.1279,
+      "max_eps_ratio": 3.4233238952849114,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 3,
+      "semantic_errors_published_without_check": 4
+    }
+  ]
+}

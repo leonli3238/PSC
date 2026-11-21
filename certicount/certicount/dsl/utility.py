@@ -13,6 +13,7 @@ from __future__ import annotations
 import itertools
 import math
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from typing import Callable
 
@@ -41,6 +42,28 @@ def _brute_open_wedges(g: Graph) -> float:
     ))
 
 
+def _degree_at_least(g: Graph, k: int) -> float:
+    return float(sum(1 for u in range(g.n) if len(g.adj[u]) >= k))
+
+
+def _triangle_nodes(g: Graph) -> float:
+    return float(sum(1 for u in range(g.n) if any(g.adj[u] & g.adj[v] for v in g.adj[u])))
+
+
+def _triangle_edges(g: Graph) -> float:
+    return float(sum(1 for u, v in g.edges if g.adj[u] & g.adj[v]))
+
+
+def _four_cycles(g: Graph) -> float:
+    """Each 4-cycle a-b-c-d has two diagonals {a, c}, {b, d}; a pair with k common neighbours closes
+    C(k, 2) cycles through it, so the sum over pairs counts every cycle twice."""
+    common: Counter = Counter()
+    for c in range(g.n):
+        for u, w in itertools.combinations(sorted(g.adj[c]), 2):
+            common[(u, w)] += 1
+    return float(sum(k * (k - 1) // 2 for k in common.values()) // 2)
+
+
 def reference_counter(task: str) -> Callable[[Graph], float]:
     """Independent brute-force implementation of a task (not the DSL program)."""
     if task == "degree":
@@ -51,6 +74,14 @@ def reference_counter(task: str) -> Callable[[Graph], float]:
         return _brute_open_wedges
     if task == "degree-moment2":
         return lambda g: float(sum(len(g.adj[u]) ** 2 for u in range(g.n)))
+    if task == "degree-ge3":
+        return lambda g: _degree_at_least(g, 3)
+    if task == "triangle-node":
+        return _triangle_nodes
+    if task == "triangle-edge":
+        return _triangle_edges
+    if task == "4-cycle":
+        return _four_cycles
     m = re.fullmatch(r"(\d+)-star", task)
     if m:
         k = int(m.group(1))

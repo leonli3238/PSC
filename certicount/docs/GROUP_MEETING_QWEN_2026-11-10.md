@@ -395,7 +395,7 @@ name = comb(size(P), 2); return name; aggregate: total
 ## 附：结果文件
 
 - 详细分析：`docs/QWEN_EXPERIMENT_ANALYSIS_2026-11-10.md`
-- A1：`results/audit/sensitivity/probe_pm_degree_report/report.md`
+- A1：`results/reports/sensitivity/probe_pm_degree_report/report.md`
 - A1 thinking：`results/audit/sensitivity/probe_pm_degree_qwen3-8b-think/confirm_nodes/table.md`
 - A2：`results/execution/A2_pm_degree_program_8bthink_r100/table.md`
 - A3：`results/dsl_eval/A3_pm_design_8bthink_d10{,_oob}/`

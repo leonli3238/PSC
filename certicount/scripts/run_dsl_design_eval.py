@@ -56,7 +56,7 @@ from certicount.dsl.designer import (RELEASES, DesignOptions, MockDesignerModel,
                                      design_reference_params, design_with_restarts, draft_stage)
 from certicount.dsl.evolve import wilson_interval  # noqa: E402
 from certicount.dsl.noisy_gate import NoisyGate, noise_free_check  # noqa: E402
-from certicount.dsl.prompt_spec import load_spec  # noqa: E402
+from certicount.dsl.prompt_spec import core_leak_check, load_spec  # noqa: E402
 from certicount.dsl.ground_truth import dp_execute, gs_ratio, gt_dsl, noise_ratio  # noqa: E402
 from certicount.dsl.library import PROGRAMS  # noqa: E402
 from certicount.dsl.quality import design_quality, finite_mean, task_record  # noqa: E402
@@ -106,7 +106,9 @@ def main() -> None:
     ap.add_argument("--prompt", default="v0",
                     help="design instructions: v0 / v1 (empty modules, prompt core v1), legacy (the CS2-CS5 prompt byte "
                          "for byte), v1-repeat3 (v1, prohibitions stated three times), v1-alt (v1 + rewrites of "
-                         "Python constructs + closing checklist + rewrite hints) or a spec JSON, e.g. "
+                         "Python constructs + closing checklist + rewrite hints; its pair rewrites contain the rows "
+                         "triangle and open-wedge programs), generic (v1 + rewrites of single constructs over "
+                         "placeholders, leak-checked, + checklist) or a spec JSON, e.g. "
                          "results/evolve/<tag>/best_prompt.json (a spec without a 'core' field was evolved on the "
                          "legacy core and keeps it)")
     ap.add_argument("--select", default="first", choices=("first", "min_gs", "simulated"),
@@ -179,9 +181,15 @@ def main() -> None:
         model = create_model(cfg, "curator")
     fmt = create_formatter(cfg)
     spec = load_spec(args.prompt)
+    leaks = core_leak_check(spec.core)
+    leaked = sorted({lk["task"] for lk in leaks})
+    if leaked:
+        print(f"WARNING: prompt core {spec.core!r} shows programs of {', '.join(leaked)} "
+              f"(prompt_spec.core_leak_check); results on these tasks are not out-of-prompt")
     out = out_dir("dsl_eval", args.tag, "dsl_eval")
     write_manifest(out, {**vars(args), "planned_calls": planned, "designer": getattr(cfg, "curator_model", None),
-                         "prompt_spec": spec.to_dict(), "design_options": options.to_dict()})
+                         "prompt_spec": spec.to_dict(), "design_options": options.to_dict(),
+                         "core_leaks": list(leaks), "core_leaked_tasks": leaked})
     set_error_sink(out / "errors.jsonl")
     set_transcript_sink(out / "transcripts.jsonl")
 

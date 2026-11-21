@@ -22,9 +22,11 @@ code (no fence, no ``return``).
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import re
 from dataclasses import asdict, dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 from .lang import DSLError, parse_program
@@ -32,6 +34,7 @@ from .utility import utility_test
 
 # tasks whose programs must never appear in a prompt (every task with a brute-force counter)
 GUARDED_TASKS: tuple[str, ...] = ("degree", "triangle", "degree-moment2", "open-wedge",
+                                  "degree-ge3", "triangle-node", "triangle-edge", "4-cycle",
                                   *(f"{k}-star" for k in range(2, 9)))
 MAX_MODULE_CHARS = 3000  # all evolvable text together
 _CODE = re.compile(r"```|\breturn\b")
@@ -119,13 +122,15 @@ class PromptSpec:
 V0 = PromptSpec()
 LEGACY_V0 = PromptSpec(name="legacy", core="legacy")  # the prompt of CS2-CS5, byte for byte
 # empty-module specs of the prompt-core comparison (CS6a): B = prohibition stated three times,
-# C = positive rewrites + closing checklist + rewrite hints (certicount.dsl.designer.dsl_reference)
-CORE_SPECS = {c: PromptSpec(name=c, core=c) for c in ("v1-repeat3", "v1-alt")}
+# C = positive rewrites + closing checklist + rewrite hints (certicount.dsl.designer.dsl_reference);
+# generic = rewrites of single constructs over placeholders, leak-checked (core_leak_check), CS9
+CORE_SPECS = {c: PromptSpec(name=c, core=c) for c in ("v1-repeat3", "v1-alt", "generic")}
 
 
 def load_spec(ref: str | None) -> PromptSpec:
     """``None`` / ``"v0"`` / ``"v1"`` -> :data:`V0` (core v1, empty modules); ``"legacy"`` -> :data:`LEGACY_V0`;
-    ``"v1-repeat3"`` / ``"v1-alt"`` -> :data:`CORE_SPECS`; otherwise a JSON file written by :meth:`PromptSpec.save`."""
+    ``"v1-repeat3"`` / ``"v1-alt"`` / ``"generic"`` -> :data:`CORE_SPECS`; otherwise a JSON file written by
+    :meth:`PromptSpec.save`."""
     if ref in (None, "", "v0", "v1"):
         return V0
     if ref == "legacy":
@@ -165,3 +170,66 @@ def leak_check(spec: PromptSpec) -> list[str]:
             if computes:
                 problems.append(f"example {i + 1} computes the task {task!r}")
     return problems
+
+
+# ----------------------------------------------------------------- leak check of a frozen core
+# Instances of the placeholders of a core's DSL fragments (certicount.dsl.designer.core_templates):
+# the private list, bounded or not, and their sizes. Only placeholders are filled in, nothing is
+# wrapped around a fragment: a fragment leaks if it alone, read as the whole program, computes a task.
+LEAK_INSTANCES: dict[str, tuple[str, ...]] = {
+    "S": ("P", "project(P, D)"), "T": ("P", "project(P, D)"),
+    "x": ("size(P)", "size(project(P, D))"), "a": ("size(P)", "size(project(P, D))"),
+    "b": ("size(P)", "size(project(P, D))"), "k": ("2", "3"), "EXPR": ("1", "size(P)"),
+}
+LEAK_AGGREGATES: tuple[str, ...] = ("total", "total / 2", "total / 3", "total / 4", "total / 6", "total / n")
+# what the language reference gives without any rewrite: size, pow and comb of the private degree
+GIVEN_PROGRAMS: tuple[str, ...] = ("size(P)", "pow(size(P), 2)", "pow(size(P), 3)",
+                                   *(f"comb(size(P), {k})" for k in range(2, 9)))
+
+
+def fragment_instances(fragment: str) -> list[str]:
+    names = [p for p in LEAK_INSTANCES if re.search(rf"\b{p}\b", fragment)]
+    out = []
+    for combo in itertools.product(*(LEAK_INSTANCES[p] for p in names)):
+        sub = dict(zip(names, combo))
+        out.append(re.sub(r"\b(" + "|".join(names) + r")\b", lambda m: sub[m.group(1)], fragment) if names
+                   else fragment)
+    return out
+
+
+def _computes(expr: str, aggregate: str, task: str) -> bool:
+    try:
+        prog = parse_program(f"return {expr}", aggregate)
+        # the named graphs first (cheap), then random graphs
+        return (utility_test(prog, task, count=0, named=True).passed
+                and utility_test(prog, task, count=12, named=False).passed)
+    except (DSLError, ArithmeticError, ValueError, TypeError, KeyError):
+        return False
+
+
+def computed_tasks(expr: str, tasks: tuple[str, ...] = GUARDED_TASKS) -> list[tuple[str, str]]:
+    """``(aggregate, task)`` pairs for which ``return expr`` computes a task."""
+    return [(agg, t) for agg in LEAK_AGGREGATES for t in tasks if _computes(expr, agg, t)]
+
+
+@lru_cache(maxsize=1)
+def given_tasks() -> frozenset[str]:
+    """Tasks a single call of the language reference computes (:data:`GIVEN_PROGRAMS`): no rewrite
+    can leak them (degree, the k-stars, the second degree moment)."""
+    return frozenset(t for e in GIVEN_PROGRAMS for _, t in computed_tasks(e))
+
+
+@lru_cache(maxsize=None)
+def core_leak_check(core: str) -> tuple[dict, ...]:
+    """Fragments of a frozen core that compute a guarded task not in :func:`given_tasks` once their
+    placeholders are filled in (empty: the core shows no program of a task). ``v1-alt`` leaks the
+    rows triangle and the open wedges; ``generic`` must leak nothing (``tests/test_extension.py``)."""
+    from .designer import core_templates  # the designer imports this module
+
+    tasks = tuple(t for t in GUARDED_TASKS if t not in given_tasks())
+    leaks = []
+    for frag in core_templates(core):
+        for expr in fragment_instances(frag):
+            for agg, task in computed_tasks(expr, tasks):
+                leaks.append({"fragment": frag, "program": expr, "aggregate": agg, "task": task})
+    return tuple(leaks)

@@ -1,0 +1,103 @@
+{
+  "run_dir": "results/dsl_eval/cs8_node_v1alt_sim_cudo_3tasks",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 443,
+  "designs": 120,
+  "table": [
+    {
+      "task": "degree",
+      "drafts": 151,
+      "truncated": 17,
+      "parse": 55,
+      "duplicate": 8,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 3,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 68,
+      "rejected_share": 0.4967,
+      "runnable": 71,
+      "uncertified_violations": 1,
+      "uncertified_violation_share": 0.0141,
+      "max_eps_ratio": 2.1639534137386534,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 1,
+      "semantic_errors_published_without_check": 3
+    },
+    {
+      "task": "2-star",
+      "drafts": 156,
+      "truncated": 7,
+      "parse": 44,
+      "duplicate": 0,
+      "gs_failed": 0,
+      "gs_loose": 13,
+      "semantic": 0,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 92,
+      "rejected_share": 0.4103,
+      "runnable": 105,
+      "uncertified_violations": 21,
+      "uncertified_violation_share": 0.2,
+      "max_eps_ratio": 3.4233238952849114,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 8,
+      "semantic_errors_published_without_check": 0
+    },
+    {
+      "task": "3-star",
+      "drafts": 136,
+      "truncated": 5,
+      "parse": 23,
+      "duplicate": 1,
+      "gs_failed": 1,
+      "gs_loose": 17,
+      "semantic": 0,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 89,
+      "rejected_share": 0.3382,
+      "runnable": 107,
+      "uncertified_violations": 20,
+      "uncertified_violation_share": 0.1869,
+      "max_eps_ratio": 5.333333333333333,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 2,
+      "semantic_errors_published_without_check": 0
+    },
+    {
+      "task": "all",
+      "drafts": 443,
+      "truncated": 29,
+      "parse": 122,
+      "duplicate": 9,
+      "gs_failed": 1,
+      "gs_loose": 30,
+      "semantic": 3,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 249,
+      "rejected_share": 0.4176,
+      "runnable": 283,
+      "uncertified_violations": 42,
+      "uncertified_violation_share": 0.1484,
+      "max_eps_ratio": 5.333333333333333,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 11,
+      "semantic_errors_published_without_check": 3
+    }
+  ]
+}

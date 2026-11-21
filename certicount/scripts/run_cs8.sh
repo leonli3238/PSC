@@ -16,7 +16,8 @@
 #   check       offline tests
 #   dry         planned model calls (no server)
 #   code        code references, CPU only (`all` starts it in the background and waits for it at the end)
-#   serve-psc   8B (MEM 0.55, 16k) then 1.7B (MEM 0.35, 16k), in the background; waits until both answer
+#   serve-psc   8B (MEM 0.55, 16k) then 1.7B (MEM 0.90 cumulative = 0.35 own, 32k), in the background; waits until
+#               both answer, stops (exit 5) if a server dies while starting
 #   psc-pilot   1 run of EE triangle: does the largest new triangle prompt fit the context?
 #   psc         CU,Do,ML,CS,EE x degree,2-star,3-star; ML,CS (+EE if the pilot passed) x triangle
 #   psc-decomp  LLM execution error vs mechanism error of all CS1/CS8 PSC directories (no model call)
@@ -27,7 +28,7 @@
 #   stop        stop the servers started by this script
 #
 # Resumable: rerun the same command; finished stages are skipped, a half-written directory is moved to
-# <dir>.incomplete-<time> and redone. Every command is appended to results/cscwd_commands.log.
+# <dir>.incomplete-<time> and redone. Every command is appended to results/logs/cscwd_commands.log.
 # Environment: PY, VLLM_BIN, MODELS, URL_8B, URL_17B, SKIP_SERVE, DESIGNS_NEW, MIN_ACCEPT, FORCE.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -39,9 +40,9 @@ URL_8B=${URL_8B:-http://127.0.0.1:8003/v1}
 URL_17B=${URL_17B:-http://127.0.0.1:8001/v1}
 DESIGNS_NEW=${DESIGNS_NEW:-20}
 MIN_ACCEPT=${MIN_ACCEPT:-0.8}
-LOG=$PWD/results/cscwd_commands.log
+LOG=$PWD/results/logs/cscwd_commands.log
 STATE=$PWD/results/cs8_state
-mkdir -p "$STATE"
+mkdir -p "$STATE" results/logs
 export VLLM_BIN MODELS VLLM_CURATOR_BASE_URL=$URL_8B VLLM_NODE_BASE_URL=$URL_17B
 
 EPS=2.0
@@ -119,13 +120,24 @@ EOF
 }
 
 # ---------------- vLLM servers (one GPU, as run_cscwd.sh) ----------------
-up()   { until curl -sf "$1/models" >/dev/null; do sleep 10; done; }
+up() {  # $1 url, $2 (optional) 8b | 1.7b: stop if the server started by this script has exited
+  until curl -sf "$1/models" >/dev/null; do
+    if [ -n "${2:-}" ] && [ -f "$STATE/serve_$2.pid" ] && ! kill -0 "$(cat "$STATE/serve_$2.pid")" 2>/dev/null; then
+      rm -f "$STATE/serve_$2.pid"
+      echo "vLLM $2 exited before answering; last lines of results/logs/cs8_serve_$2.log:" >&2
+      tail -n 20 "results/logs/cs8_serve_$2.log" >&2
+      exit 5
+    fi
+    sleep 10
+  done
+}
 serve_bg() {  # $1 = 8b | 1.7b, then env assignments (MEM=, MAXLEN=)
   local m=$1; shift
   [ -f "$STATE/serve_$m.pid" ] && kill -0 "$(cat "$STATE/serve_$m.pid")" 2>/dev/null && { echo "$m already served"; return 0; }
-  env "$@" nohup scripts/run_cscwd.sh serve "$m" > "results/cs8_serve_$m.log" 2>&1 &
+  # own session: Ctrl+C in the launching terminal does not reach the server (stop it with `stop`)
+  setsid env "$@" nohup scripts/run_cscwd.sh serve "$m" > "results/logs/cs8_serve_$m.log" 2>&1 < /dev/null &
   echo $! > "$STATE/serve_$m.pid"
-  echo "started vLLM $m (pid $!, log results/cs8_serve_$m.log)"
+  echo "started vLLM $m (pid $!, log results/logs/cs8_serve_$m.log)"
 }
 stop_servers() {
   for m in 1.7b 8b; do
@@ -166,8 +178,12 @@ case $cmd in
 
   serve-psc)
     [ "${SKIP_SERVE:-0}" = 1 ] && { up "$URL_8B"; up "$URL_17B"; exit 0; }
-    serve_bg 8b MEM=0.55 MAXLEN=16384;   up "$URL_8B"
-    serve_bg 1.7b MEM=0.35 MAXLEN=16384; up "$URL_17B"
+    # vLLM V1 (0.8.x) subtracts the memory of every process on the GPU from total x MEM, so the second
+    # server's MEM is cumulative: 0.90 = 8B's 0.55 + 0.35 for the 1.7B (about 28 GB of KV cache).
+    serve_bg 8b MEM=0.55 MAXLEN=16384;   up "$URL_8B" 8b
+    # 1.7B at 32k (native): an EE triangle node prompt (12.3k tokens) + max_tokens 4096 exceeds 16384.
+    # The context length does not change any reply, only which requests are accepted.
+    serve_bg 1.7b MEM=0.90 MAXLEN=32768; up "$URL_17B" 1.7b
     echo "PSC servers up" ;;
 
   psc-pilot)
@@ -200,7 +216,7 @@ EOF
   serve-cc)
     [ "${SKIP_SERVE:-0}" = 1 ] && { up "$URL_8B"; exit 0; }
     stop_servers
-    serve_bg 8b MEM=0.90 MAXLEN=32768; up "$URL_8B"
+    serve_bg 8b MEM=0.90 MAXLEN=32768; up "$URL_8B" 8b
     echo "CertiCount server up" ;;
 
   cc-pm)
@@ -220,20 +236,20 @@ EOF
     echo "[cs8] $(date -u +%FT%TZ) start"
     "$0" check
     "$0" dry
-    "$0" code > results/cs8_code.log 2>&1 &
+    "$0" code > results/logs/cs8_code.log 2>&1 &
     code_pid=$!
-    echo "[cs8] code references in the background (pid $code_pid, log results/cs8_code.log)"
+    echo "[cs8] code references in the background (pid $code_pid, log results/logs/cs8_code.log)"
     for stage in serve-psc psc-pilot psc psc-decomp serve-cc cc-pm cc-cudo cc-mlcsee; do
       echo "[cs8] $(date -u +%FT%TZ) $stage"
       "$0" "$stage"
     done
     [ "${SKIP_SERVE:-0}" = 1 ] || "$0" stop
-    wait "$code_pid" || { echo "[cs8] code stage failed, see results/cs8_code.log" >&2; exit 1; }
+    wait "$code_pid" || { echo "[cs8] code stage failed, see results/logs/cs8_code.log" >&2; exit 1; }
     echo "[cs8] $(date -u +%FT%TZ) done"
     echo "  code:       results/execution/$T_CODE/table.md"
     echo "  PSC:        ../psc/results/exp1/{$T_PSC_STAR,$T_PSC_TRI}/table.md, results/evaluation/cs8_psc_decomposition/table.md"
     echo "  CertiCount: results/dsl_eval/{$T_CC_PM,$T_CC_CUDO,$T_CC_NEW}/table.md" ;;
 
   *)
-    sed -n '2,31p' "$0"; exit 2 ;;
+    sed -n '2,32p' "$0"; exit 2 ;;
 esac

@@ -8,7 +8,7 @@
           more restarts without / with selection (min_gs + tighten + early stop), the evolution with
           the new rules (``cs6c_evolve_psc``) and its prompt with and without selection
 
-    ../.venv/bin/python scripts/summarize_cs6.py --out results/cs6_summary.md
+    ../.venv/bin/python scripts/summarize_cs6.py --out results/reports/cs6_summary.md
 
 Per run and task: accept and qualified rates (Wilson 95 % interval of the accept rate), drafts,
 parse failures per draft and per first draft of a loop, model calls per design, GS ratio to the
@@ -206,7 +206,7 @@ def evo_section(tag: str) -> list[str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--out", default=str(ROOT / "results" / "cs6_summary.md"))
+    ap.add_argument("--out", default=str(ROOT / "results" / "reports" / "cs6_summary.md"))
     a = ap.parse_args()
     md = ["# CS6 summary (PM, ε = 2, Qwen3-8B thinking curator, held-out tasks)", "",
           "parse/draft: drafts that could not be parsed (after the run's format repairs) / all drafts; "
@@ -224,7 +224,9 @@ def main() -> None:
             j = json.loads(s.read_text())
             md.append(f"- {t}: {json.dumps({k: j[k] for k in j if k in ('programs', 'count', 'refuted', 'failures')})}")
     md.append("")
-    Path(a.out).write_text("\n".join(md), encoding="utf-8")
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))
 
 

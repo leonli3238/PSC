@@ -21,9 +21,10 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from psc.dp import (graph_projection, laplace_noise, node_noisy_lower_row, node_noisy_upper_row,
-                    project_neighbor_list, split_budget)
+from psc.dp import (build_noisy_graph, graph_projection, laplace_noise, naive_budget, node_noisy_lower_row,
+                    node_noisy_upper_row, project_neighbor_list, split_budget)
 from psc.graph import TASKS, Graph
+from psc.ground_truth import gt_naive as psc_gt_naive
 from psc.mechanism import DEFAULT_MECHANISM, MechanismProfile, get_mechanism
 
 from .clipping import edge_clipping_bounds
@@ -31,6 +32,7 @@ from .lang import Env, Interpreter, Program, node_projector, smallest_projector
 from .library import HAND_GS, reference_source
 from .matrix import unbiased_matrix
 from .sensitivity import PublicParams, derive
+from .utility import reference_counter
 
 
 @dataclass
@@ -209,6 +211,16 @@ def gt_dsl(graph: Graph, task: str, eps: float, rng: np.random.Generator,
     NAM-DPRD unbiased matrix for triangles, :mod:`certicount.dsl.matrix`)."""
     return dp_execute(graph, reference_program(task, node_bounds), eps, rng, task, mechanism, r1, r2,
                       node_bounds, alpha)
+
+
+def gt_naive(graph: Graph, task: str, eps: float, rng: np.random.Generator) -> float:
+    """GT-Naive for every task with a brute-force counter: the whole budget on the RR noisy
+    graph, the exact count on it (no bias correction). Library tasks call
+    :func:`psc.ground_truth.gt_naive` (same random numbers, same value); the other tasks
+    (open wedges, the extension tasks) count with :func:`certicount.dsl.utility.reference_counter`."""
+    if task in TASKS:
+        return psc_gt_naive(graph, task, eps, rng)
+    return float(reference_counter(task)(build_noisy_graph(graph, naive_budget(eps).eps1, rng)))
 
 
 def hand_gs(task: str, d_hat: int | None, n: int) -> float | None:

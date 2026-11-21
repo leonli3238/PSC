@@ -1,6 +1,6 @@
 """CS7 summary: deriver fuzzing (A programs, own bounds), offline replay, online arms (per-node architecture).
 
-    ../.venv/bin/python scripts/summarize_cs7.py --out results/cs7_summary.md
+    ../.venv/bin/python scripts/summarize_cs7.py --out results/reports/cs7_summary.md
 
 Missing result directories are listed as missing; nothing is recomputed.
 """
@@ -29,7 +29,7 @@ def load(p: Path) -> dict | None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--out", default=str(RES / "cs7_summary.md"))
+    ap.add_argument("--out", default=str(RES / "reports" / "cs7_summary.md"))
     args = ap.parse_args()
     md = ["# CS7 summary (per-node architecture, PM, ε = 2, held-out tasks)", ""]
 
@@ -83,7 +83,9 @@ def main() -> None:
                                          "design_error", "gs_ratio", "noise_ratio", "mean_candidates", "runs_matrix"])]
         md += ["", "cs5_* rows: CS5 per-node arms (prompt v0 / evolved, gate on; their gs_ratio is the raw ratio of "
                    "the local GS)."]
-    Path(args.out).write_text("\n".join(md) + "\n", encoding="utf-8")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
 
 

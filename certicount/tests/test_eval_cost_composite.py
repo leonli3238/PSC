@@ -90,6 +90,6 @@ def test_plan_checks():
     assert plan_from_keywords("What is the clustering coefficient?").name == "clustering"
     plan = check_plan({"subqueries": [["T", "triangle"], ["W", "2-star"]], "combine": "3 * T / W"})
     assert plan.combine_value({"T": 2, "W": 6}) == 1.0
-    for bad in ({"subqueries": [["T", "4-cycle"]]}, {"subqueries": [["T", "triangle"]], "combine": "__import__('os')"}, {}):
+    for bad in ({"subqueries": [["T", "5-cycle"]]}, {"subqueries": [["T", "triangle"]], "combine": "__import__('os')"}, {}):
         with pytest.raises(ValueError):
             check_plan(bad)

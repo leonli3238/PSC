@@ -12,7 +12,7 @@
 #   scripts/probe_h20.sh boundary 8b               # screen if missing + diversified top 40 + node-level design
 #   scripts/probe_h20.sh report 1.7b 4b 8b         # cross-model tables, joint Bonferroni over all sets
 #
-# Environment: PY (project python), VLLM_BIN, MODELS (model directories), OUT (result root).
+# Environment: PY (project python), VLLM_BIN, MODELS (model directories), OUT (result root), REPORTS (report root).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -20,6 +20,7 @@ PY=${PY:-../.venv/bin/python}
 VLLM_BIN=${VLLM_BIN:-vllm}
 MODELS=${MODELS:-/models}
 OUT=${OUT:-results/audit/sensitivity}
+REPORTS=${REPORTS:-results/reports/sensitivity}
 SRC=${SRC:-1.7b}          # model whose confirmed pairs are transferred
 CONC=${CONC:-128}
 
@@ -89,6 +90,6 @@ case $cmd in
     else echo "no screen candidate for $1"; fi ;;
   report)
     runs=(); for m in "$@"; do runs+=("$(rundir "$m")"); done
-    probe report --runs "${runs[@]}" --report-dir "$OUT/probe_pm_degree_report" --family-alpha 0.05 ;;
+    probe report --runs "${runs[@]}" --report-dir "$REPORTS/probe_pm_degree_report" --family-alpha 0.05 ;;
   *) sed -n '2,15p' "$0"; exit 2 ;;
 esac

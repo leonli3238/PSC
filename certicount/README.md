@@ -232,7 +232,8 @@ python scripts/run_execution_compare.py ... --modes program,nodebound --clip-alp
 
 > 此前这里是"先发度数的自适应选择"（NPMLE 后验 + 合成图打分选择器 + margin 0.1）和"LLM 设计程序池"，
 > 二者均为本项目自拟、未经文献检验的方法，已删除（`dsl/adaptive.py`、`dsl/pool.py`、`scripts/run_adaptive.py`、
-> `scripts/run_pool.py` 及其测试）。`results/adaptive/`、`results/pool/` 只作历史记录，代码已无法重跑。
+> `scripts/run_pool.py` 及其测试）。对应的 `results/adaptive/`、`results/pool/` 和三组旧 adaptive 执行结果已于
+> 2026-11-21 清理；清理范围和保留实验见 [结果目录索引](results/README.md)。
 
 ## 灵敏度审计（`audit.py`，内容二）
 

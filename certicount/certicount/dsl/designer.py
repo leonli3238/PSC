@@ -161,7 +161,53 @@ CHECKLIST = """Before you answer, check the program line by line:
 4. the only node names are self and the loop variables of sum(...);
 5. every name is assigned once and the last line is the return line."""
 
-CORES = ("v1", "legacy", "v1-repeat3", "v1-alt")
+# Core "generic": rewrites of single Python constructs, each over placeholders (S, T sets; x, a, b
+# numbers; EXPR a number expression; k a constant). Unlike ALTERNATIVES (whose pair rewrites over
+# S & N(v) / S - N(v) are the rows triangle and open-wedge programs once S = project(P, D)), no line
+# fills in a statistic: prompt_spec.core_leak_check substitutes the placeholders by P / project(P, D)
+# and their sizes and checks that no instance computes a guarded task beyond the ones the language
+# reference gives by itself (degree, k-stars, degree moments). The prompt text is rendered from these
+# tuples, so the checked fragments are exactly the shown ones.
+GENERIC_REWRITES: tuple[tuple[str, str, str], ...] = (  # (Python, DSL, note)
+    ("len(S)", "size(S)", ""),
+    ("sum(1 for v in S if v in T)", "size(S & T)", ""),
+    ("sum(1 for v in S if v not in T)", "size(S - T)", ""),
+    ("1 if x >= 1 else 0", "clip(x, 0, 1)", "x a whole number, x >= 0"),
+    ("a if a < b else b", "min(a, b)", ""),
+    ("a if a > b else b", "max(a, b)", ""),
+    ("x ** k", "pow(x, k)", ""),
+    ("math.comb(x, k)", "comb(x, k)", ""),
+    ("total = 0, then total += EXPR in a for loop over v in S", "sum(EXPR for v in S)", ""),
+)
+GENERIC_RULES: tuple[str, ...] = (
+    "never test membership, order or a condition: count the matching elements with size(...) of a set "
+    "expression, and turn a condition on a number into clip, min or max",
+    "correct repeated counting with a constant factor: a sum over both orders of a pair counts each unordered "
+    "pair twice, and a structure that each of its k nodes counts is counted k times",
+    "k in comb(x, k) and pow(x, k) is written as a number; a name is assigned once (use a new name per step)",
+    "this node is self; other nodes exist only as loop variables of sum(...)",
+)
+
+
+def _generic_text() -> str:
+    lines = ["How to write common Python constructs in this language (Python on the left, this language on the "
+             "right; S and T are any set expressions, x, a and b any numbers, EXPR any number expression, k a whole "
+             "number):"]
+    lines += [f"- {py}  ->  {dsl}" + (f"   ({note})" if note else "") for py, dsl, note in GENERIC_REWRITES]
+    lines += [f"- {r}" for r in GENERIC_RULES]
+    return "\n".join(lines)
+
+
+GENERIC = _generic_text()
+
+# DSL fragments of each core that prompt_spec.core_leak_check instantiates (rewrites and hints)
+V1ALT_TEMPLATES: tuple[str, ...] = (
+    "0.5 * sum(size(S) - 1 for v in S)", "0.5 * sum(size(S & N(v)) for v in S)",
+    "0.5 * sum(size(S - N(v)) - 1 for v in S)", "pow(x, 2)", "sum(EXPR for v in S)",
+)
+GENERIC_TEMPLATES: tuple[str, ...] = tuple(dsl for _, dsl, _ in GENERIC_REWRITES)
+
+CORES = ("v1", "legacy", "v1-repeat3", "v1-alt", "generic")
 
 
 def _check_core(core: str) -> None:
@@ -169,10 +215,16 @@ def _check_core(core: str) -> None:
         raise ValueError(f"unknown prompt core {core!r}; known: {', '.join(CORES)}")
 
 
+def core_templates(core: str) -> tuple[str, ...]:
+    """DSL fragments a core shows the curator, with placeholders (``()``: none beyond the language)."""
+    _check_core(core)
+    return {"v1-alt": V1ALT_TEMPLATES, "generic": GENERIC_TEMPLATES}.get(core, ())
+
+
 def dsl_reference(core: str = "v1", matrix: bool = False) -> str:
     """Language reference of a prompt core: ``legacy`` (the CS2-CS5 text), ``v1``, ``v1-repeat3``
-    (v1 with :data:`NOT_SUPPORTED` also stated first; :func:`prompt_tail` states it a third time)
-    or ``v1-alt`` (v1 plus :data:`ALTERNATIVES`)."""
+    (v1 with :data:`NOT_SUPPORTED` also stated first; :func:`prompt_tail` states it a third time),
+    ``v1-alt`` (v1 plus :data:`ALTERNATIVES`) or ``generic`` (v1 plus :data:`GENERIC`)."""
     _check_core(core)
     if core == "legacy":
         base = DSL_REFERENCE_LEGACY
@@ -180,6 +232,8 @@ def dsl_reference(core: str = "v1", matrix: bool = False) -> str:
         base = NOT_SUPPORTED + "\n\n" + DSL_REFERENCE
     elif core == "v1-alt":
         base = DSL_REFERENCE + "\n" + ALTERNATIVES
+    elif core == "generic":
+        base = DSL_REFERENCE + "\n" + GENERIC
     else:
         base = DSL_REFERENCE
     return base + ("\n" + MATRIX_REFERENCE if matrix else "")
@@ -188,7 +242,7 @@ def dsl_reference(core: str = "v1", matrix: bool = False) -> str:
 def prompt_tail(core: str = "v1") -> str:
     """Text placed right before the reply format ("" for ``v1`` / ``legacy``)."""
     _check_core(core)
-    return {"v1-repeat3": NOT_SUPPORTED, "v1-alt": CHECKLIST}.get(core, "")
+    return {"v1-repeat3": NOT_SUPPORTED, "v1-alt": CHECKLIST, "generic": CHECKLIST}.get(core, "")
 
 
 def reply_format(core: str = "v1") -> str:
@@ -325,14 +379,25 @@ _ALT_HINTS: tuple[tuple[str, str], ...] = (
      "there are no for / if statements"),
 )
 
+# Core "generic" only: the same rewrites over the placeholders of GENERIC (no pair formula).
+_GENERIC_HINTS: tuple[tuple[str, str], ...] = (
+    (r"without conditions",
+     "drop the condition: count the elements of S that are in T with size(S & T) (not in T: size(S - T)) and "
+     "write a condition on a number with clip, min or max"),
+    (r"only 'name = <expr>' lines",
+     "write a running total as sum(EXPR for v in S), assign every name once and end with the return line; "
+     "there are no for / if statements"),
+)
+
 
 def repair_hint(message: str, source: str = "", core: str = "v1") -> str | None:
     """How to express what the parser rejected (``None``: no specific hint). ``core="v1-alt"``
-    uses the rewrite hints :data:`_ALT_HINTS` first."""
-    if core == "v1-alt":
+    uses the rewrite hints :data:`_ALT_HINTS` first, ``core="generic"`` :data:`_GENERIC_HINTS`."""
+    if core in ("v1-alt", "generic"):
         if "**" in source and re.search(r"unsupported syntax BinOp|syntax", message):
-            return "write pow(x, 2) instead of x ** 2 (pow takes a constant exponent)"
-        for pattern, hint in _ALT_HINTS:
+            return ("write pow(x, 2) instead of x ** 2 (pow takes a constant exponent)" if core == "v1-alt" else
+                    "write pow(x, k) instead of x ** k (k written as a number)")
+        for pattern, hint in (_ALT_HINTS if core == "v1-alt" else _GENERIC_HINTS):
             if re.search(pattern, message):
                 return hint
     if re.search(r"<[a-z][a-z _-]*>", source):

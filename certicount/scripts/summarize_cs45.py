@@ -1,7 +1,7 @@
 """One-page summary of the CS4 (online check of the design-loop fixes) and CS5 (prompt evolution,
 held-out evaluation) runs of ``scripts/run_cscwd.sh cs45-all``. Reads result directories only.
 
-    ../.venv/bin/python scripts/summarize_cs45.py --out results/cs45_summary.md
+    ../.venv/bin/python scripts/summarize_cs45.py --out results/reports/cs45_summary.md
 
 Per design run: accept rate, qualified rate (accepted and within the noise-free bias of the
 reference: ``noise_free_pass``), median / mean relative error of the accepted designs vs the
@@ -100,7 +100,7 @@ def evo_section(tag: str) -> list[str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--out", default=str(ROOT / "results" / "cs45_summary.md"))
+    ap.add_argument("--out", default=str(ROOT / "results" / "reports" / "cs45_summary.md"))
     a = ap.parse_args()
     rows = []
     for label, tag in RUNS:
@@ -118,7 +118,9 @@ def main() -> None:
     md += evo_section("cs5_evolve_psc") + evo_section("cs5_evolve_node")
     replay = DSL / "cs4_step1a_replay" / "table.md"
     md += ["## Offline replay", "", f"See {replay.relative_to(ROOT)}" if replay.exists() else "not run", ""]
-    Path(a.out).write_text("\n".join(md), encoding="utf-8")
+    out = Path(a.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(md), encoding="utf-8")
     print("\n".join(md))
 
 
