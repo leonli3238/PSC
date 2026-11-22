@@ -19,8 +19,9 @@
 #   code     GT-Naive / GT-Rows / GT-DSL-node / GT-Select of all CS9 tasks, 1000 runs, CPU only, paired with g1-g3
 #   summary  results/reports/cs9_summary.md
 #
-# Resumable: rerun the same command; finished stages are skipped, a half-written directory is moved to
-# <dir>.incomplete-<time> and redone. A design stage that lost the server (connection errors in errors.jsonl)
+# Resumable: rerun the same command; finished stages are skipped. An interrupted design stage continues with
+# run_dsl_design_eval.py --resume (finished dataset/task cells are kept, the cell that was running is redone);
+# another half-written directory is moved to <dir>.incomplete-<time> and redone. A design stage that lost the server (connection errors in errors.jsonl)
 # is moved to <dir>.serverdown-<time> and redone once. Stops (exit 3) on an unsound certificate.
 # Every command is appended to results/logs/cscwd_commands.log.
 # Environment: PY, VLLM_BIN, MODELS, URL_8B, WORKERS.
@@ -104,15 +105,25 @@ design_args() {  # $1 prompt core: the CS7/CS8 sim command line with that core
     --node-bounds --clip-alpha "$(alpha)" --prompt "$1" --select simulated --own-row-check --tighten 1
 }
 cc_stage() {  # $1 tag, $2 prompt core, then run_dsl_design_eval options
-  local t=$1 core=$2 d="results/dsl_eval/$1" n; shift 2
+  local t=$1 core=$2 d="results/dsl_eval/$1" n crash=0; shift 2
   for attempt in 1 2; do
-    if ! done_or_reset "$d" table.md; then
+    until [ -f "$d/table.md" ]; do
       wait_server
-      # shellcheck disable=SC2046
-      run "$PY" scripts/run_dsl_design_eval.py $(design_args "$core") --tag "$t" "$@"
-    else
-      echo "done: $t"
-    fi
+      if [ -f "$d/manifest.json" ]; then
+        # interrupted run: keep its finished (dataset, task) cells, design the others again
+        # shellcheck disable=SC2046
+        run "$PY" scripts/run_dsl_design_eval.py $(design_args "$core") --tag "$t" "$@" --resume && continue
+      else
+        done_or_reset "$d" table.md || true
+        # shellcheck disable=SC2046
+        run "$PY" scripts/run_dsl_design_eval.py $(design_args "$core") --tag "$t" "$@" && continue
+      fi
+      crash=$((crash + 1))
+      [ "$crash" -ge 3 ] && { echo "[cs9] $t crashed $crash times: stop, see results/logs/cs9_all.log" >&2; exit 7; }
+      echo "[cs9] $(date -u +%FT%TZ) $t crashed (attempt $crash); resuming in 60 s" >&2
+      sleep 60
+    done
+    echo "done: $t"
     n=$(server_errors "$d")
     if [ "$n" -gt 0 ]; then
       [ "$attempt" = 2 ] && { echo "[cs9] $t lost the server again ($n errors): stop, see $d/errors.jsonl" >&2; exit 6; }

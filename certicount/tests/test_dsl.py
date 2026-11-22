@@ -203,3 +203,15 @@ def test_design_loop_gives_up_after_max_iterations():
     res = asyncio.run(design_program(Silent(), create_formatter(ModelConfig()), analyst_prompt("triangle", 49), 49,
                                      PublicParams(49, 10, 10), task="triangle", max_iterations=2))
     assert not res.accepted and res.iterations == 2
+
+
+@pytest.mark.parametrize("src", [
+    # the assignment's own name as its loop variable: the deriver used to substitute it endlessly
+    "S = project(P, D)\nu = 0.5 * sum(size(S - N(u)) - 1 for u in S)\nreturn u",
+    # a loop variable assigned later: name resolution is program-wide, the loop variable would be read as it
+    "S = project(P, D)\nx = sum(size(S & N(v)) for v in S)\nv = size(S)\nreturn x + v",
+    "S = project(P, D)\nv = size(S)\nreturn sum(size(S & N(w)) for w in S) + sum(1 for v in S)",
+])
+def test_loop_variable_must_not_be_an_assigned_name(src):
+    with pytest.raises(DSLError, match="loop variable"):
+        parse_program(src, "total")

@@ -278,6 +278,19 @@ class _Checker:
         return body, NUM
 
 
+def _loop_vars(e: Expr) -> set[str]:
+    """Names bound by the ``sum`` loops inside an expression."""
+    if isinstance(e, Sum):
+        return {e.var} | _loop_vars(e.body) | _loop_vars(e.domain)
+    if isinstance(e, BinOp):
+        return _loop_vars(e.left) | _loop_vars(e.right)
+    if isinstance(e, Neg):
+        return _loop_vars(e.operand)
+    if isinstance(e, Call):
+        return set().union(*(_loop_vars(a) for a in e.args))
+    return set()
+
+
 def _strip_fence(source: str) -> str:
     lines = [ln for ln in source.strip().splitlines() if not ln.strip().startswith("```")]
     return "\n".join(lines)
@@ -343,6 +356,16 @@ def parse_program(source: str, aggregate: str = "total", clamp_nonnegative: bool
             raise DSLError(f"line {stmt.lineno}: only 'name = <expr>' lines followed by one final 'return <expr>'")
     if ret is None:
         raise DSLError("the program must end with 'return <expr>'")
+    # A loop variable must not share its name with an assignment, before or after it: the deriver
+    # and the interpreter resolve names program-wide (Program.lookup), so `u = sum(... N(u) ... for u in S)`
+    # would read the loop variable as the assignment (an endless substitution, or a wrong bound).
+    assigned = {name for name, _ in assigns}
+    for owner, e in [*assigns, ("return", ret)]:
+        clash = sorted(_loop_vars(e) & assigned)
+        if clash:
+            where = "the return line" if owner == "return" else f"the line of {owner!r}"
+            raise DSLError(f"loop variable {clash[0]!r} in {where} is also an assigned name: "
+                           f"use a loop variable name that is not assigned anywhere")
     agg = _parse_aggregate(aggregate)
     prog = Program(source, tuple(assigns), ret, aggregate.strip(), agg, clamp_nonnegative, dict(checker.scope), budget)
     if prog.uses_rows and prog.uses_matrix:

@@ -516,6 +516,8 @@ def check_draft(program: Program, task: str | None, params: PublicParams, utilit
         der = derive(program, params)
     except SensitivityError as exc:
         return f"sensitivity check failed: {exc}"
+    except RecursionError:  # a draft the deriver cannot analyse is rejected, not a crash of the run
+        return "sensitivity check failed: the program is too deeply nested to analyse; write it with fewer nested sums"
     loose = [w for w in der.warnings if "loose" in w]
     if loose:
         return f"sensitivity GS = {der.gs:g} is too loose: {loose[0]}"

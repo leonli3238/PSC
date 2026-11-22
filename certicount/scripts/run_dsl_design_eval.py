@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import math
 import sys
 import time
@@ -73,6 +74,58 @@ def _rate(values) -> float | None:
 
 def _se(values: list[float]) -> float | None:
     return float(np.std(values, ddof=1) / math.sqrt(len(values))) if len(values) > 1 else None
+
+
+RESULTS = ROOT / "results"
+# settings that may differ between the attempts of a resumed run
+_RESUME_FREE = {"resume", "dry_run", "design_concurrency"}
+
+
+def _read_jsonl(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    with path.open(encoding="utf-8") as f:
+        return [json.loads(line) for line in f if line.strip()]
+
+
+def resume_directory(out: Path, settings: dict) -> tuple[Path, dict[tuple[str, str], list[dict]]]:
+    """Prepare ``out`` (an interrupted run) for --resume; returns the finished cells' design rows.
+
+    A cell is written to designs.jsonl / runs.jsonl only once all its designs are done, so a cell
+    with ``designs`` rows is complete. Transcript and error lines of the other cells (the cell that
+    was running when the run stopped) are moved to ``*.discarded.jsonl``: they are designed again."""
+    if not (out / "manifest.json").exists():
+        raise SystemExit(f"--resume: no {out}/manifest.json")
+    if (out / "table.md").exists():
+        raise SystemExit(f"--resume: {out} is finished (table.md exists)")
+    old = json.loads((out / "manifest.json").read_text(encoding="utf-8"))["settings"]
+    diff = sorted(k for k in settings if k not in _RESUME_FREE and old.get(k, settings[k]) != settings[k])
+    if diff:
+        raise SystemExit("--resume: settings differ from the interrupted run: "
+                         + ", ".join(f"{k}={old.get(k)!r} -> {settings[k]!r}" for k in diff))
+    cells: dict[tuple[str, str], list[dict]] = {}
+    for r in _read_jsonl(out / "designs.jsonl"):
+        cells.setdefault((r["dataset"], r["task"]), []).append(r)
+    partial = {c: len(v) for c, v in cells.items() if len(v) != settings["designs"]}
+    if partial:
+        raise SystemExit(f"--resume: cells with an unexpected number of designs {partial} (expected {settings['designs']})")
+    runs = {(r["dataset"], r["task"]) for r in _read_jsonl(out / "runs.jsonl")}
+    if runs - set(cells):
+        raise SystemExit(f"--resume: runs.jsonl has cells without designs: {sorted(runs - set(cells))}")
+    for name in ("transcripts", "errors"):
+        rows = _read_jsonl(out / f"{name}.jsonl")
+        keep = [r for r in rows if (r.get("dataset"), r.get("task")) in cells]
+        drop = [r for r in rows if (r.get("dataset"), r.get("task")) not in cells]
+        if drop:
+            with (out / f"{name}.discarded.jsonl").open("a", encoding="utf-8") as f:
+                f.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in drop)
+            with (out / f"{name}.jsonl").open("w", encoding="utf-8") as f:
+                f.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in keep)
+    k = 1
+    while (out / f"manifest.attempt{k}.json").exists():
+        k += 1
+    (out / "manifest.json").rename(out / f"manifest.attempt{k}.json")
+    return out, cells
 
 
 def main() -> None:
@@ -144,6 +197,10 @@ def main() -> None:
     ap.add_argument("--flawed-first", action="store_true", help="mock designer: unprojected first draft for k-star tasks")
     ap.add_argument("--dry-run", action="store_true", help="print the planned model calls and exit")
     ap.add_argument("--tag", default=None)
+    ap.add_argument("--resume", action="store_true",
+                    help="continue an interrupted run of the same --tag and settings: (dataset, task) cells already in "
+                         "designs.jsonl are reused, the others are designed again (their partial transcripts / errors are "
+                         "moved to *.discarded.jsonl); earlier manifests are kept as manifest.attempt<k>.json")
     args = ap.parse_args()
 
     datasets, tasks = args.datasets.split(","), args.tasks.split(",")
@@ -186,10 +243,17 @@ def main() -> None:
     if leaked:
         print(f"WARNING: prompt core {spec.core!r} shows programs of {', '.join(leaked)} "
               f"(prompt_spec.core_leak_check); results on these tasks are not out-of-prompt")
-    out = out_dir("dsl_eval", args.tag, "dsl_eval")
+    if args.resume:
+        if not args.tag:
+            ap.error("--resume needs --tag")
+        out, finished = resume_directory(RESULTS / "dsl_eval" / args.tag, vars(args))
+        print(f"resume {out}: reusing {len(finished)} finished cell(s) {sorted(finished)}")
+    else:
+        out, finished = out_dir("dsl_eval", args.tag, "dsl_eval"), {}
     write_manifest(out, {**vars(args), "planned_calls": planned, "designer": getattr(cfg, "curator_model", None),
                          "prompt_spec": spec.to_dict(), "design_options": options.to_dict(),
-                         "core_leaks": list(leaks), "core_leaked_tasks": leaked})
+                         "core_leaks": list(leaks), "core_leaked_tasks": leaked,
+                         "resumed_cells": sorted(f"{d}/{t}" for d, t in finished)})
     set_error_sink(out / "errors.jsonl")
     set_transcript_sink(out / "transcripts.jsonl")
 
@@ -297,7 +361,11 @@ def main() -> None:
                 diag_gate = NoisyGate(n, args.eps, args.node_bounds, args.clip_alpha, args.mechanism,
                                       tau=args.noisy_tau, reps=args.noisy_reps)
                 rows: list[dict] = []
-                for row, run_rows in await asyncio.gather(*(one(k) for k in range(args.designs))):
+                if (ds, task) in finished:  # --resume: designs and runs are already in the files
+                    rows = finished[(ds, task)]
+                    designs.extend(rows)
+                for row, run_rows in (await asyncio.gather(*(one(k) for k in range(args.designs)))
+                                      if (ds, task) not in finished else []):
                     for rr in run_rows:
                         append_jsonl(rr, out / "runs.jsonl")
                     append_jsonl(row, out / "designs.jsonl")
