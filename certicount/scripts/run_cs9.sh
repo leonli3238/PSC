@@ -134,11 +134,23 @@ cc_stage() {  # $1 tag, $2 prompt core, then run_dsl_design_eval options
     break
   done
   if [ ! -f "$d/certification_ablation/table.md" ]; then
-    # a resumed G1 lost the transcripts of its first 9 cells (fixed since): analyse the designs that have them
-    if [ -f "$d/manifest.attempt1.json" ]; then
-      run "$PY" scripts/analyze_design_certification.py "$d" --allow-missing
-    else
+    # A resumed run can have lost the transcripts of cells finished before the interruption: check the
+    # files, not the tag/manifest, so a running shell that loaded an older version of this function
+    # cannot be mistaken about which option to use.
+    if "$PY" - "$d" <<'EOF'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+designs = p / "designs.jsonl"
+transcripts = p / "transcripts.jsonl"
+need = sum(int(json.loads(line)["llm_calls"]) for line in designs.open(encoding="utf-8")) if designs.exists() else 0
+have = sum(1 for line in transcripts.open(encoding="utf-8") if line.strip()) if transcripts.exists() else 0
+sys.exit(0 if have >= need else 1)
+EOF
+    then
       run "$PY" scripts/analyze_design_certification.py "$d"
+    else
+      run "$PY" scripts/analyze_design_certification.py "$d" --allow-missing
     fi
   fi
   privacy_guard "$d"
