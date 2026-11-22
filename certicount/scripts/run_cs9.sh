@@ -133,7 +133,14 @@ cc_stage() {  # $1 tag, $2 prompt core, then run_dsl_design_eval options
     fi
     break
   done
-  [ -f "$d/certification_ablation/table.md" ] || run "$PY" scripts/analyze_design_certification.py "$d"
+  if [ ! -f "$d/certification_ablation/table.md" ]; then
+    # a resumed G1 lost the transcripts of its first 9 cells (fixed since): analyse the designs that have them
+    if [ -f "$d/manifest.attempt1.json" ]; then
+      run "$PY" scripts/analyze_design_certification.py "$d" --allow-missing
+    else
+      run "$PY" scripts/analyze_design_certification.py "$d"
+    fi
+  fi
   privacy_guard "$d"
 }
 

@@ -134,12 +134,26 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("run_dir")
     ap.add_argument("--out", default=None, help="default: <run_dir>/certification_ablation")
+    ap.add_argument("--allow-missing", action="store_true",
+                    help="analyse only the designs whose transcripts are complete; the others are listed in "
+                         "missing_transcripts.json and in the table header (otherwise: stop)")
     a = ap.parse_args()
     d = Path(a.run_dir)
     designs, calls = load_jsonl(d / "designs.jsonl"), load_jsonl(d / "transcripts.jsonl")
     need = sum(int(r["llm_calls"]) for r in designs)
+    missing: list[dict] = []
     if need > len(calls):
-        sys.exit(f"{d}: designs need {need} transcripts, only {len(calls)} (run still in progress?)")
+        if not a.allow_missing:
+            sys.exit(f"{d}: designs need {need} transcripts, only {len(calls)} (run still in progress?)")
+        if not (calls and all("design" in c for c in calls)) and calls:
+            sys.exit(f"{d}: --allow-missing needs transcript lines tagged with dataset/task/design")
+        groups = Counter((c.get("dataset"), c.get("task"), c["design"]) for c in calls)
+        keep = [r for r in designs if groups.get((r["dataset"], r["task"], r["design"]), 0) >= int(r["llm_calls"])]
+        missing = [{"dataset": r["dataset"], "task": r["task"], "design": r["design"], "llm_calls": r["llm_calls"],
+                    "transcripts": groups.get((r["dataset"], r["task"], r["design"]), 0)}
+                   for r in designs if r not in keep]
+        print(f"{d}: {len(missing)} of {len(designs)} designs have incomplete transcripts; analysing the other {len(keep)}")
+        designs = keep
     from certicount.dsl.designer import design_reference_params
 
     out = Path(a.out) if a.out else d / "certification_ablation"
@@ -208,8 +222,11 @@ def main() -> None:
                 bool(r.get("looser_than_reference")) for r in rows if r["stage"] == "accepted"),
             "semantic_errors_published_without_check": c.get("semantic", 0),
         })
-    summary = {"run_dir": str(d), "checks": CHECKS, "drafts": len(drafts), "designs": len(designs), "table": table}
+    summary = {"run_dir": str(d), "checks": CHECKS, "drafts": len(drafts), "designs": len(designs), "table": table,
+               "designs_without_transcripts": len(missing)}
     (out / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    if missing:
+        (out / "missing_transcripts.json").write_text(json.dumps(missing, indent=2), encoding="utf-8")
     cols = ["task", "drafts", *ORDER, "rejected_share", "runnable", "uncertified_violations",
             "uncertified_violation_share", "max_eps_ratio", "certificate_unsound",
             "accepted_looser_than_reference", "semantic_errors_published_without_check"]
@@ -223,8 +240,12 @@ def main() -> None:
           "`accepted_looser_than_reference`: accepted drafts certified with a looser GS than the task's ideal bound "
           "(valid but less accurate, a cost of the design step, not a privacy break). "
           "`semantic_errors_published_without_check`: drafts the utility test rejects, i.e. wrong statistics that "
-          "would be published if the test were skipped.", "",
-          "| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
+          "would be published if the test were skipped.", ""]
+    if missing:
+        cells = sorted({f"{m['dataset']}/{m['task']}" for m in missing})
+        md += [f"**Partial:** {len(missing)} design(s) without complete transcripts are not analysed "
+               f"(cells {', '.join(cells)}; list in `missing_transcripts.json`).", ""]
+    md += ["| " + " | ".join(cols) + " |", "|" + "---|" * len(cols)]
     for t in table:
         md.append("| " + " | ".join("-" if t[c] is None else f"{t[c]:.3g}" if isinstance(t[c], float) else str(t[c])
                                     for c in cols) + " |")

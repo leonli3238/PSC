@@ -254,8 +254,8 @@ def main() -> None:
                          "prompt_spec": spec.to_dict(), "design_options": options.to_dict(),
                          "core_leaks": list(leaks), "core_leaked_tasks": leaked,
                          "resumed_cells": sorted(f"{d}/{t}" for d, t in finished)})
-    set_error_sink(out / "errors.jsonl")
-    set_transcript_sink(out / "transcripts.jsonl")
+    set_error_sink(out / "errors.jsonl", keep=args.resume)  # --resume: keep the lines of the finished cells
+    set_transcript_sink(out / "transcripts.jsonl", keep=args.resume)
 
     async def evaluate() -> tuple[list[dict], list[dict]]:
         summaries, designs = [], []
