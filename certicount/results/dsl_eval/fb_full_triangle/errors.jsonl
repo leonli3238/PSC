@@ -1,0 +1,2 @@
+{"time": "2026-11-23T23:44:46.847", "kind": "api_error", "dataset": "CU", "task": "triangle", "design": 20, "model": "Qwen3-8B", "attempt": 1, "elapsed": 600.1, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-11-24T00:17:35.999", "kind": "api_error", "dataset": "ML", "task": "triangle", "design": 4, "model": "Qwen3-8B", "attempt": 1, "elapsed": 600.11, "status": null, "message": "APITimeoutError: Request timed out."}

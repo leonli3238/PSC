@@ -677,17 +677,31 @@ def certify(program: Program, params: PublicParams, facts: Facts | None = None) 
     return Certificate(program.digest, params, der.facts, der.gs, tuple(der.trace), tuple(der.warnings))
 
 
-def verify_certificate(cert: Certificate, program: Program, params: PublicParams) -> tuple[bool, str]:
+def verify_certificate(cert: Certificate, program: Program, params: PublicParams,
+                       facts: Facts | None = None) -> tuple[bool, str]:
     """Node-side check of a curator's certificate: same program, same public
-    parameters, and a claimed GS no smaller than the node's own derivation."""
+    parameters, a claimed GS that is a finite nonnegative number no smaller than
+    the node's own derivation. ``facts``: what the node's own environment guarantees
+    (default :class:`Facts`, all true); the node derives with these, never with the
+    facts the certificate claims, and rejects a certificate that claims more."""
+    trusted = facts or Facts()
     if cert.program_digest != program.digest:
         return False, "certificate is for a different program"
     if cert.params != params:
         return False, f"certificate parameters {asdict(cert.params)} differ from the public values {asdict(params)}"
+    gs = cert.gs
+    if isinstance(gs, bool) or not isinstance(gs, (int, float)) or not math.isfinite(gs) or gs < 0:
+        return False, f"claimed GS {gs!r} is not a finite nonnegative number"
+    claimed = cert.facts.to_dict() if isinstance(cert.facts, Facts) else None
+    if claimed is None:
+        return False, "certificate facts are malformed"
+    extra = sorted(k for k, v in claimed.items() if v and not getattr(trusted, k))
+    if extra:
+        return False, f"certificate claims facts this environment does not guarantee: {', '.join(extra)}"
     try:
-        own = derive(program, params, cert.facts)
+        own = derive(program, params, trusted)
     except SensitivityError as exc:
         return False, f"program rejected: {exc}"
-    if cert.gs + 1e-9 < own.gs:
-        return False, f"claimed GS {cert.gs:g} is below the derived GS {own.gs:g}"
+    if gs + 1e-9 < own.gs:
+        return False, f"claimed GS {gs:g} is below the derived GS {own.gs:g}"
     return True, f"GS = {own.gs:g}"

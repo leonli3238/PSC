@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/fb_full_triangle_edge_ext",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 499,
+  "designs": 90,
+  "table": [
+    {
+      "task": "triangle-edge",
+      "drafts": 499,
+      "truncated": 2,
+      "parse": 165,
+      "duplicate": 12,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 212,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 108,
+      "rejected_share": 0.7595,
+      "runnable": 320,
+      "uncertified_violations": 260,
+      "uncertified_violation_share": 0.8125,
+      "max_eps_ratio": 39.7872080335571,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 71,
+      "semantic_errors_published_without_check": 212
+    },
+    {
+      "task": "all",
+      "drafts": 499,
+      "truncated": 2,
+      "parse": 165,
+      "duplicate": 12,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 212,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 108,
+      "rejected_share": 0.7595,
+      "runnable": 320,
+      "uncertified_violations": 260,
+      "uncertified_violation_share": 0.8125,
+      "max_eps_ratio": 39.7872080335571,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 71,
+      "semantic_errors_published_without_check": 212
+    }
+  ],
+  "designs_without_transcripts": 0
+}

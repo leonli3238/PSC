@@ -1,0 +1,4 @@
+{"time": "2026-11-24T00:15:58.678", "kind": "api_error", "dataset": "CU", "task": "triangle-edge", "design": 25, "model": "Qwen3-8B", "attempt": 1, "elapsed": 600.01, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-11-24T00:40:38.894", "kind": "api_error", "dataset": "ML", "task": "triangle-edge", "design": 2, "model": "Qwen3-8B", "attempt": 1, "elapsed": 600.02, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-11-24T00:48:03.248", "kind": "api_error", "dataset": "ML", "task": "triangle-edge", "design": 4, "model": "Qwen3-8B", "attempt": 1, "elapsed": 600.01, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-11-24T01:41:59.321", "kind": "api_error", "dataset": "ML", "task": "triangle-edge", "design": 27, "model": "Qwen3-8B", "attempt": 1, "elapsed": 600.03, "status": null, "message": "APITimeoutError: Request timed out."}

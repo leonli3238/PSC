@@ -1,0 +1,2 @@
+{"time": "2026-11-22T04:45:01.411", "kind": "api_error", "dataset": "CS", "task": "open-wedge", "design": 8, "model": "Qwen3-8B", "attempt": 1, "elapsed": 747.51, "status": null, "message": "APITimeoutError: Request timed out."}
+{"time": "2026-11-22T04:45:01.418", "kind": "api_error", "dataset": "CS", "task": "open-wedge", "design": 8, "model": "Qwen3-8B", "attempt": 1, "elapsed": 747.52, "status": null, "message": "APITimeoutError: Request timed out."}

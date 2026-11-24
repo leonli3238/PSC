@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/fb_binary_triangle",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 446,
+  "designs": 90,
+  "table": [
+    {
+      "task": "triangle",
+      "drafts": 446,
+      "truncated": 0,
+      "parse": 149,
+      "duplicate": 19,
+      "gs_failed": 0,
+      "gs_loose": 2,
+      "semantic": 119,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 157,
+      "rejected_share": 0.6054,
+      "runnable": 278,
+      "uncertified_violations": 94,
+      "uncertified_violation_share": 0.3381,
+      "max_eps_ratio": 9.747447715066732,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 65,
+      "semantic_errors_published_without_check": 119
+    },
+    {
+      "task": "all",
+      "drafts": 446,
+      "truncated": 0,
+      "parse": 149,
+      "duplicate": 19,
+      "gs_failed": 0,
+      "gs_loose": 2,
+      "semantic": 119,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 157,
+      "rejected_share": 0.6054,
+      "runnable": 278,
+      "uncertified_violations": 94,
+      "uncertified_violation_share": 0.3381,
+      "max_eps_ratio": 9.747447715066732,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 65,
+      "semantic_errors_published_without_check": 119
+    }
+  ],
+  "designs_without_transcripts": 0
+}

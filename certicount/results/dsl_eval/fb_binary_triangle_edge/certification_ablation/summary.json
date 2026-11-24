@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/fb_binary_triangle_edge",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 506,
+  "designs": 90,
+  "table": [
+    {
+      "task": "triangle-edge",
+      "drafts": 506,
+      "truncated": 1,
+      "parse": 224,
+      "duplicate": 47,
+      "gs_failed": 0,
+      "gs_loose": 1,
+      "semantic": 140,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 93,
+      "rejected_share": 0.7233,
+      "runnable": 234,
+      "uncertified_violations": 170,
+      "uncertified_violation_share": 0.7265,
+      "max_eps_ratio": 62.0,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 52,
+      "semantic_errors_published_without_check": 140
+    },
+    {
+      "task": "all",
+      "drafts": 506,
+      "truncated": 1,
+      "parse": 224,
+      "duplicate": 47,
+      "gs_failed": 0,
+      "gs_loose": 1,
+      "semantic": 140,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 93,
+      "rejected_share": 0.7233,
+      "runnable": 234,
+      "uncertified_violations": 170,
+      "uncertified_violation_share": 0.7265,
+      "max_eps_ratio": 62.0,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 52,
+      "semantic_errors_published_without_check": 140
+    }
+  ],
+  "designs_without_transcripts": 0
+}

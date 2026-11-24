@@ -1,0 +1,81 @@
+# Feedback ablation (CSCWD): does the checker's diagnosis help the curator?
+
+CS9 settings (Qwen3-8B thinking curator, temperature 0.6, generic prompt core, per-node architecture, simulated choice, own-row check, ε = 2), tighten 0, 3 drafts per release (rows, matrix); the arms differ only in what a redraft's prompt shows: `full` = the rejected drafts with the checker's diagnosis, `binary` = the rejected drafts with the bare verdict, `none` = nothing (independent resampling, the same number of calls). Pooled over the datasets; `loop_at_b` = share of design loops accepted within b drafts (the budget curve).
+
+## 1. Yield and budget curve
+
+| task | arm | designs | released | released_rate | released_ci95 | certified_rate | loop_at_1 | loop_at_2 | loop_at_3 | design_at_1 | design_at_2 | design_at_3 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| triangle | full | 90 | 82 | 0.9111 | [0.83, 0.95] | 0.9111 | 0.2556 | 0.4556 | 0.5778 | 0.5000 | 0.7889 | 0.9111 |
+| triangle | binary | 90 | 62 | 0.6889 | [0.59, 0.78] | 0.6889 | 0.2167 | 0.3056 | 0.3667 | 0.4111 | 0.5778 | 0.6889 |
+| triangle | none | 90 | 76 | 0.8444 | [0.76, 0.91] | 0.8444 | 0.2444 | 0.4222 | 0.4944 | 0.4667 | 0.7667 | 0.8444 |
+| triangle-edge | full | 90 | 39 | 0.4333 | [0.34, 0.54] | 0.4333 | 0.0389 | 0.1389 | 0.2667 | 0.0667 | 0.2444 | 0.4333 |
+| triangle-edge | binary | 90 | 26 | 0.2889 | [0.21, 0.39] | 0.2889 | 0.0722 | 0.1167 | 0.1556 | 0.1333 | 0.2222 | 0.2889 |
+| triangle-edge | none | 90 | 27 | 0.3000 | [0.22, 0.40] | 0.3000 | 0.0778 | 0.1333 | 0.1611 | 0.1556 | 0.2444 | 0.3000 |
+
+## 2. Differences between arms (Newcombe 95% interval)
+
+| task | comparison | released | certified | loop_at_1 | loop_at_2 | loop_at_3 |
+|---|---|---|---|---|---|---|
+| triangle | full - none | +0.067 [-0.031, +0.165] | +0.067 [-0.031, +0.165] | +0.011 [-0.078, +0.100] | +0.033 [-0.069, +0.134] | +0.083 [-0.020, +0.184] |
+| triangle | full - binary | +0.222 [+0.107, +0.333] | +0.222 [+0.107, +0.333] | +0.039 [-0.049, +0.126] | +0.150 [+0.050, +0.246] | +0.211 [+0.108, +0.308] |
+| triangle | binary - none | -0.156 [-0.274, -0.032] | -0.156 [-0.274, -0.032] | -0.028 [-0.114, +0.059] | -0.117 [-0.213, -0.017] | -0.128 [-0.226, -0.025] |
+| triangle-edge | full - none | +0.133 [-0.007, +0.267] | +0.133 [-0.007, +0.267] | -0.039 [-0.091, +0.011] | +0.006 [-0.066, +0.077] | +0.106 [+0.021, +0.189] |
+| triangle-edge | full - binary | +0.144 [+0.004, +0.277] | +0.144 [+0.004, +0.277] | -0.033 [-0.085, +0.016] | +0.022 [-0.048, +0.092] | +0.111 [+0.027, +0.194] |
+| triangle-edge | binary - none | -0.011 [-0.142, +0.121] | -0.011 [-0.142, +0.121] | -0.006 [-0.062, +0.051] | -0.017 [-0.086, +0.053] | -0.006 [-0.082, +0.070] |
+
+## 3. Cost
+
+| task | arm | calls_per_design | calls_per_released | out_tokens_per_design | out_tokens_per_released | tokens_missing | drafts | duplicate_share |
+|---|---|---|---|---|---|---|---|---|
+| triangle | full | 4.5778 | 5.0244 | 2.409e+04 | 2.644e+04 | 0 | 412 | 0.0146 |
+| triangle | binary | 4.9556 | 7.1935 | 2.668e+04 | 3.872e+04 | 0 | 446 | 0.0426 |
+| triangle | none | 4.6667 | 5.5263 | 2.577e+04 | 3.052e+04 | 0 | 420 | 0.0024 |
+| triangle-edge | full | 5.6444 | 13.0256 | 4.261e+04 | 9.833e+04 | 0 | 508 | 0.0157 |
+| triangle-edge | binary | 5.6222 | 19.4615 | 4.359e+04 | 1.509e+05 | 0 | 506 | 0.0929 |
+| triangle-edge | none | 5.5778 | 18.5926 | 4.67e+04 | 1.557e+05 | 0 | 502 | 0.0080 |
+
+## 4. Draft outcomes and released programs
+
+| task | arm | draft_stages | distinct_programs | semantic_pass | sound | mean_RE | design_error_vs_GT_DSL |
+|---|---|---|---|---|---|---|---|
+| triangle | full | parse=140, accepted=104, semantic=77, gs_loose=47, own_row=38, duplicate=6 | 75 | 1.0000 | 1.0000 | 0.4960 | -0.0539 |
+| triangle | binary | parse=149, gs_loose=106, accepted=66, own_row=60, semantic=46, duplicate=19 | 57 | 1.0000 | 1.0000 | 0.4521 | -0.0150 |
+| triangle | none | parse=128, accepted=89, own_row=81, gs_loose=77, semantic=44, duplicate=1 | 69 | 1.0000 | 1.0000 | 0.5114 | -0.0398 |
+| triangle-edge | full | parse=197, semantic=130, own_row=74, gs_loose=50, accepted=48, duplicate=8, truncated=1 | 26 | 1.0000 | 1.0000 | 0.3821 | -0.0317 |
+| triangle-edge | binary | parse=224, gs_loose=80, own_row=63, semantic=61, duplicate=47, accepted=28, release=2, truncated=1 | 25 | 1.0000 | 1.0000 | 0.3903 | -0.0243 |
+| triangle-edge | none | parse=235, gs_loose=92, own_row=76, semantic=63, accepted=29, duplicate=4, truncated=2, release=1 | 24 | 1.0000 | 1.0000 | 0.4325 | -0.0133 |
+
+## 5. Per dataset
+
+| task | arm | dataset | designs | released_rate | released_ci95 | loop_at_1 | loop_at_3 | calls_per_released | mean_RE |
+|---|---|---|---|---|---|---|---|---|---|
+| triangle | full | CU | 30 | 0.9667 | [0.83, 0.99] | 0.2000 | 0.5833 | 4.8966 | 0.9835 |
+| triangle | full | EE | 30 | 0.8667 | [0.70, 0.95] | 0.3167 | 0.5667 | 5.1154 | 0.2348 |
+| triangle | full | ML | 30 | 0.9000 | [0.74, 0.97] | 0.2500 | 0.5833 | 5.0741 | 0.2238 |
+| triangle | binary | CU | 30 | 0.5333 | [0.36, 0.70] | 0.1667 | 0.2667 | 9.8125 | 1.1088 |
+| triangle | binary | EE | 30 | 0.7667 | [0.59, 0.88] | 0.2000 | 0.4167 | 6.4348 | 0.2186 |
+| triangle | binary | ML | 30 | 0.7667 | [0.59, 0.88] | 0.2833 | 0.4167 | 6.1304 | 0.2289 |
+| triangle | none | CU | 30 | 0.9000 | [0.74, 0.97] | 0.2000 | 0.5333 | 5.2593 | 1.0144 |
+| triangle | none | EE | 30 | 0.8000 | [0.63, 0.90] | 0.2000 | 0.4833 | 6.0417 | 0.2312 |
+| triangle | none | ML | 30 | 0.8333 | [0.66, 0.93] | 0.3333 | 0.4667 | 5.3200 | 0.2372 |
+| triangle-edge | full | CU | 30 | 0.4667 | [0.30, 0.64] | 0.0333 | 0.2500 | 12.1429 | 0.5240 |
+| triangle-edge | full | EE | 30 | 0.4667 | [0.30, 0.64] | 0.0667 | 0.2833 | 11.7143 | 0.2964 |
+| triangle-edge | full | ML | 30 | 0.3667 | [0.22, 0.54] | 0.0167 | 0.2667 | 15.8182 | 0.3104 |
+| triangle-edge | binary | CU | 30 | 0.3000 | [0.17, 0.48] | 0.0667 | 0.1667 | 18.7778 | 0.5506 |
+| triangle-edge | binary | EE | 30 | 0.2667 | [0.14, 0.44] | 0.0333 | 0.1333 | 21.6250 | 0.2870 |
+| triangle-edge | binary | ML | 30 | 0.3000 | [0.17, 0.48] | 0.1167 | 0.1667 | 18.2222 | 0.3219 |
+| triangle-edge | none | CU | 30 | 0.4000 | [0.25, 0.58] | 0.1167 | 0.2000 | 13.5833 | 0.5685 |
+| triangle-edge | none | EE | 30 | 0.1667 | [0.07, 0.34] | 0.0500 | 0.0833 | 34.4000 | 0.2933 |
+| triangle-edge | none | ML | 30 | 0.3333 | [0.19, 0.51] | 0.0667 | 0.2000 | 16.7000 | 0.3389 |
+
+## 6. Runs
+
+| tag | finished | api_errors |
+|---|---|---|
+| fb_full_triangle | True | 2 |
+| fb_binary_triangle | True | 0 |
+| fb_none_triangle | True | 3 |
+| fb_full_triangle_edge | True | 6 |
+| fb_binary_triangle_edge | True | 4 |
+| fb_none_triangle_edge | True | 7 |

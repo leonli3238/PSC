@@ -25,7 +25,7 @@ from psc.mechanism import MechanismProfile, get_mechanism
 
 from .dsl.lang import Program
 from .dsl.library import PROGRAMS
-from .dsl.sensitivity import Certificate, PublicParams, derive, verify_certificate
+from .dsl.sensitivity import Certificate, Facts, PublicParams, derive, verify_certificate
 
 
 class BindingViolation(RuntimeError):
@@ -102,9 +102,13 @@ def check_gs(claimed: float, own: float) -> None:
         raise BindingViolation("gs_mismatch", f"controller GS {claimed:g} differs from the node's own GS {own:g}")
 
 
-def check_program(program: Program, certificate: Certificate, params: PublicParams) -> float:
-    """Certificate path of out-of-table tasks; returns the node-derived GS."""
-    ok, reason = verify_certificate(certificate, program, params)
+def check_program(program: Program, certificate: Certificate, params: PublicParams,
+                  facts: Facts | None = None) -> float:
+    """Certificate path of out-of-table tasks; returns the node-derived GS (at least the claimed
+    one). ``facts``: what the node's environment guarantees; the certificate's own claim is
+    never used for the derivation (:func:`certicount.dsl.sensitivity.verify_certificate`)."""
+    trusted = facts or Facts()
+    ok, reason = verify_certificate(certificate, program, params, trusted)
     if not ok:
         raise BindingViolation("certificate_rejected", reason)
-    return max(certificate.gs, derive(program, params, certificate.facts).gs)
+    return max(certificate.gs, derive(program, params, trusted).gs)

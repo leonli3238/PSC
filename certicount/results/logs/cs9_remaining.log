@@ -1,0 +1,530 @@
++ ../.venv/bin/python scripts/run_dsl_design_eval.py --runs 100 --eps 2.0 --seed 0 --noisy-gate --design-concurrency 8 --provider vllm --config configs/vllm_qwen3-8b-think_design.toml --curator-model Qwen3-8B --temperature 0.6 --node-bounds --clip-alpha 5.0 --prompt generic --select simulated --own-row-check --tighten 1 --tag cs9_node_generic_sim_4cycle --datasets CU,ML,EE --tasks 4-cycle --designs 10
+--select simulated: the noise-free gate is replaced by the simulated choice (--noisy-gate ignored)
+3 dataset(s) x 1 task(s) x 10 design(s): at most 240 model calls (vllm); 100 code runs per accepted design
+# DSL design evaluation (goal 2: error added by the LLM designer)
+
+designer = vllm / Qwen3-8B, temperature = 0.6, 10 independent design(s), 3 draft(s) x up to 1 restart(s) per release (rows, matrix), selection simulated (public Holme-Kim graphs, average degrees 4,8,16, 8 releases each, never chosen at a score >= 1; run-time choice on Chung-Lu graphs of the published noisy degrees), own-row check on, tighten 1, early stop off, normalisation on, prompt generic (core generic, 62a207c03a9c4864), ε = 2.0, 100 runs per design (noise of run i: seed [0, i]), mechanism = floor_tight, architecture = per-node (edge clipping + unbiased matrix A, α = 5), noise-aware gate off.
+
+`noise_free_pass` / `noise_free_bias`: the gate's statistic for every accepted design (median relative error of the estimate through the real release on public Holme-Kim graphs, final Laplace noise left out; certicount.dsl.noisy_gate), recorded with the gate off too.
+
+## Design quality
+
+`accept_rate`: designs that produced a program; `first_loop_rate`: accepted without a restart; `first_try_rate`: accepted at the first draft. `gs_ratio`: |c|·GS / the reference's at the design-time bound D = min(n−1, 10), c the aggregate's factor (a constant moved between program and aggregate does not count); `noise_ratio`: final noise |c|·GS/ε3 over the reference's, per run; `semantic_pass`: independent utility test; `sound`: no falsifier counterexample.
+
+| dataset | task | designs | accept_rate | accept_ci95 | first_loop_rate | first_try_rate | mean_iterations | mean_restarts | mean_llm_calls | distinct_programs | same_as_reference | split_match | semantic_pass | sound | noise_free_pass | gs_ratio | gs_ratio_max | noise_ratio | mean_candidates | runs_matrix | runs_rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CU | 4-cycle | 10 | 0.0000 | [0.00, 0.28] | 0.0000 | 0.0000 | - | 1.0000 | 6.0000 | 0 | - | - | - | - | - | - | - | - | 0.0000 | - | - |
+| ML | 4-cycle | 10 | 0.0000 | [0.00, 0.28] | 0.0000 | 0.0000 | - | 1.0000 | 6.0000 | 0 | - | - | - | - | - | - | - | - | 0.0000 | - | - |
+| EE | 4-cycle | 10 | 0.0000 | [0.00, 0.28] | 0.0000 | 0.0000 | - | 1.0000 | 5.9000 | 0 | - | - | - | - | - | - | - | - | 0.1000 | - | - |
+
+## Accuracy (accepted designs, paired with GT-DSL on the same noise)
+
+`design_error` = RE(designed) − RE(GT-DSL), mean over designs and runs (negative: better than the library algorithm); `design_exact`: share of runs whose estimate equals GT-DSL, excluding `both_zero` runs.
+
+| dataset | task | relative_error | median_relative_error | gt_dsl_relative_error | design_error | design_error_max | design_exact | both_zero |
+|---|---|---|---|---|---|---|---|---|
+| CU | 4-cycle | - | - | 7.6522 | - | - | - | - |
+| ML | 4-cycle | - | - | 0.9830 | - | - | - | - |
+| EE | 4-cycle | - | - | 2.0378 | - | - | - | - |
+
+## Designs
+
+| dataset | task | design | accepted | restarts | iterations | same_as_reference | split_match | noise_ratio | semantic_pass | sound | noise_free_bias | search_score | relative_error | design_error | program |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CU | 4-cycle | 0 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 1 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 2 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 3 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 4 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 5 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 6 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 7 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 8 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | 4-cycle | 9 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 0 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 1 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 2 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 3 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 4 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 5 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 6 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 7 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 8 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | 4-cycle | 9 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 0 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 1 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 2 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 3 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 4 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 5 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 6 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 7 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 8 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | 4-cycle | 9 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+
+results in /jizhicfs/leonlanli/work/PSC/certicount/results/dsl_eval/cs9_node_generic_sim_4cycle
+done: cs9_node_generic_sim_4cycle
++ ../.venv/bin/python scripts/analyze_design_certification.py results/dsl_eval/cs9_node_generic_sim_4cycle
+# A4: certification ablation of the curator's drafts
+
+Source `results/dsl_eval/cs9_node_generic_sim_4cycle` (30 designs, 179 drafts). Stage = first failed check of the design loop. `uncertified_violations`: runnable drafts whose largest flip change on small public graphs exceeds the task's reference GS, i.e. drafts that would break ε-edge LDP if executed with PSC-style noise Lap(GS_ref/ε3) without certification (as PSC's rule-calibrated controller would); `max_eps_ratio` = Δ / GS_ref = privacy loss / ε3 (lower bound). `certificate_unsound`: drafts whose measured change exceeds the GS the system itself derived — **must be 0**, otherwise the deriver is wrong. `accepted_looser_than_reference`: accepted drafts certified with a looser GS than the task's ideal bound (valid but less accurate, a cost of the design step, not a privacy break). `semantic_errors_published_without_check`: drafts the utility test rejects, i.e. wrong statistics that would be published if the test were skipped.
+
+| task | drafts | truncated | parse | duplicate | gs_failed | gs_loose | semantic | noisy | refuted | accepted | rejected_share | runnable | uncertified_violations | uncertified_violation_share | max_eps_ratio | certificate_unsound | accepted_looser_than_reference | semantic_errors_published_without_check |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 4-cycle | 179 | 0 | 65 | 9 | 0 | 1 | 103 | 0 | 0 | 1 | 0.944 | 105 | 33 | 0.314 | 21.8 | 0 | 0 | 103 |
+| all | 179 | 0 | 65 | 9 | 0 | 1 | 103 | 0 | 0 | 1 | 0.944 | 105 | 33 | 0.314 | 21.8 | 0 | 0 | 103 |
+-> results/dsl_eval/cs9_node_generic_sim_4cycle/certification_ablation
+privacy guard results/dsl_eval/cs9_node_generic_sim_4cycle: 0 problem(s)
++ ../.venv/bin/python scripts/run_dsl_design_eval.py --runs 100 --eps 2.0 --seed 0 --noisy-gate --design-concurrency 8 --provider vllm --config configs/vllm_qwen3-8b-think_design.toml --curator-model Qwen3-8B --temperature 0.6 --node-bounds --clip-alpha 5.0 --prompt v1-alt --select simulated --own-row-check --tighten 1 --tag cs9_node_v1alt_sim_ow --datasets PM,CU,Do,ML,CS,EE --tasks open-wedge --designs 20
+[api_error] dataset=PM task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=PM task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=PM task=open-wedge design=16 APITimeoutError: Request timed out.
+[api_error] dataset=PM task=open-wedge design=10 APITimeoutError: Request timed out.
+[api_error] dataset=PM task=open-wedge design=16 APITimeoutError: Request timed out.
+[api_error] dataset=PM task=open-wedge design=19 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=4 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=7 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=14 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=14 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=16 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=16 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=17 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=17 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=18 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=18 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=19 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=19 APITimeoutError: Request timed out.
+[api_error] dataset=CU task=open-wedge design=19 APITimeoutError: Request timed out.
+[api_error] dataset=Do task=open-wedge design=1 APITimeoutError: Request timed out.
+[api_error] dataset=Do task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=Do task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=Do task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=Do task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=Do task=open-wedge design=12 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=1 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=12 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=12 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=9 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=9 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=11 APITimeoutError: Request timed out.
+[api_error] dataset=ML task=open-wedge design=19 APIConnectionError: Connection error.
+[api_error] dataset=CS task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=3 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=9 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=12 APITimeoutError: Request timed out.
+[api_error] dataset=CS task=open-wedge design=16 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=3 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=4 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=14 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=14 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=11 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=10 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=13 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=12 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=8 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=17 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=17 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=15 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=14 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=16 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=14 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=19 APITimeoutError: Request timed out.
+[api_error] dataset=EE task=open-wedge design=19 APITimeoutError: Request timed out.
+--select simulated: the noise-free gate is replaced by the simulated choice (--noisy-gate ignored)
+6 dataset(s) x 1 task(s) x 20 design(s): at most 960 model calls (vllm); 100 code runs per accepted design
+WARNING: prompt core 'v1-alt' shows programs of open-wedge, triangle (prompt_spec.core_leak_check); results on these tasks are not out-of-prompt
+# DSL design evaluation (goal 2: error added by the LLM designer)
+
+designer = vllm / Qwen3-8B, temperature = 0.6, 20 independent design(s), 3 draft(s) x up to 1 restart(s) per release (rows, matrix), selection simulated (public Holme-Kim graphs, average degrees 4,8,16, 8 releases each, never chosen at a score >= 1; run-time choice on Chung-Lu graphs of the published noisy degrees), own-row check on, tighten 1, early stop off, normalisation on, prompt v1-alt (core v1-alt, b3ea0cb2b6add266), ε = 2.0, 100 runs per design (noise of run i: seed [0, i]), mechanism = floor_tight, architecture = per-node (edge clipping + unbiased matrix A, α = 5), noise-aware gate off.
+
+`noise_free_pass` / `noise_free_bias`: the gate's statistic for every accepted design (median relative error of the estimate through the real release on public Holme-Kim graphs, final Laplace noise left out; certicount.dsl.noisy_gate), recorded with the gate off too.
+
+## Design quality
+
+`accept_rate`: designs that produced a program; `first_loop_rate`: accepted without a restart; `first_try_rate`: accepted at the first draft. `gs_ratio`: |c|·GS / the reference's at the design-time bound D = min(n−1, 10), c the aggregate's factor (a constant moved between program and aggregate does not count); `noise_ratio`: final noise |c|·GS/ε3 over the reference's, per run; `semantic_pass`: independent utility test; `sound`: no falsifier counterexample.
+
+| dataset | task | designs | accept_rate | accept_ci95 | first_loop_rate | first_try_rate | mean_iterations | mean_restarts | mean_llm_calls | distinct_programs | same_as_reference | split_match | semantic_pass | sound | noise_free_pass | gs_ratio | gs_ratio_max | noise_ratio | mean_candidates | runs_matrix | runs_rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PM | open-wedge | 20 | 1.0000 | [0.84, 1.00] | 1.0000 | 0.4500 | 1.5500 | 1.0000 | 5.1000 | 20 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 2.0000 | 1.0000 | 0.0000 |
+| CU | open-wedge | 20 | 1.0000 | [0.84, 1.00] | 1.0000 | 0.6500 | 1.3500 | 1.0000 | 5.3000 | 20 | 0.0000 | 0.9500 | 1.0000 | 1.0000 | 1.0000 | 0.9658 | 1.0000 | 0.5700 | 1.9500 | 0.0000 | 1.0000 |
+| Do | open-wedge | 20 | 1.0000 | [0.84, 1.00] | 1.0000 | 0.3500 | 1.6500 | 1.0000 | 5.1000 | 20 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.5677 | 2.0000 | 0.0320 | 0.9680 |
+| ML | open-wedge | 20 | 1.0000 | [0.84, 1.00] | 1.0000 | 0.3500 | 1.6500 | 1.0000 | 5.1000 | 20 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.6345 | 1.9000 | 0.2255 | 0.7745 |
+| CS | open-wedge | 20 | 1.0000 | [0.84, 1.00] | 1.0000 | 0.4500 | 1.5500 | 1.0000 | 5.1000 | 20 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.6326 | 2.0000 | 0.2400 | 0.7600 |
+| EE | open-wedge | 20 | 1.0000 | [0.84, 1.00] | 1.0000 | 0.4000 | 1.6500 | 1.0000 | 5.2000 | 20 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 2.0000 | 1.0000 | 0.0000 |
+
+## Accuracy (accepted designs, paired with GT-DSL on the same noise)
+
+`design_error` = RE(designed) − RE(GT-DSL), mean over designs and runs (negative: better than the library algorithm); `design_exact`: share of runs whose estimate equals GT-DSL, excluding `both_zero` runs.
+
+| dataset | task | relative_error | median_relative_error | gt_dsl_relative_error | design_error | design_error_max | design_exact | both_zero |
+|---|---|---|---|---|---|---|---|---|
+| PM | open-wedge | 0.0297 | 0.0297 | 0.0297 | 0.0000 | 0.0000 | 1.0000 | 0.0000 |
+| CU | open-wedge | 0.5964 | 0.6349 | 1.0528 | -0.4563 | -0.4178 | 0.0000 | 0.0370 |
+| Do | open-wedge | 0.3541 | 0.3840 | 0.5561 | -0.2020 | -0.1721 | 0.0320 | 0.0000 |
+| ML | open-wedge | 0.2665 | 0.2899 | 0.3829 | -0.1165 | 0.0000 | 0.2255 | 0.0010 |
+| CS | open-wedge | 0.5767 | 0.6425 | 0.8966 | -0.3199 | -0.2540 | 0.1875 | 0.0900 |
+| EE | open-wedge | 0.1812 | 0.1812 | 0.1812 | 0.0000 | 0.0000 | 1.0000 | 0.0000 |
+
+## Designs
+
+| dataset | task | design | accepted | restarts | iterations | same_as_reference | split_match | noise_ratio | semantic_pass | sound | noise_free_bias | search_score | relative_error | design_error | program |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PM | open-wedge | 0 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; num_pairs = 0.5 * sum(size(S) - 1 for v in S) ; sum_edges = sum(A(u, v) for u in S for v in S) ; edges = 0.5 * sum_edges ; open_wedges = num_pairs - edges ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 1 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | proj_P = project(P, D) ; total_pairs = comb( size(proj_P), 2 ) ; edges_between = 0.5 * sum( sum( A(u, w) for w in proj_P ) for u in proj_P ) ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 2 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; edge_sum = sum(sum(A(u, v) for v in projected_P) for u in projected_P) ; return total_pairs - edge_sum / 2 ; aggregate: total |
+| PM | open-wedge | 3 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | projected_neighbors = project(P, D) ; size_p = size(projected_neighbors) ; total_pairs = (size_p * (size_p - 1)) / 2 ; sum_edges_ordered = sum( sum( A(v, w) for w in projected_neighbors ) for v in projected_neighbors ) ; edges_between = sum_edges_ordered / 2 ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 4 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; pairs = comb(size(S), 2) ; edge_sum = sum(sum(A(v, w) for w in S) for v in S) ; open_wedges = pairs - edge_sum / 2 ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 5 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; sum_A = sum(sum(A(u, v) for v in projected_P) for u in projected_P) ; edges = sum_A / 2 ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 6 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; edge_pairs = 0.5 * sum(sum(A(v, w) for w in S) for v in S) ; return total_pairs - edge_pairs ; aggregate: total |
+| PM | open-wedge | 7 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; sum_edges = sum( sum( A(v, w) for w in S ) for v in S ) ; edges_between = sum_edges / 2 ; return total_pairs - edges_between ; aggregate: total |
+| PM | open-wedge | 8 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; sum_A = sum(sum(A(u, v) for v in projected_P) for u in projected_P) ; edges_between = 0.5 * sum_A ; return total_pairs - edges_between ; aggregate: total |
+| PM | open-wedge | 9 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; sum_A_edges = 0.5 * sum( sum( A(u, v) for v in S ) for u in S ) ; return total_pairs - sum_A_edges ; aggregate: total |
+| PM | open-wedge | 10 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | Q = project(P, D) ; total_pairs = comb(size(Q), 2) ; sum_A = sum( sum( A(u, v) for v in Q ) for u in Q ) ; edges_between = sum_A / 2 ; return total_pairs - edges_between ; aggregate: total |
+| PM | open-wedge | 11 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; edges_sum = sum( sum( A(u, v) for v in S ) for u in S ) ; edges = edges_sum / 2 ; open_wedges = num_pairs - edges ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 12 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; pairs = 0.5 * sum(size(S) - 1 for v in S) ; edges = 0.5 * sum(sum(A(v, w) for w in S) for v in S) ; return pairs - edges ; aggregate: total |
+| PM | open-wedge | 13 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; k = size(S) ; total_pairs = comb(k, 2) ; sum_edges = sum(sum(A(v, w) for w in S) for v in S) ; sum_edges_unordered = sum_edges / 2 ; open_wedges = total_pairs - sum_edges_unordered ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 14 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; size_S = size(S) ; num_pairs = comb(size_S, 2) ; edges_sum = sum( sum( A(u, v) for v in S ) for u in S ) ; edges_between = 0.5 * edges_sum ; open_wedges = num_pairs - edges_between ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 15 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | P_projected = project(P, D) ; s = size(P_projected) ; total_pairs = s * (s - 1) / 2 ; sum_edges = sum(sum(A(v, w) for w in P_projected) for v in P_projected) ; edges_between = sum_edges / 2 ; return total_pairs - edges_between ; aggregate: total |
+| PM | open-wedge | 16 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; sum_edges = sum( sum(A(u, v) for v in S) for u in S ) ; num_edges = 0.5 * sum_edges ; return num_pairs - num_edges ; aggregate: total |
+| PM | open-wedge | 17 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | projected_neighbors = project(P, D) ; num_pairs = comb(size(projected_neighbors), 2) ; sum_edges = sum( sum(A(v, w) for w in projected_neighbors) for v in projected_neighbors ) ; num_edges = 0.5 * sum_edges ; open_wedges = num_pairs - num_edges ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 18 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | projected_neighbors = project(P, D) ; num_pairs = comb(size(projected_neighbors), 2) ; sum_edges = sum( sum( A(v, w) for w in projected_neighbors ) for v in projected_neighbors ) ; edges = 0.5 * sum_edges ; open_wedges = num_pairs - edges ; return open_wedges ; aggregate: total |
+| PM | open-wedge | 19 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0598 | - | 0.0297 | 0.0000 | Q = project(P, D) ; total_pairs = comb(size(Q), 2) ; sum_edges = sum( sum( A(u, v) for v in Q ) for u in Q ) ; edges_between = 0.5 * sum_edges ; return total_pairs - edges_between ; aggregate: total |
+| CU | open-wedge | 0 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; sum_total = sum( sum( A(u, v) for v in S ) for u in S ) ; comb_size = comb(size(S), 2) ; edges = sum_total / 2 ; contribution = comb_size - edges ; return contribution ; aggregate: total |
+| CU | open-wedge | 1 | True | 1 | 2 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | P_proj = project(P, D) ; number_of_pairs = comb(size(P_proj), 2) ; sum_A = 0.5 * sum( sum( A(v, w) for w in P_proj ) for v in P_proj ) ; return number_of_pairs - sum_A ; aggregate: total |
+| CU | open-wedge | 2 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | P_proj = project(P, D) ; total_pairs = comb(size(P_proj), 2) ; edges_between = sum(sum(A(v, w) for w in P_proj) for v in P_proj) / 2 ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 3 | True | 1 | 2 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | projected_neighbors = project(P, D) ; total_pairs = comb(size(projected_neighbors), 2) ; edges_sum = sum(sum(A(v, w) for w in projected_neighbors) for v in projected_neighbors) ; edges = edges_sum / 2 ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 4 | True | 1 | 1 | False | False | 0.3442 | True | True | 0.2243 | - | 0.3840 | -0.6688 | S = project(P, D) ; term = sum( size(S - N(v)) - 1 for v in S ) ; return 0.5 * term ; aggregate: total |
+| CU | open-wedge | 5 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; comb_size = comb(size(S), 2) ; sum_ordered = sum(sum(A(u, v) for v in S) for u in S) ; sum_unordered = 0.5 * sum_ordered ; open_wedges = comb_size - sum_unordered ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 6 | True | 1 | 2 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | proj_P = project(P, D) ; pairs = comb(size(proj_P), 2) ; edges = 0.5 * sum( sum( A(u, w) for w in proj_P ) for u in proj_P ) ; return pairs - edges ; aggregate: total |
+| CU | open-wedge | 7 | True | 1 | 2 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | proj_P = project(P, D) ; count_pairs = comb(size(proj_P), 2) ; sum_A = 0.5 * sum(sum(A(u, v) for v in proj_P) for u in proj_P) ; return count_pairs - sum_A ; aggregate: total |
+| CU | open-wedge | 8 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | s = project(P, D) ; total_pairs = comb(size(s), 2) ; edges = sum(sum(A(u, v) for v in s) for u in s) / 2 ; return total_pairs - edges ; aggregate: total |
+| CU | open-wedge | 9 | True | 1 | 1 | False | True | 0.3161 | True | True | 0.0776 | - | 0.3755 | -0.6773 | P_proj = project(P, D) ; total_pairs = comb(size(P_proj), 2) ; edges_sum = sum( sum( A(u, v) for v in P_proj ) for u in P_proj ) ; edges = 0.5 * edges_sum ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 10 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; total_pairs = comb(size(S), 2) ; edges = 0.5 * sum( sum( A(u, v) for v in S ) for u in S ) ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 11 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; total_pairs = 0.5 * sum( size(S) - 1 for v in S ) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; connected_pairs = 0.5 * sum_A ; contribution = total_pairs - connected_pairs ; return contribution ; aggregate: total |
+| CU | open-wedge | 12 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; k = size(S) ; comb_k_2 = comb(k, 2) ; sum_edges = sum( sum( A(v, w) for w in S ) for v in S ) ; edges_between = 0.5 * sum_edges ; open_wedges = comb_k_2 - edges_between ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 13 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; sum_pairs = sum( sum( A(v, w) for w in S ) for v in S ) ; edges = sum_pairs / 2 ; open_wedges = num_pairs - edges ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 14 | True | 1 | 2 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | projected_P = project(P, D) ; number_of_pairs = comb(size(projected_P), 2) ; edges_between_neighbors = 0.5 * sum(sum(A(v, w) for w in projected_P) for v in projected_P) ; open_wedges = number_of_pairs - edges_between_neighbors ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 15 | True | 1 | 2 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | projected = project(P, D) ; pairs = comb(size(projected), 2) ; edges = 0.5 * sum( sum( A(u, v) for v in projected ) for u in projected ) ; return pairs - edges ; aggregate: total |
+| CU | open-wedge | 16 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; edges = 0.5 * sum(sum(A(u, v) for v in S) for u in S) ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 17 | True | 1 | 2 | False | True | 0.3161 | True | True | 0.0776 | - | 0.3755 | -0.6773 | s = size(project(P, D)) ; pairs = comb(s, 2) ; edges = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; return pairs - edges / 2 ; aggregate: total |
+| CU | open-wedge | 18 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; sum_A = 0.5 * sum( sum( A(u, v) for v in S ) for u in S ) ; open_wedges = num_pairs - sum_A ; return open_wedges ; aggregate: total |
+| CU | open-wedge | 19 | True | 1 | 1 | False | True | 0.6132 | True | True | 0.0776 | - | 0.6349 | -0.4178 | S = project(P, D) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; edges_between = 0.5 * sum_A ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 0 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected = project(P, D) ; total_pairs = 0.5 * size(projected) * (size(projected) - 1) ; sum_ordered = sum( sum( A(v, w) for w in projected ) for v in projected ) ; sum_edges = 0.5 * sum_ordered ; return total_pairs - sum_edges ; aggregate: total |
+| Do | open-wedge | 1 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected_P = project(P, D) ; size_projected_P = size(projected_P) ; number_of_pairs = comb(size_projected_P, 2) ; edges_sum = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; edges_between = 0.5 * edges_sum ; return number_of_pairs - edges_between ; aggregate: total |
+| Do | open-wedge | 2 | True | 1 | 2 | False | True | 0.3161 | True | True | 0.1005 | - | 0.2346 | -0.3215 | Q = project(P, D) ; s = size(Q) ; sum_A = sum( sum( A(v, w) for w in Q ) for v in Q ) ; edges = sum_A / 2 ; open_wedges = comb(s, 2) - edges ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 3 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | p_proj = project(P, D) ; k = size(p_proj) ; sum_A = sum( sum( A(v, w) for w in p_proj ) for v in p_proj ) ; edges_between_neighbors = sum_A / 2 ; open_wedges = comb(k, 2) - edges_between_neighbors ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 4 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected_p = project(P, D) ; projected_size = size(projected_p) ; num_pairs = comb(projected_size, 2) ; sum_edges = sum( sum( A(v, w) for w in projected_p ) for v in projected_p ) ; open_wedges = num_pairs - 0.5 * sum_edges ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 5 | True | 1 | 1 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | pairs = 0.5 * sum(size(project(P, D)) - 1 for v in project(P, D)) ; edges = 0.5 * sum(sum(A(v, w) for w in project(P, D)) for v in project(P, D)) ; return pairs - edges ; aggregate: total |
+| Do | open-wedge | 6 | True | 1 | 1 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | S = project(P, D) ; pairs = comb(size(S), 2) ; edges = sum( sum( A(v, w) for w in S ) for v in S ) / 2 ; open_pairs = pairs - edges ; return open_pairs ; aggregate: total |
+| Do | open-wedge | 7 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected_P = project(P, D) ; total_pairs = 0.5 * size(projected_P) * (size(projected_P) - 1) ; edges_sum = sum(sum(A(u, w) for w in projected_P) for u in projected_P) ; edges = 0.5 * edges_sum ; return total_pairs - edges ; aggregate: total |
+| Do | open-wedge | 8 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected = project(P, D) ; num_pairs = comb(size(projected), 2) ; sum_A = sum(sum(A(v, w) for w in projected) for v in projected) ; edges_between = sum_A / 2 ; open_wedges = num_pairs - edges_between ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 9 | True | 1 | 1 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | proj_P = project(P, D) ; num_neighbor_pairs = comb(size(proj_P), 2) ; sum_edges = sum(sum(A(u, v) for v in proj_P) for u in proj_P) ; edges_between = sum_edges / 2 ; open_wedges = num_neighbor_pairs - edges_between ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 10 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | Q = project(P, D) ; size_Q = size(Q) ; pairs = comb(size_Q, 2) ; sum_edges = 0.5 * sum( sum( A(v, w) for w in Q ) for v in Q ) ; return pairs - sum_edges ; aggregate: total |
+| Do | open-wedge | 11 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; sum_A = sum( sum( A(v, w) for w in S ) for v in S ) ; edges = sum_A / 2 ; open_wedges = num_pairs - edges ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 12 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | Q = project(P, D) ; term1 = 0.5 * size(Q) * (size(Q) - 1) ; term2 = 0.5 * sum( sum( A(u, w) for w in Q ) for u in Q ) ; return term1 - term2 ; aggregate: total |
+| Do | open-wedge | 13 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | p_proj = project(P, D) ; total_pairs = comb(size(p_proj), 2) ; edges_between = 0.5 * sum(sum(A(u, v) for v in p_proj) for u in p_proj) ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 14 | True | 1 | 1 | False | True | 0.3161 | True | True | 0.1005 | - | 0.2346 | -0.3215 | neighbors = project(P, D) ; k = size(neighbors) ; total_pairs = comb(k, 2) ; sum_edges = 0.5 * sum(sum(A(u, v) for v in neighbors) for u in neighbors) ; open_wedges = total_pairs - sum_edges ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 15 | True | 1 | 1 | False | True | 0.3161 | True | True | 0.1005 | - | 0.2346 | -0.3215 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; sum_edges = 0.5 * sum( sum( A(v, w) for w in projected_P ) for v in projected_P ) ; return total_pairs - sum_edges ; aggregate: total |
+| Do | open-wedge | 16 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected = project(P, D) ; k = size(projected) ; comb_k_2 = comb(k, 2) ; sum_edges = sum( sum( A(v, w) for w in projected ) for v in projected ) ; contrib = comb_k_2 - 0.5 * sum_edges ; return contrib ; aggregate: total |
+| Do | open-wedge | 17 | True | 1 | 2 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | projected = project(P, D) ; total_pairs = comb(size(projected), 2) ; sum_edges = sum( sum( A(v, w) for w in projected ) for v in projected ) ; edges = 0.5 * sum_edges ; return total_pairs - edges ; aggregate: total |
+| Do | open-wedge | 18 | True | 1 | 1 | False | True | 0.6306 | True | True | 0.1005 | - | 0.3840 | -0.1721 | num_pairs = comb(size(project(P, D)), 2) ; sum_edges = sum(sum(A(v, w) for w in project(P, D)) for v in project(P, D)) ; sum_edges_unordered = sum_edges / 2 ; open_wedges = num_pairs - sum_edges_unordered ; return open_wedges ; aggregate: total |
+| Do | open-wedge | 19 | True | 1 | 1 | False | True | 0.3161 | True | True | 0.1005 | - | 0.2346 | -0.3215 | S = project(P, D) ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; sum_ordered_A = sum( sum( A(v, w) for w in S ) for v in S ) ; edges = sum_ordered_A / 2 ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 0 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | projected = project(P, D) ; num_pairs = comb(size(projected), 2) ; sum_edges = sum( sum( A(v, w) for w in projected ) for v in projected ) ; return num_pairs - sum_edges / 2 ; aggregate: total |
+| ML | open-wedge | 1 | True | 1 | 2 | False | True | 0.3571 | True | True | 0.0681 | - | 0.1590 | -0.2239 | s = project(P, D) ; total_pairs = 0.5 * size(s) * (size(s) - 1) ; edges_between = sum( sum( A(v, w) for w in s ) for v in s ) / 2 ; open_pairs = total_pairs - edges_between ; return open_pairs ; aggregate: total |
+| ML | open-wedge | 2 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; sum_A = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; edges = sum_A / 2 ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 3 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | S = project(P, D) ; k = size(S) ; pairs = comb(k, 2) ; edges = 0.5 * sum(sum(A(u, v) for v in S) for u in S) ; contribution = pairs - edges ; return contribution ; aggregate: total |
+| ML | open-wedge | 4 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0681 | - | 0.3829 | 0.0000 | p_proj = project(P, D) ; s = size(p_proj) ; c = comb(s, 2) ; sum_pairs = sum( sum( A(u, v) for v in p_proj ) for u in p_proj ) ; sum_unordered = 0.5 * sum_pairs ; return c - sum_unordered ; aggregate: total |
+| ML | open-wedge | 5 | True | 1 | 2 | False | True | 0.3571 | True | True | 0.0681 | - | 0.1590 | -0.2239 | Q = project(P, D) ; pairs = 0.5 * size(Q) * (size(Q) - 1) ; edges_sum = sum(sum(A(v, w) for w in Q) for v in Q) ; edges_between_neighbors = 0.5 * edges_sum ; open_wedges = pairs - edges_between_neighbors ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 6 | True | 1 | 1 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | S = project(P, D) ; sum_A = sum( sum( A(v, w) for w in S ) for v in S ) ; total_pairs = 0.5 * ( size(S) * (size(S) - 1) - sum_A ) ; return total_pairs ; aggregate: total |
+| ML | open-wedge | 7 | True | 1 | 1 | False | True | 0.3571 | True | True | 0.0681 | - | 0.1590 | -0.2239 | Q = project(P, D) ; total_pairs = comb(size(Q), 2) ; edges_sum = sum( sum( A(j, k) for k in Q ) for j in Q ) ; edges = edges_sum / 2 ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 8 | True | 1 | 1 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | neighbors = project(P, D) ; total_pairs = comb(size(neighbors), 2) ; edges_between = 0.5 * sum(sum(A(u, v) for v in neighbors) for u in neighbors) ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 9 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | proj = project(P, D) ; total_pairs = 0.5 * size(proj) * (size(proj) - 1) ; edge_count = 0.5 * sum( sum( A(u, v) for v in proj ) for u in proj ) ; return total_pairs - edge_count ; aggregate: total |
+| ML | open-wedge | 10 | True | 1 | 1 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | P_proj = project(P, D) ; total_pairs = comb(size(P_proj), 2) ; sum_A = sum( sum( A(v, w) for w in P_proj ) for v in P_proj ) ; edges_between = sum_A / 2 ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 11 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | projected = project(P, D) ; size_projected = size(projected) ; total_pairs = comb(size_projected, 2) ; sum_edges = sum( sum( A(u, v) for v in projected ) for u in projected ) ; edges_between = 0.5 * sum_edges ; contribution = total_pairs - edges_between ; return contribution ; aggregate: total |
+| ML | open-wedge | 12 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0681 | - | 0.3829 | 0.0000 | proj_P = project(P, D) ; comb_size = comb(size(proj_P), 2) ; edge_sum = sum(sum(A(u, w) for w in proj_P) for u in proj_P) ; open_wedges = comb_size - edge_sum / 2 ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 13 | True | 1 | 1 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | S = project(P, D) ; size_S = size(S) ; total_pairs = comb(size_S, 2) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; edges_between = sum_A / 2 ; open_wedges = total_pairs - edges_between ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 14 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | projected_P = project(P, D) ; number_of_pairs = comb(size(projected_P), 2) ; sum_over_u_v = sum(sum(A(u, v) for v in projected_P) for u in projected_P) ; sum_A = 0.5 * sum_over_u_v ; open_wedges = number_of_pairs - sum_A ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 15 | True | 1 | 2 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | proj_P = project(P, D) ; total_pairs = comb(size(proj_P), 2) ; sum_A = sum( sum( A(j, k) for k in proj_P ) for j in proj_P ) ; connected_pairs = sum_A / 2 ; open_wedges = total_pairs - connected_pairs ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 16 | True | 1 | 2 | False | True | 0.3571 | True | True | 0.0681 | - | 0.1590 | -0.2239 | neighbors = project(P, D) ; neighbor_pairs = comb(size(neighbors), 2) ; sum_v_w = sum( sum( A(v, w) for w in neighbors ) for v in neighbors ) ; connected_pairs = sum_v_w / 2 ; open_wedges = neighbor_pairs - connected_pairs ; return open_wedges ; aggregate: total |
+| ML | open-wedge | 17 | True | 1 | 1 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | s = project(P, D) ; size_s = size(s) ; pairs = 0.5 * size_s * (size_s - 1) ; sum_a = 0.5 * sum( sum( A(u, v) for v in s ) for u in s ) ; return pairs - sum_a ; aggregate: total |
+| ML | open-wedge | 18 | True | 1 | 1 | False | True | 0.6850 | True | True | 0.0681 | - | 0.2899 | -0.0931 | total_pairs = 0.5 * size(project(P, D)) * (size(project(P, D)) - 1) ; sum_A = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; edges = 0.5 * sum_A ; return total_pairs - edges ; aggregate: total |
+| ML | open-wedge | 19 | True | 1 | 2 | False | True | 0.3571 | True | True | 0.0681 | - | 0.1590 | -0.2239 | return comb(size(project(P, D)), 2) - 0.5 * sum(sum(A(u, v) for v in project(P, D)) for u in project(P, D)) ; aggregate: total |
+| CS | open-wedge | 0 | True | 1 | 2 | False | True | 0.3161 | True | True | 0.0880 | - | 0.3791 | -0.5174 | total_pairs = comb(size(project(P, D)), 2) ; sum_edges = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; connected_pairs = sum_edges / 2 ; open_wedges = total_pairs - connected_pairs ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 1 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | total_pairs = 0.5 * size(project(P, D)) * (size(project(P, D)) - 1) ; sum_A = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; number_of_edges = sum_A / 2 ; open_wedges = total_pairs - number_of_edges ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 2 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | P_projected = project(P, D) ; num_pairs = comb(size(P_projected), 2) ; sum_edges = 0.5 * sum( sum( A(v, w) for w in P_projected ) for v in P_projected ) ; return num_pairs - sum_edges ; aggregate: total |
+| CS | open-wedge | 3 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | projected_P = project(P, D) ; num_pairs = comb(size(projected_P), 2) ; sum_edges = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; open_wedges = num_pairs - (sum_edges / 2) ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 4 | True | 1 | 1 | False | True | 0.3161 | True | True | 0.0880 | - | 0.3791 | -0.5174 | projected_P = project(P, D) ; num_pairs = comb(size(projected_P), 2) ; sum_edges = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; edges = sum_edges / 2 ; return num_pairs - edges ; aggregate: total |
+| CS | open-wedge | 5 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | projected = project(P, D) ; size_S = size(projected) ; total_pairs = (size_S * (size_S - 1)) / 2 ; sum_edges = sum( sum( A(u, w) for w in projected ) for u in projected ) / 2 ; open_wedges = total_pairs - sum_edges ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 6 | True | 1 | 2 | False | True | 0.3161 | True | True | 0.0880 | - | 0.3791 | -0.5174 | projected = project(P, D) ; num_pairs = comb(size(projected), 2) ; sum_A = sum(sum(A(u, v) for v in projected) for u in projected) ; edges_between = sum_A / 2 ; open_wedges = num_pairs - edges_between ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 7 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | return comb(size(project(P, D)), 2) - 0.5 * sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; aggregate: total |
+| CS | open-wedge | 8 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | S = project(P, D) ; size_S = size(S) ; num_neighbor_pairs = comb(size_S, 2) ; sum_A = sum(sum(A(v, w) for w in S) for v in S) ; edges = sum_A / 2 ; open_wedges = num_neighbor_pairs - edges ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 9 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | Q = project(P, D) ; size_Q = size(Q) ; num_pairs = comb(size_Q, 2) ; sum_edges = sum(sum(A(v, w) for w in Q) for v in Q) ; edges_count = sum_edges / 2 ; return num_pairs - edges_count ; aggregate: total |
+| CS | open-wedge | 10 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | project_p = project(P, D) ; size_p = size(project_p) ; comb_size = comb(size_p, 2) ; sum_edges = sum( sum( A(v, w) for w in project_p ) for v in project_p ) ; edges_count = 0.5 * sum_edges ; contribution = comb_size - edges_count ; return contribution ; aggregate: total |
+| CS | open-wedge | 11 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; sum_A = 0.5 * sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; open_wedges = total_pairs - sum_A ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 12 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | projected_P = project(P, D) ; size_P = size(projected_P) ; num_pairs = comb(size_P, 2) ; sum_A = sum( sum( A(v, w) for w in projected_P ) for v in projected_P ) ; edges = 0.5 * sum_A ; return num_pairs - edges ; aggregate: total |
+| CS | open-wedge | 13 | True | 1 | 2 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | proj_P = project(P, D) ; pairs = comb(size(proj_P), 2) ; edges = sum( sum( A(v, w) for w in proj_P ) for v in proj_P ) ; return pairs - 0.5 * edges ; aggregate: total |
+| CS | open-wedge | 14 | True | 1 | 1 | False | True | 0.3161 | True | True | 0.0880 | - | 0.3791 | -0.5174 | projected = project(P, D) ; num_pairs = comb(size(projected), 2) ; sum_closed = 0.5 * sum(sum(A(u, v) for v in projected) for u in projected) ; open_wedges = num_pairs - sum_closed ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 15 | True | 1 | 2 | False | True | 0.3161 | True | True | 0.0880 | - | 0.3791 | -0.5174 | projected_P = project(P, D) ; num_pairs = comb(size(projected_P), 2) ; sum_A = sum(sum(A(u, v) for v in projected_P) for u in projected_P) ; open_wedges = num_pairs - 0.5 * sum_A ; return open_wedges ; aggregate: total |
+| CS | open-wedge | 16 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | S = project(P, D) ; total_pairs = 0.5 * size(S) * (size(S) - 1) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; sum_A_pairs = sum_A / 2 ; open_pairs = total_pairs - sum_A_pairs ; return open_pairs ; aggregate: total |
+| CS | open-wedge | 17 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | term1 = comb(size(project(P, D)), 2) ; term2 = sum(sum(A(u, v) for v in project(P, D)) for u in project(P, D)) ; result = term1 - term2 / 2 ; return result ; aggregate: total |
+| CS | open-wedge | 18 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | total_pairs = comb(size(project(P, D)), 2) ; sum_A = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; edges_between = sum_A / 2 ; return total_pairs - edges_between ; aggregate: total |
+| CS | open-wedge | 19 | True | 1 | 1 | False | True | 0.7382 | True | True | 0.0880 | - | 0.6425 | -0.2540 | s1 = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; s2 = comb( size(project(P, D)), 2 ) ; return s2 - 0.5 * s1 ; aggregate: total |
+| EE | open-wedge | 0 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | s = size(project(P, D)) ; sum_edges = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; return (s * (s - 1) - sum_edges) / 2 ; aggregate: total |
+| EE | open-wedge | 1 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | projected_P = project(P, D) ; total_pairs = comb(size(projected_P), 2) ; sum_pairs = sum(sum(A(v, w) for w in projected_P) for v in projected_P) ; return total_pairs - 0.5 * sum_pairs ; aggregate: total |
+| EE | open-wedge | 2 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | S = project(P, D) ; k = size(S) ; pairs = comb(k, 2) ; edges = 0.5 * sum( sum( A(v, w) for w in S ) for v in S ) ; return pairs - edges ; aggregate: total |
+| EE | open-wedge | 3 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | projected = project(P, D) ; total_pairs = comb( size(projected), 2 ) ; sum_edges = sum( sum( A(v, w) for w in projected ) for v in projected ) ; sum_edges_half = sum_edges / 2 ; open_wedges = total_pairs - sum_edges_half ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 4 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | P_proj = project(P, D) ; total_pairs = comb(size(P_proj), 2) ; edges_between = sum( sum( A(v, w) for w in P_proj ) for v in P_proj ) / 2 ; return total_pairs - edges_between ; aggregate: total |
+| EE | open-wedge | 5 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | Q = project(P, D) ; num_pairs = comb(size(Q), 2) ; sum_edges = 0.5 * sum(sum(A(u, v) for v in Q) for u in Q) ; open_wedges = num_pairs - sum_edges ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 6 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | projected_P = project(P, D) ; total_pairs = 0.5 * sum(size(projected_P) - 1 for v in projected_P) ; edges_between = sum( sum(A(u, w) for w in projected_P) for u in projected_P ) ; number_of_edges = edges_between / 2 ; open_wedges = total_pairs - number_of_edges ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 7 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | neighbors = project(P, D) ; num_pairs = (size(neighbors) * (size(neighbors) - 1)) / 2 ; sum_edges = 0.5 * sum( sum(A(v, w) for w in neighbors) for v in neighbors ) ; open_wedges = num_pairs - sum_edges ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 8 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; edges_between = 0.5 * sum( sum( A(v, w) for w in S ) for v in S ) ; return num_pairs - edges_between ; aggregate: total |
+| EE | open-wedge | 9 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | proj_P = project(P, D) ; pair_count = comb(size(proj_P), 2) ; sum_edges = sum(sum(A(v, w) for w in proj_P) for v in proj_P) ; contrib = pair_count - 0.5 * sum_edges ; return contrib ; aggregate: total |
+| EE | open-wedge | 10 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | projected = project(P, D) ; pair_count = comb(size(projected), 2) ; sum_edges = sum( sum( A(v, w) for w in projected ) for v in projected ) / 2 ; contribution = pair_count - sum_edges ; return contribution ; aggregate: total |
+| EE | open-wedge | 11 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | S = project(P, D) ; num_pairs = 0.5 * size(S) * (size(S) - 1) ; sum_A = 0.5 * sum( sum( A(v, w) for w in S ) for v in S ) ; open_wedges_u = num_pairs - sum_A ; return open_wedges_u ; aggregate: total |
+| EE | open-wedge | 12 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | projected = project(P, D) ; pairs = comb(size(projected), 2) ; edges = 0.5 * sum( sum( A(u, v) for v in projected ) for u in projected ) ; open_wedges = pairs - edges ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 13 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | S = project(P, D) ; num_pairs = comb(size(S), 2) ; sum_A = 0.5 * sum( sum( A(v, w) for w in S ) for v in S ) ; return num_pairs - sum_A ; aggregate: total |
+| EE | open-wedge | 14 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | Q = project(P, D) ; total_pairs = comb(size(Q), 2) ; sum_A = sum(sum(A(v, w) for w in Q) for v in Q) ; open_wedges = total_pairs - 0.5 * sum_A ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 15 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | term1 = comb(size(project(P, D)), 2) ; term2 = 0.5 * sum(sum(A(v, w) for w in project(P, D)) for v in project(P, D)) ; contribution = term1 - term2 ; return contribution ; aggregate: total |
+| EE | open-wedge | 16 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | projected_P = project(P, D) ; num_pairs = comb(size(projected_P), 2) ; edges_between = 0.5 * sum( sum( A(u, w) for w in projected_P ) for u in projected_P ) ; return num_pairs - edges_between ; aggregate: total |
+| EE | open-wedge | 17 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | Q = project(P, D) ; total_pairs = comb(size(Q), 2) ; sum_edges = sum( sum( A(v, w) for w in Q ) for v in Q ) ; edges = sum_edges / 2 ; open_wedges = total_pairs - edges ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 18 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | neighbors = project(P, D) ; neighbors_count = size(neighbors) ; pair_count = comb(neighbors_count, 2) ; sum_A = sum(sum(A(v, w) for w in neighbors) for v in neighbors) ; open_wedges = pair_count - 0.5 * sum_A ; return open_wedges ; aggregate: total |
+| EE | open-wedge | 19 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.0558 | - | 0.1812 | 0.0000 | term1 = comb(size(project(P, D)), 2) ; term2 = 0.5 * sum(sum(A(u, w) for w in project(P, D)) for u in project(P, D)) ; open_wedges = term1 - term2 ; return open_wedges ; aggregate: total |
+
+results in /jizhicfs/leonlanli/work/PSC/certicount/results/dsl_eval/cs9_node_v1alt_sim_ow
+done: cs9_node_v1alt_sim_ow
+[cs9] cs9_node_v1alt_sim_ow lost the server (1 connection errors): moving it aside and redoing it
++ ../.venv/bin/python scripts/run_dsl_design_eval.py --runs 100 --eps 2.0 --seed 0 --noisy-gate --design-concurrency 8 --provider vllm --config configs/vllm_qwen3-8b-think_design.toml --curator-model Qwen3-8B --temperature 0.6 --node-bounds --clip-alpha 5.0 --prompt v1-alt --select simulated --own-row-check --tighten 1 --tag cs9_node_v1alt_sim_ow --datasets PM,CU,Do,ML,CS,EE --tasks open-wedge --designs 20
+[cs9] 2026-11-23T11:42:23Z g4 round1 restored manually; running code + summary
++ ../.venv/bin/python scripts/run_gt_select.py --runs 1000 --workers 64 --eps 2.0 --seed 0 --clip-alpha 5.0 --datasets PM,CU,Do,ML,CS,EE --tasks triangle,open-wedge,degree-ge3,triangle-node,triangle-edge,4-cycle --certicount-tags cs9_node_generic_sim_tri_ow,cs9_node_generic_sim_ext --tag cs9_gt_select_r1000
+PM triangle: design-time choice matrix scores [0.905, 0.4533] runtime [0, 1] (13.1s)
+PM open-wedge: design-time choice matrix scores [0.1295, 0.0847] runtime [0, 1] (9.4s)
+PM degree-ge3: design-time choice node scores [0.0386] runtime [0] (0.3s)
+PM triangle-node: design-time choice rows scores [0.1284, 0.1928] runtime [0, 1] (8.2s)
+PM triangle-edge: design-time choice rows scores [0.3492, 0.3785] runtime [0, 1] (9.1s)
+PM 4-cycle: design-time choice refused scores [11.1377] runtime [] (14.7s)
+CU triangle: design-time choice rows scores [0.2955, 0.5785] runtime [0, 1] (0.4s)
+CU open-wedge: design-time choice matrix scores [0.3179, 0.2955] runtime [0, 1] (0.7s)
+CU degree-ge3: design-time choice node scores [0.1217] runtime [0] (0.0s)
+CU triangle-node: design-time choice matrix scores [0.231, 0.2164] runtime [0, 1] (0.4s)
+CU triangle-edge: design-time choice matrix scores [0.4769, 0.468] runtime [0, 1] (0.6s)
+CU 4-cycle: design-time choice refused scores [1.2387] runtime [] (0.6s)
+Do triangle: design-time choice matrix scores [0.4463, 0.435] runtime [0, 1] (0.5s)
+Do open-wedge: design-time choice matrix scores [0.2418, 0.1758] runtime [0, 1] (0.9s)
+Do degree-ge3: design-time choice node scores [0.0978] runtime [0] (0.0s)
+Do triangle-node: design-time choice matrix scores [0.2055, 0.1623] runtime [0, 1] (0.5s)
+Do triangle-edge: design-time choice matrix scores [0.3956, 0.3368] runtime [0, 1] (0.8s)
+Do 4-cycle: design-time choice refused scores [2.7807] runtime [] (0.8s)
+ML triangle: design-time choice matrix scores [0.7059, 0.6779] runtime [0, 1] (0.6s)
+ML open-wedge: design-time choice matrix scores [0.2623, 0.2425] runtime [0, 1] (1.1s)
+ML degree-ge3: design-time choice node scores [0.0685] runtime [0] (0.1s)
+ML triangle-node: design-time choice rows scores [0.1711, 0.2001] runtime [0, 1] (0.6s)
+ML triangle-edge: design-time choice rows scores [0.2829, 0.4367] runtime [0, 1] (0.9s)
+ML 4-cycle: design-time choice refused scores [4.3269] runtime [] (1.0s)
+CS triangle: design-time choice matrix scores [0.6987, 0.547] runtime [0, 1] (0.8s)
+CS open-wedge: design-time choice matrix scores [0.2571, 0.2217] runtime [0, 1] (1.2s)
+CS degree-ge3: design-time choice node scores [0.0793] runtime [0] (0.1s)
+CS triangle-node: design-time choice rows scores [0.1668, 0.1738] runtime [0, 1] (0.7s)
+CS triangle-edge: design-time choice rows scores [0.3652, 0.4691] runtime [0, 1] (1.0s)
+CS 4-cycle: design-time choice refused scores [4.7124] runtime [] (1.2s)
+EE triangle: design-time choice matrix scores [0.9165, 0.5511] runtime [0, 1] (1.5s)
+EE open-wedge: design-time choice matrix scores [0.247, 0.1592] runtime [0, 1] (2.0s)
+EE degree-ge3: design-time choice node scores [0.0503] runtime [0] (0.1s)
+EE triangle-node: design-time choice rows scores [0.144, 0.168] runtime [0, 1] (1.4s)
+EE triangle-edge: design-time choice rows scores [0.3026, 0.4041] runtime [0, 1] (1.8s)
+EE 4-cycle: design-time choice refused scores [9.088] runtime [] (2.5s)
+[20/3600 chunks] 76s
+[40/3600 chunks] 78s
+[60/3600 chunks] 79s
+[80/3600 chunks] 123s
+[100/3600 chunks] 149s
+[120/3600 chunks] 151s
+[140/3600 chunks] 169s
+[160/3600 chunks] 171s
+[180/3600 chunks] 173s
+[200/3600 chunks] 176s
+[220/3600 chunks] 178s
+[240/3600 chunks] 181s
+[260/3600 chunks] 194s
+[280/3600 chunks] 196s
+[300/3600 chunks] 208s
+[320/3600 chunks] 215s
+[340/3600 chunks] 233s
+[360/3600 chunks] 244s
+[380/3600 chunks] 252s
+[400/3600 chunks] 270s
+[420/3600 chunks] 279s
+[440/3600 chunks] 293s
+[460/3600 chunks] 309s
+[480/3600 chunks] 316s
+[500/3600 chunks] 320s
+[520/3600 chunks] 324s
+[540/3600 chunks] 329s
+[560/3600 chunks] 331s
+[580/3600 chunks] 336s
+[600/3600 chunks] 338s
+[620/3600 chunks] 340s
+[640/3600 chunks] 344s
+[660/3600 chunks] 347s
+[680/3600 chunks] 349s
+[700/3600 chunks] 352s
+[720/3600 chunks] 364s
+[740/3600 chunks] 366s
+[760/3600 chunks] 368s
+[780/3600 chunks] 369s
+[800/3600 chunks] 370s
+[820/3600 chunks] 372s
+[840/3600 chunks] 373s
+[860/3600 chunks] 374s
+[880/3600 chunks] 377s
+[900/3600 chunks] 381s
+[920/3600 chunks] 384s
+[940/3600 chunks] 386s
+[960/3600 chunks] 389s
+[980/3600 chunks] 392s
+[1000/3600 chunks] 395s
+[1020/3600 chunks] 404s
+[1040/3600 chunks] 407s
+[1060/3600 chunks] 408s
+[1080/3600 chunks] 409s
+[1100/3600 chunks] 410s
+[1120/3600 chunks] 412s
+[1140/3600 chunks] 413s
+[1160/3600 chunks] 414s
+[1180/3600 chunks] 418s
+[1200/3600 chunks] 420s
+[1220/3600 chunks] 422s
+[1240/3600 chunks] 429s
+[1260/3600 chunks] 432s
+[1280/3600 chunks] 433s
+[1300/3600 chunks] 440s
+[1320/3600 chunks] 454s
+[1340/3600 chunks] 457s
+[1360/3600 chunks] 461s
+[1380/3600 chunks] 463s
+[1400/3600 chunks] 465s
+[1420/3600 chunks] 468s
+[1440/3600 chunks] 470s
+[1460/3600 chunks] 472s
+[1480/3600 chunks] 474s
+[1500/3600 chunks] 477s
+[1520/3600 chunks] 479s
+[1540/3600 chunks] 482s
+[1560/3600 chunks] 488s
+[1580/3600 chunks] 491s
+[1600/3600 chunks] 494s
+[1620/3600 chunks] 506s
+[1640/3600 chunks] 509s
+[1660/3600 chunks] 511s
+[1680/3600 chunks] 513s
+[1700/3600 chunks] 515s
+[1720/3600 chunks] 517s
+[1740/3600 chunks] 520s
+[1760/3600 chunks] 521s
+[1780/3600 chunks] 524s
+[1800/3600 chunks] 525s
+[1820/3600 chunks] 527s
+[1840/3600 chunks] 535s
+[1860/3600 chunks] 538s
+[1880/3600 chunks] 540s
+[1900/3600 chunks] 548s
+[1920/3600 chunks] 563s
+[1940/3600 chunks] 565s
+[1960/3600 chunks] 566s
+[1980/3600 chunks] 567s
+[2000/3600 chunks] 568s
+[2020/3600 chunks] 570s
+[2040/3600 chunks] 571s
+[2060/3600 chunks] 572s
+[2080/3600 chunks] 580s
+[2100/3600 chunks] 586s
+[2120/3600 chunks] 588s
+[2140/3600 chunks] 593s
+[2160/3600 chunks] 600s
+[2180/3600 chunks] 602s
+[2200/3600 chunks] 607s
+[2220/3600 chunks] 620s
+[2240/3600 chunks] 622s
+[2260/3600 chunks] 623s
+[2280/3600 chunks] 625s
+[2300/3600 chunks] 627s
+[2320/3600 chunks] 628s
+[2340/3600 chunks] 630s
+[2360/3600 chunks] 631s
+[2380/3600 chunks] 636s
+[2400/3600 chunks] 639s
+[2420/3600 chunks] 642s
+[2440/3600 chunks] 648s
+[2460/3600 chunks] 649s
+[2480/3600 chunks] 654s
+[2500/3600 chunks] 660s
+[2520/3600 chunks] 669s
+[2540/3600 chunks] 672s
+[2560/3600 chunks] 674s
+[2580/3600 chunks] 676s
+[2600/3600 chunks] 678s
+[2620/3600 chunks] 680s
+[2640/3600 chunks] 682s
+[2660/3600 chunks] 683s
+[2680/3600 chunks] 686s
+[2700/3600 chunks] 688s
+[2720/3600 chunks] 691s
+[2740/3600 chunks] 697s
+[2760/3600 chunks] 699s
+[2780/3600 chunks] 703s
+[2800/3600 chunks] 709s
+[2820/3600 chunks] 715s
+[2840/3600 chunks] 718s
+[2860/3600 chunks] 720s
+[2880/3600 chunks] 721s
+[2900/3600 chunks] 722s
+[2920/3600 chunks] 723s
+[2940/3600 chunks] 724s
+[2960/3600 chunks] 726s
+[2980/3600 chunks] 732s
+[3000/3600 chunks] 735s
+[3020/3600 chunks] 740s
+[3040/3600 chunks] 749s
+[3060/3600 chunks] 751s
+[3080/3600 chunks] 756s
+[3100/3600 chunks] 767s
+[3120/3600 chunks] 777s
+[3140/3600 chunks] 781s
+[3160/3600 chunks] 783s
+[3180/3600 chunks] 783s
+[3200/3600 chunks] 785s
+[3220/3600 chunks] 786s
+[3240/3600 chunks] 787s
+[3260/3600 chunks] 791s
+[3280/3600 chunks] 800s
+[3300/3600 chunks] 803s
+[3320/3600 chunks] 807s
+[3340/3600 chunks] 816s
+[3360/3600 chunks] 820s
+[3380/3600 chunks] 823s
+[3400/3600 chunks] 833s
+[3420/3600 chunks] 841s
+[3440/3600 chunks] 845s
+[3460/3600 chunks] 846s
+[3480/3600 chunks] 848s
+[3500/3600 chunks] 849s
+[3520/3600 chunks] 850s
+[3540/3600 chunks] 851s
+[3560/3600 chunks] 854s
+[3580/3600 chunks] 860s
+[3600/3600 chunks] 863s
+wrote /jizhicfs/leonlanli/work/PSC/certicount/results/execution/cs9_gt_select_r1000
+wrote results/reports/cs9_summary.md

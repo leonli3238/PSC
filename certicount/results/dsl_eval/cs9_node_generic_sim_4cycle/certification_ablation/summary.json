@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/cs9_node_generic_sim_4cycle",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 179,
+  "designs": 30,
+  "table": [
+    {
+      "task": "4-cycle",
+      "drafts": 179,
+      "truncated": 0,
+      "parse": 65,
+      "duplicate": 9,
+      "gs_failed": 0,
+      "gs_loose": 1,
+      "semantic": 103,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 1,
+      "rejected_share": 0.9441,
+      "runnable": 105,
+      "uncertified_violations": 33,
+      "uncertified_violation_share": 0.3143,
+      "max_eps_ratio": 21.756582260303787,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 0,
+      "semantic_errors_published_without_check": 103
+    },
+    {
+      "task": "all",
+      "drafts": 179,
+      "truncated": 0,
+      "parse": 65,
+      "duplicate": 9,
+      "gs_failed": 0,
+      "gs_loose": 1,
+      "semantic": 103,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 1,
+      "rejected_share": 0.9441,
+      "runnable": 105,
+      "uncertified_violations": 33,
+      "uncertified_violation_share": 0.3143,
+      "max_eps_ratio": 21.756582260303787,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 0,
+      "semantic_errors_published_without_check": 103
+    }
+  ],
+  "designs_without_transcripts": 0
+}

@@ -1,0 +1,120 @@
+# DSL design evaluation (goal 2: error added by the LLM designer)
+
+designer = vllm / Qwen3-8B, temperature = 0.6, 30 independent design(s), 3 draft(s) x up to 1 restart(s) per release (rows, matrix), selection simulated (public Holme-Kim graphs, average degrees 4,8,16, 8 releases each, never chosen at a score >= 1; run-time choice on Chung-Lu graphs of the published noisy degrees), own-row check on, tighten 0, early stop off, normalisation on, feedback full, prompt generic (core generic, 62a207c03a9c4864), ε = 2.0, 20 runs per design (noise of run i: seed [0, i]), mechanism = floor_tight, architecture = per-node (edge clipping + unbiased matrix A, α = 5), noise-aware gate off.
+
+`noise_free_pass` / `noise_free_bias`: the gate's statistic for every accepted design (median relative error of the estimate through the real release on public Holme-Kim graphs, final Laplace noise left out; certicount.dsl.noisy_gate), recorded with the gate off too.
+
+## Design quality
+
+`accept_rate`: designs that produced a program; `first_loop_rate`: accepted without a restart; `first_try_rate`: accepted at the first draft. `gs_ratio`: |c|·GS / the reference's at the design-time bound D = min(n−1, 10), c the aggregate's factor (a constant moved between program and aggregate does not count); `noise_ratio`: final noise |c|·GS/ε3 over the reference's, per run; `semantic_pass`: independent utility test; `sound`: no falsifier counterexample.
+
+| dataset | task | designs | accept_rate | accept_ci95 | first_loop_rate | first_try_rate | mean_iterations | mean_restarts | mean_llm_calls | distinct_programs | same_as_reference | split_match | semantic_pass | sound | noise_free_pass | gs_ratio | gs_ratio_max | noise_ratio | mean_candidates | runs_matrix | runs_rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PM | triangle-edge | 30 | 0.4667 | [0.30, 0.64] | 0.4667 | 0.1333 | 2.0714 | 1.0000 | 5.4667 | 14 | 0.0000 | 0.2857 | 1.0000 | 1.0000 | 1.0000 | 1.0429 | 1.2000 | 1.0020 | 0.5333 | 0.3071 | 0.6929 |
+| Do | triangle-edge | 30 | 0.4333 | [0.27, 0.61] | 0.4333 | 0.1333 | 1.9231 | 1.0000 | 5.5333 | 10 | 0.0000 | 0.3077 | 1.0000 | 1.0000 | 1.0000 | 1.0154 | 1.2000 | 0.9642 | 0.4333 | 0.3077 | 0.6923 |
+| CS | triangle-edge | 30 | 0.4333 | [0.27, 0.61] | 0.4333 | 0.1000 | 2.1538 | 1.0000 | 5.6333 | 12 | 0.0000 | 0.5385 | 1.0000 | 1.0000 | 1.0000 | 1.0462 | 1.2000 | 0.9624 | 0.4333 | 0.5385 | 0.4615 |
+
+## Accuracy (accepted designs, paired with GT-DSL on the same noise)
+
+`design_error` = RE(designed) − RE(GT-DSL), mean over designs and runs (negative: better than the library algorithm); `design_exact`: share of runs whose estimate equals GT-DSL, excluding `both_zero` runs.
+
+| dataset | task | relative_error | median_relative_error | gt_dsl_relative_error | design_error | design_error_max | design_exact | both_zero |
+|---|---|---|---|---|---|---|---|---|
+| PM | triangle-edge | 0.2409 | 0.2305 | 0.2208 | 0.0201 | 0.2498 | 0.3071 | 0.0000 |
+| Do | triangle-edge | 0.5082 | 0.4952 | 0.5216 | -0.0134 | 0.0364 | 0.3077 | 0.0154 |
+| CS | triangle-edge | 0.8722 | 0.7749 | 0.7749 | 0.0973 | 0.2865 | 0.5385 | 0.1615 |
+
+## Designs
+
+| dataset | task | design | accepted | restarts | iterations | same_as_reference | split_match | noise_ratio | semantic_pass | sound | noise_free_bias | search_score | relative_error | design_error | program |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| PM | triangle-edge | 0 | True | 1 | 3 | False | False | 0.9973 | True | True | 0.2953 | - | 0.2401 | 0.0193 | projected = project(P, D) ; return sum(clip(size(P & N(v)), 0, 1) for v in projected) ; aggregate: total / 2 |
+| PM | triangle-edge | 1 | True | 1 | 1 | False | False | 1.0056 | True | True | 0.3048 | - | 0.2305 | 0.0097 | projected_P = project(P, D) ; return sum(clip(size(projected_P & N(j)), 0, 1) for j in projected_P) ; aggregate: total / 2 |
+| PM | triangle-edge | 2 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 3 | True | 1 | 3 | False | False | 0.9973 | True | True | 0.2953 | - | 0.2401 | 0.0193 | total = sum( clip( size( P & N(v) ), 0, 1 ) for v in project(P, D) ) ; return total ; aggregate: total / 2 |
+| PM | triangle-edge | 4 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 5 | True | 1 | 3 | False | False | 1.0056 | True | True | 0.6467 | - | 0.4706 | 0.2498 | return sum(clip(size(project(project(P, D), D) & project(N(v), D)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| PM | triangle-edge | 6 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 7 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 8 | True | 1 | 3 | False | False | 1.0056 | True | True | 0.3048 | - | 0.2305 | 0.0097 | P_proj = project(P, D) ; count = sum( clip( size(N(v) & P_proj), 0, 1 ) for v in P_proj ) ; return count ; aggregate: total / 2 |
+| PM | triangle-edge | 9 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.3215 | - | 0.2208 | 0.0000 | proj = project(P, D) ; sum_ = sum( clip( sum(A(v, w) for w in proj), 0, 1 ) for v in proj ) ; return sum_ ; aggregate: total / 2 |
+| PM | triangle-edge | 10 | True | 1 | 2 | False | False | 1.0056 | True | True | 0.3048 | - | 0.2305 | 0.0097 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| PM | triangle-edge | 11 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 12 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.3215 | - | 0.2208 | 0.0000 | count = sum(clip(sum(A(v, w) for w in project(P, D)), 0, 1) for v in project(P, D)) ; return count ; aggregate: total / 2 |
+| PM | triangle-edge | 13 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.3215 | - | 0.2208 | 0.0000 | return sum( clip( sum( A(v, w) for w in project(P, D) ), 0, 1 ) for v in project(P, D) ) ; aggregate: total / 2 |
+| PM | triangle-edge | 14 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 15 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 16 | True | 1 | 3 | False | False | 1.0056 | True | True | 0.3048 | - | 0.2305 | 0.0097 | u_neighbors = project(P, D) ; total = sum(clip(size(u_neighbors & N(v)), 0, 1) for v in u_neighbors) ; return total ; aggregate: total / 2 |
+| PM | triangle-edge | 17 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 18 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 19 | True | 1 | 2 | False | False | 1.0056 | True | True | 0.3048 | - | 0.2305 | 0.0097 | projected = project(P, D) ; count = sum(clip(size(projected & N(j)), 0, 1) for j in projected) ; return count ; aggregate: total / 2 |
+| PM | triangle-edge | 20 | True | 1 | 2 | False | False | 1.0056 | True | True | 0.3048 | - | 0.2305 | 0.0097 | P_proj = project(P, D) ; sum_over_uv = sum( clip( size(P_proj & N(v)), 0, 1 ) for v in P_proj ) ; return sum_over_uv / 2 ; aggregate: total |
+| PM | triangle-edge | 21 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.3215 | - | 0.2208 | 0.0000 | projected_P = project(P, D) ; sum_clip = sum(clip(sum(A(v, w) for w in projected_P), 0, 1) for v in projected_P) ; return sum_clip ; aggregate: total / 2 |
+| PM | triangle-edge | 22 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 23 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 24 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 25 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 26 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 27 | True | 1 | 2 | False | False | 0.9942 | True | True | 0.2953 | - | 0.1557 | -0.0651 | return sum( clip( size( P & N(v) ), 0, 1 ) for v in project(P, D) ) ; aggregate: total / 2 |
+| PM | triangle-edge | 28 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| PM | triangle-edge | 29 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 0 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.3064 | - | 0.5216 | 0.0000 | neighbors = project(P, D) ; sum_over_v = sum( clip( sum( A(v, w) for w in neighbors ), 0, 1 ) for v in neighbors ) ; return sum_over_v ; aggregate: total / 2 |
+| Do | triangle-edge | 1 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 2 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 3 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 4 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 5 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 6 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 7 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.3064 | - | 0.5216 | 0.0000 | return sum(clip(sum(A(v, w) for w in project(P, D)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| Do | triangle-edge | 8 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 9 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 10 | True | 1 | 2 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | neighbors = project(P, D) ; total = sum(clip(size(neighbors & N(v)), 0, 1) for v in neighbors) ; return total ; aggregate: total / 2 |
+| Do | triangle-edge | 11 | True | 1 | 3 | False | False | 0.8872 | True | True | 0.0289 | - | 0.5580 | 0.0364 | projected_P = project(P, D) ; total = sum(clip(size(N(v) & P), 0, 1) for v in projected_P) ; return total ; aggregate: total / 2 |
+| Do | triangle-edge | 12 | True | 1 | 1 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| Do | triangle-edge | 13 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.3064 | - | 0.5216 | 0.0000 | projected = project(P, D) ; total = sum( clip( sum( A(v, w) for w in projected ), 0, 1 ) for v in projected ) ; return total ; aggregate: total / 2 |
+| Do | triangle-edge | 14 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 15 | True | 1 | 2 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| Do | triangle-edge | 16 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 17 | True | 1 | 2 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | total = sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; return total ; aggregate: total / 2 |
+| Do | triangle-edge | 18 | True | 1 | 3 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | return sum(clip(size(project(P, D) & N(j)), 0, 1) for j in project(P, D)) / 2 ; aggregate: total |
+| Do | triangle-edge | 19 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.3064 | - | 0.5216 | 0.0000 | S = project(P, D) ; count = sum(clip(sum(A(v, w) for w in S), 0, 1) for v in S) ; return count ; aggregate: total / 2 |
+| Do | triangle-edge | 20 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 21 | True | 1 | 2 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| Do | triangle-edge | 22 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 23 | True | 1 | 2 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | return sum(clip(size(N(v) & project(P, D)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| Do | triangle-edge | 24 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 25 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 26 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 27 | True | 1 | 2 | False | False | 0.9559 | True | True | 0.0289 | - | 0.4952 | -0.0264 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| Do | triangle-edge | 28 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| Do | triangle-edge | 29 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 0 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | projected = project(P, D) ; count = sum( clip( sum( A(u, w) for w in projected ), 0, 1 ) for u in projected ) ; return count ; aggregate: total / 2 |
+| CS | triangle-edge | 1 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 2 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 3 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 4 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 5 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | return sum( clip( sum( A(v, w) for w in project(P, D) ), 0, 1 ) for v in project(P, D) ) ; aggregate: total / 2 |
+| CS | triangle-edge | 6 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | total = sum( clip( sum( A(v, w) for w in project(P, D) ), 0, 1 ) for v in project(P, D) ) ; return total ; aggregate: total / 2 |
+| CS | triangle-edge | 7 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | projected = project(P, D) ; total = sum( clip( sum( A(v, w) for w in projected ), 0, 1 ) for v in projected ) ; return total ; aggregate: total / 2 |
+| CS | triangle-edge | 8 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 9 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 10 | True | 1 | 3 | False | False | 0.9529 | True | True | 0.0293 | - | 0.9099 | 0.1351 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| CS | triangle-edge | 11 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 12 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 13 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 14 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | return sum(clip(sum(A(v, w) for w in project(P, D)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| CS | triangle-edge | 15 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | S = project(P, D) ; total = sum( clip( sum( A(v, w) for w in S ), 0, 1 ) for v in S ) ; return total ; aggregate: total / 2 |
+| CS | triangle-edge | 16 | True | 1 | 3 | False | False | 0.8843 | True | True | 0.0273 | - | 1.0614 | 0.2865 | return sum(clip(size(N(v) & P), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| CS | triangle-edge | 17 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 18 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 19 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 20 | True | 1 | 2 | False | False | 0.9529 | True | True | 0.0293 | - | 0.9099 | 0.1351 | return sum(clip(size(project(P, D) & N(v)), 0, 1) for v in project(P, D)) ; aggregate: total / 2 |
+| CS | triangle-edge | 21 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2972 | - | 0.7749 | 0.0000 | total = sum( clip( sum( A(w, v) for w in project(P, D) ), 0, 1 ) for v in project(P, D) ) ; return total ; aggregate: total / 2 |
+| CS | triangle-edge | 22 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 23 | True | 1 | 3 | False | False | 0.9529 | True | True | 0.0293 | - | 0.9099 | 0.1351 | count = sum(clip(size(N(j) & project(P, D)), 0, 1) for j in project(P, D)) ; return count ; aggregate: total / 2 |
+| CS | triangle-edge | 24 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 25 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 26 | True | 1 | 2 | False | False | 0.8843 | True | True | 0.0273 | - | 1.0614 | 0.2865 | return sum( clip( size( P & N(v) ), 0, 1 ) for v in project(P, D) ) ; aggregate: total / 2 |
+| CS | triangle-edge | 27 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CS | triangle-edge | 28 | True | 1 | 1 | False | False | 0.8843 | True | True | 0.0273 | - | 1.0614 | 0.2865 | projected = project(P, D) ; sum_clip = sum(clip(size(P & N(v)), 0, 1) for v in projected) ; return sum_clip ; aggregate: total / 2 |
+| CS | triangle-edge | 29 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |

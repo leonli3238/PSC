@@ -186,6 +186,9 @@ def main() -> None:
     ap.add_argument("--slack-tol", type=float, default=1.2, help="--tighten: derived GS / observed change that triggers it")
     ap.add_argument("--no-normalize", action="store_true",
                     help="no format-only repairs of the curator's replies (tag lines, aggregate inside the block, //)")
+    ap.add_argument("--feedback", default="full", choices=("full", "binary", "none"),
+                    help="ablation: what a redraft's prompt shows of the rejected drafts -- full diagnosis, the bare "
+                         "verdict 'rejected', or nothing (independent resampling); the checks are the same")
     ap.add_argument("--design-concurrency", type=int, default=1,
                     help="designs of a task run concurrently (transcripts carry dataset/task/design)")
     ap.add_argument("--data", default=str(DATA_DIR))
@@ -217,10 +220,12 @@ def main() -> None:
     if simulated and args.noisy_gate:
         print("--select simulated: the noise-free gate is replaced by the simulated choice (--noisy-gate ignored)")
         args.noisy_gate = False
+    if args.feedback != "full" and (args.tighten or args.design_mode != "exact"):
+        ap.error("--feedback binary/none: exact design mode with --tighten 0 (a tighten request is feedback)")
     options = DesignOptions(normalize=not args.no_normalize, tighten=args.tighten, slack_tol=args.slack_tol,
                             early_stop=tuple(s for s in args.early_stop.split(",") if s),
                             select="first" if simulated else args.select, min_accepted=args.min_accepted,
-                            own_row=args.own_row_check)
+                            own_row=args.own_row_check, feedback=args.feedback)
     per_design = (args.search_rounds * args.search_proposals if args.design_mode == "search"
                   else (args.max_iterations + args.tighten) * args.restarts * (len(releases) if simulated else 1))
     planned = len(datasets) * len(tasks) * args.designs * per_design
@@ -306,6 +311,13 @@ def main() -> None:
                         "feedback": [h["feedback"] for h in res.history],
                         "stages": [draft_stage(h["feedback"]) for a in loops for h in a["history"]],
                         "normalized_drafts": sum(bool(h.get("normalized")) for a in loops for h in a["history"]),
+                        # per design loop (release / restart): the draft at which it was first accepted
+                        "first_accepted_draft": [
+                            {"release": a.get("release"), "restart": a.get("restart"), "drafts": len(a["history"]),
+                             "first_accepted": next((j for j, h in enumerate(a["history"], 1)
+                                                     if h.get("feedback") == "accepted"
+                                                     or str(h.get("feedback", "")).startswith("superseded")), None)}
+                            for a in loops],
                         "selection": res.selection,
                     }
                     if res.program is not None:
@@ -427,7 +439,7 @@ def main() -> None:
                  f"{sim_note if simulated else ''}, own-row check {'on' if args.own_row_check else 'off'}"
                  f"{' of %d' % args.min_accepted if args.select == 'min_gs' else ''}, tighten {args.tighten}, "
                  f"early stop {args.early_stop or 'off'}, normalisation {'off' if args.no_normalize else 'on'}, "
-                 f"prompt {spec.name} (core {spec.core}, {spec.digest})")
+                 f"feedback {args.feedback}, prompt {spec.name} (core {spec.core}, {spec.digest})")
     md = [
         "# DSL design evaluation (goal 2: error added by the LLM designer)", "",
         f"designer = {args.provider}{' / ' + str(cfg.curator_model) if args.provider != 'mock' else ''}"

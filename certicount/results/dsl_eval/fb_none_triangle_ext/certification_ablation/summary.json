@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/fb_none_triangle_ext",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 427,
+  "designs": 90,
+  "table": [
+    {
+      "task": "triangle",
+      "drafts": 427,
+      "truncated": 0,
+      "parse": 143,
+      "duplicate": 2,
+      "gs_failed": 1,
+      "gs_loose": 2,
+      "semantic": 108,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 171,
+      "rejected_share": 0.5948,
+      "runnable": 282,
+      "uncertified_violations": 68,
+      "uncertified_violation_share": 0.2411,
+      "max_eps_ratio": 37.333333333333336,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 57,
+      "semantic_errors_published_without_check": 108
+    },
+    {
+      "task": "all",
+      "drafts": 427,
+      "truncated": 0,
+      "parse": 143,
+      "duplicate": 2,
+      "gs_failed": 1,
+      "gs_loose": 2,
+      "semantic": 108,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 171,
+      "rejected_share": 0.5948,
+      "runnable": 282,
+      "uncertified_violations": 68,
+      "uncertified_violation_share": 0.2411,
+      "max_eps_ratio": 37.333333333333336,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 57,
+      "semantic_errors_published_without_check": 108
+    }
+  ],
+  "designs_without_transcripts": 0
+}

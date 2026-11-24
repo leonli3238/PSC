@@ -1,0 +1,1262 @@
+[
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 0,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 1,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 2,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 3,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 4,
+    "llm_calls": 2,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 5,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 6,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 7,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 8,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 9,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 10,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 11,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 12,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 13,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 14,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 15,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 16,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 17,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 18,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "triangle",
+    "design": 19,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 0,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 1,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 2,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 3,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 4,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 5,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 6,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 7,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 8,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 9,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 10,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 11,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 12,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 13,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 14,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 15,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 16,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 17,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 18,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "PM",
+    "task": "open-wedge",
+    "design": 19,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 0,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 1,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 2,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 3,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 4,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 5,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 6,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 7,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 8,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 9,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 10,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 11,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 12,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 13,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 14,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 15,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 16,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 17,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 18,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "triangle",
+    "design": 19,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 0,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 1,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 2,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 3,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 4,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 5,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 6,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 7,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 8,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 9,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 10,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 11,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 12,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 13,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 14,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 15,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 16,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 17,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 18,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "design": 19,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 0,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 1,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 2,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 3,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 4,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 5,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 6,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 7,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 8,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 9,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 10,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 11,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 12,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 13,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 14,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 15,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 16,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 17,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 18,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "triangle",
+    "design": 19,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 0,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 1,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 2,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 3,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 4,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 5,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 6,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 7,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 8,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 9,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 10,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 11,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 12,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 13,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 14,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 15,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 16,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 17,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 18,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "Do",
+    "task": "open-wedge",
+    "design": 19,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 0,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 1,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 2,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 3,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 4,
+    "llm_calls": 2,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 5,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 6,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 7,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 8,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 9,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 10,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 11,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 12,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 13,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 14,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 15,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 16,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 17,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 18,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "triangle",
+    "design": 19,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 0,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 1,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 2,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 3,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 4,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 5,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 6,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 7,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 8,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 9,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 10,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 11,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 12,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 13,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 14,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 15,
+    "llm_calls": 7,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 16,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 17,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 18,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "ML",
+    "task": "open-wedge",
+    "design": 19,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 0,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 1,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 2,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 3,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 4,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 5,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 6,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 7,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 8,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 9,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 10,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 11,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 12,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 13,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 14,
+    "llm_calls": 6,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 15,
+    "llm_calls": 5,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 16,
+    "llm_calls": 4,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 17,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 18,
+    "llm_calls": 3,
+    "transcripts": 0
+  },
+  {
+    "dataset": "CS",
+    "task": "triangle",
+    "design": 19,
+    "llm_calls": 4,
+    "transcripts": 0
+  }
+]

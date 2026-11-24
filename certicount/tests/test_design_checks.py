@@ -294,6 +294,47 @@ def test_early_stop_after_two_rejections_of_the_same_stage():
     assert not res.accepted and res.llm_calls == 2 and res.history[-1]["early_stop"]
 
 
+# ---------------------------------------------------------------- feedback ablation
+class _Recorder(_Script):
+    """_Script that also keeps the prompts it was sent."""
+
+    def __init__(self, replies: list[str]) -> None:
+        super().__init__(replies)
+        self.prompts: list[str] = []
+
+    async def __call__(self, messages: list[dict], **kwargs: Any) -> ChatResponse:  # type: ignore[override]
+        user = next(m for m in reversed(messages) if m.get("role") == "user")["content"]
+        self.prompts.append(user if isinstance(user, str) else json.dumps(user))
+        return await super().__call__(messages, **kwargs)
+
+
+def test_feedback_modes_change_only_what_the_redraft_prompt_shows():
+    loose = "```dsl\nreturn comb(size(P), 3)\n```\naggregate: total"  # unprojected 3-star: rejected as too loose
+    good = "```dsl\nreturn comb(size(project(P, D)), 3)\n```\naggregate: total"
+    params = design_reference_params(N)
+    prompts, stages = {}, {}
+    for mode in ("full", "binary", "none"):
+        model = _Recorder([loose, good])
+        res = asyncio.run(design_program(model, FMT, analyst_prompt("3-star", N), N, params, "3-star", 3,
+                                         options=DesignOptions(feedback=mode)))
+        assert res.accepted and res.llm_calls == 2
+        prompts[mode], stages[mode] = model.prompts, [draft_stage(h["feedback"]) for h in res.history]
+    assert stages["full"] == stages["binary"] == stages["none"]  # the same checks in every mode
+    assert prompts["full"][0] == prompts["binary"][0] == prompts["none"][0]
+    diagnosis = res.history[0]["feedback"].removeprefix("rejected: ")[:40]
+    assert diagnosis in prompts["full"][1]
+    assert "comb(size(P), 3)" in prompts["binary"][1] and diagnosis not in prompts["binary"][1]
+    assert "Result: rejected" in prompts["binary"][1]
+    assert prompts["none"][1] == prompts["none"][0]  # an independent sample of the first prompt
+
+
+def test_feedback_ablation_excludes_tighten_requests():
+    with pytest.raises(ValueError):
+        DesignOptions(feedback="none", tighten=1)
+    with pytest.raises(ValueError):
+        DesignOptions(feedback="hints")
+
+
 def test_min_gs_selection_keeps_the_tightest_accepted_program():
     params = design_reference_params(N)
     first = asyncio.run(design_with_restarts(_Script([LOOSE_TRI, TIGHT_TRI]), FMT, analyst_prompt("triangle", N), N,

@@ -85,35 +85,70 @@ def gt_index(tag: str) -> tuple[dict, dict]:
     return runs, main
 
 
-def paired(cc: list[dict], gt: dict, method: str) -> tuple[float | None, float | None, float | None]:
-    """(mean RE of the method on the paired runs, mean paired difference CertiCount - method, se)."""
+def cluster_se(d: np.ndarray, design: list, run: list) -> float | None:
+    """Standard error of the mean of ``d`` clustered two-way by design and by run index
+    (Cameron, Gelbach & Miller 2011): all runs of a design share its program, and every design
+    reuses the same noise of run i, so neither the runs nor the designs are independent."""
+    if len(d) < 2 or len(set(design)) < 2 or len(set(run)) < 2:
+        return None
+    e = d - d.mean()
+    n2 = float(len(d)) ** 2
+
+    def by(keys: list) -> float:
+        sums: dict = defaultdict(float)
+        for k, v in zip(keys, e):
+            sums[k] += v
+        return sum(s * s for s in sums.values()) / n2
+
+    v_design, v_run, v_het = by(design), by(run), float((e * e).sum()) / n2
+    v = v_design + v_run - v_het
+    return math.sqrt(v if v > 0 else max(v_design, v_run))
+
+
+def paired(cc: list[dict], gt: dict, method: str) -> tuple[float | None, float | None, float | None, float | None]:
+    """(mean RE of the method on the paired runs, mean paired difference CertiCount - method, naive se
+    over all design-run pairs, two-way clustered se by design and run)."""
     pairs = [(r, gt[(r["dataset"], r["task"], r["run"])]) for r in cc if (r["dataset"], r["task"], r["run"]) in gt]
     pairs = [(a, b[method]) for a, b in pairs if b.get(method) is not None]
     if not pairs:
-        return None, None, None
+        return None, None, None, None
     d = np.array([a["relative_error"] - b["relative_error"] for a, b in pairs])
     ref = float(np.mean([b["relative_error"] for _, b in pairs]))
-    return ref, float(d.mean()), (float(d.std(ddof=1) / math.sqrt(len(d))) if len(d) > 1 else None)
+    naive = float(d.std(ddof=1) / math.sqrt(len(d))) if len(d) > 1 else None
+    return ref, float(d.mean()), naive, cluster_se(d, [a["design"] for a, _ in pairs], [a["run"] for a, _ in pairs])
 
 
 def design_row(arm: Arm, ds: str, task: str, gt: dict, main: dict) -> dict:
     s = arm.summary.get((ds, task))
     cc = arm.runs.get((ds, task), [])
-    sel_ref, d_sel, se_sel = paired(cc, gt, "GT-Select")
-    naive_ref, d_naive, se_naive = paired(cc, gt, "GT-Naive")
+    sel_ref, d_sel, se_sel, cl_sel = paired(cc, gt, "GT-Select")
+    naive_ref, d_naive, se_naive, cl_naive = paired(cc, gt, "GT-Naive")
     m = main.get((ds, task), {})
     row = {"dataset": ds, "task": task, "core": arm.core, "leaked": "yes" if task in arm.leaked else "no",
            "designs": s and s["designs"], "accept_rate": s and s["accept_rate"],
            "first_try_rate": s and s["first_try_rate"], "mean_llm_calls": s and s["mean_llm_calls"],
            "distinct_programs": s and s["distinct_programs"], "same_as_reference": s and s["same_as_reference"],
            "CertiCount": float(np.mean([r["relative_error"] for r in cc])) if cc else None,
-           "GT-Select": sel_ref, "cc_minus_select": d_sel, "se_select": se_sel,
-           "GT-Naive": naive_ref, "cc_minus_naive": d_naive, "se_naive": se_naive,
+           "GT-Select": sel_ref, "cc_minus_select": d_sel, "se_select": se_sel, "se_select_cl": cl_sel,
+           "vs_select": verdict(d_sel, cl_sel),
+           "GT-Naive": naive_ref, "cc_minus_naive": d_naive, "se_naive": se_naive, "se_naive_cl": cl_naive,
+           "vs_naive": verdict(d_naive, cl_naive),
            "GT-DSL-node": m.get("GT-DSL-node"), "design_choice": m.get("design_choice"),
            "truth": m.get("truth"), "n": m.get("n")}
     if row["truth"] is not None and row["n"]:
         row["truth_per_n"] = row["truth"] / row["n"]
     return row
+
+
+def verdict(diff: float | None, se: float | None, z: float = 1.96) -> str:
+    """``worse`` / ``better`` (CertiCount's RE minus the reference's outside ±z·se) or ``n.s.``."""
+    if diff is None or se is None:
+        return "-"
+    if diff - z * se > 0:
+        return "worse"
+    if diff + z * se < 0:
+        return "better"
+    return "n.s."
 
 
 def rejection_row(arm: Arm, ds: str, task: str) -> dict:
@@ -145,14 +180,17 @@ def main() -> None:
     md = ["# CS9 summary (per-node architecture, ε = 2, Qwen3-8B thinking curator, simulated choice, α = 5)", "",
           "Mean relative error, lower is better; CertiCount = all runs of the accepted designs (100 per design). "
           "`GT-Select` / `GT-Naive`: the code references of `results/execution/" + a.gt + "` on the same run indices; "
-          "`cc_minus_*` = paired mean of RE(CertiCount) − RE(reference) with its standard error. `leaked = yes`: the prompt "
+          "`cc_minus_*` = paired mean of RE(CertiCount) − RE(reference); `se_*` = its standard error over all design-run "
+          "pairs as if independent, `se_*_cl` = two-way clustered by design and run index (the runs of a design share its "
+          "program, the designs share the noise of run i; use this one). `vs_*`: `worse` / `better` when the difference "
+          "is outside ±1.96·se_cl, else `n.s.`. `leaked = yes`: the prompt "
           "core shows a program of the task (`prompt_spec.core_leak_check`).", ""]
     if missing:
         md += ["Missing result directories (not run yet or not finished): " + ", ".join(f"`{t}`" for t in missing), ""]
 
     cols = ["dataset", "task", "core", "leaked", "designs", "accept_rate", "first_try_rate", "mean_llm_calls",
             "distinct_programs", "same_as_reference", "CertiCount", "GT-Select", "cc_minus_select", "se_select",
-            "GT-Naive", "cc_minus_naive"]
+            "se_select_cl", "vs_select", "GT-Naive", "cc_minus_naive", "se_naive_cl", "vs_naive"]
     abl = []
     for task, arms in (("triangle", (tri_alt, g1)), ("open-wedge", (g4, g1))):
         for ds in DATASETS:
@@ -167,8 +205,18 @@ def main() -> None:
     md += ["## 2. Extension tasks (generic core, PSC has no rule for them)", "",
            "`truth_per_n` close to 1: the statistic is saturated (almost every node counts), an easy target for GT-Naive.", "",
            markdown_table(ext, ["dataset", "task", "n", "truth", "truth_per_n", "designs", "accept_rate", "first_try_rate",
-                                "CertiCount", "GT-Naive", "cc_minus_naive", "se_naive", "GT-DSL-node", "GT-Select",
-                                "cc_minus_select", "se_select", "design_choice"]), ""]
+                                "CertiCount", "GT-Naive", "cc_minus_naive", "se_naive", "se_naive_cl", "vs_naive",
+                                "GT-DSL-node", "GT-Select", "cc_minus_select", "se_select", "se_select_cl", "vs_select",
+                                "design_choice"]), ""]
+
+    generic = [r for r in abl if r["core"] == "generic"] + ext
+    tally = []
+    for ref in ("select", "naive"):
+        c = Counter(r[f"vs_{ref}"] for r in generic)
+        tally.append({"reference": "GT-Select" if ref == "select" else "GT-Naive", "cells": len(generic),
+                      "worse": c["worse"], "n.s.": c["n.s."], "better": c["better"], "no_data": c["-"]})
+    md += ["### Paired comparison over all generic-core cells (sections 1 and 2, clustered se)", "",
+           markdown_table(tally, ["reference", "cells", "worse", "n.s.", "better", "no_data"]), ""]
 
     four = [rejection_row(g3, ds, "4-cycle") | {"gt_choice": gmain.get((ds, "4-cycle"), {}).get("design_choice"),
                                                  "GT-Naive": gmain.get((ds, "4-cycle"), {}).get("GT-Naive"),

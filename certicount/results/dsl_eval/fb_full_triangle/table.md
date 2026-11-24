@@ -1,0 +1,120 @@
+# DSL design evaluation (goal 2: error added by the LLM designer)
+
+designer = vllm / Qwen3-8B, temperature = 0.6, 30 independent design(s), 3 draft(s) x up to 1 restart(s) per release (rows, matrix), selection simulated (public Holme-Kim graphs, average degrees 4,8,16, 8 releases each, never chosen at a score >= 1; run-time choice on Chung-Lu graphs of the published noisy degrees), own-row check on, tighten 0, early stop off, normalisation on, feedback full, prompt generic (core generic, 62a207c03a9c4864), ε = 2.0, 20 runs per design (noise of run i: seed [0, i]), mechanism = floor_tight, architecture = per-node (edge clipping + unbiased matrix A, α = 5), noise-aware gate off.
+
+`noise_free_pass` / `noise_free_bias`: the gate's statistic for every accepted design (median relative error of the estimate through the real release on public Holme-Kim graphs, final Laplace noise left out; certicount.dsl.noisy_gate), recorded with the gate off too.
+
+## Design quality
+
+`accept_rate`: designs that produced a program; `first_loop_rate`: accepted without a restart; `first_try_rate`: accepted at the first draft. `gs_ratio`: |c|·GS / the reference's at the design-time bound D = min(n−1, 10), c the aggregate's factor (a constant moved between program and aggregate does not count); `noise_ratio`: final noise |c|·GS/ε3 over the reference's, per run; `semantic_pass`: independent utility test; `sound`: no falsifier counterexample.
+
+| dataset | task | designs | accept_rate | accept_ci95 | first_loop_rate | first_try_rate | mean_iterations | mean_restarts | mean_llm_calls | distinct_programs | same_as_reference | split_match | semantic_pass | sound | noise_free_pass | gs_ratio | gs_ratio_max | noise_ratio | mean_candidates | runs_matrix | runs_rows |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CU | triangle | 30 | 0.9667 | [0.83, 0.99] | 0.9667 | 0.2667 | 2.0345 | 1.0000 | 4.7333 | 29 | 0.0000 | 0.7586 | 1.0000 | 1.0000 | 1.0000 | 0.8702 | 1.0000 | 0.8639 | 1.1667 | 0.7586 | 0.2414 |
+| ML | triangle | 30 | 0.9000 | [0.74, 0.97] | 0.9000 | 0.5000 | 1.6296 | 1.0000 | 4.5667 | 27 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.8563 | 1.1667 | 0.7407 | 0.2593 |
+| EE | triangle | 30 | 0.8667 | [0.70, 0.95] | 0.8667 | 0.6000 | 1.3846 | 1.0000 | 4.4333 | 25 | 0.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 0.9926 | 1.1333 | 0.9865 | 0.0135 |
+
+## Accuracy (accepted designs, paired with GT-DSL on the same noise)
+
+`design_error` = RE(designed) − RE(GT-DSL), mean over designs and runs (negative: better than the library algorithm); `design_exact`: share of runs whose estimate equals GT-DSL, excluding `both_zero` runs.
+
+| dataset | task | relative_error | median_relative_error | gt_dsl_relative_error | design_error | design_error_max | design_exact | both_zero |
+|---|---|---|---|---|---|---|---|---|
+| CU | triangle | 0.9835 | 1.1088 | 1.1088 | -0.1252 | 0.0000 | 0.7586 | 0.2397 |
+| ML | triangle | 0.2238 | 0.2487 | 0.2487 | -0.0249 | 3.66e-17 | 0.7407 | 0.0000 |
+| EE | triangle | 0.2348 | 0.2392 | 0.2392 | -0.0044 | 0.0000 | 0.9865 | 0.0000 |
+
+## Designs
+
+| dataset | task | design | accepted | restarts | iterations | same_as_reference | split_match | noise_ratio | semantic_pass | sound | noise_free_bias | search_score | relative_error | design_error | program |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| CU | triangle | 0 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | return sum( sum( A(y, z) for z in project(P, D) ) for y in project(P, D) ) / 2 ; aggregate: total / 3 |
+| CU | triangle | 1 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | S = project(P, D) ; total_edges = sum( sum( A(j, k) for k in S ) for j in S ) ; number_of_edges = total_edges / 2 ; return number_of_edges ; aggregate: total / 3 |
+| CU | triangle | 2 | True | 1 | 2 | False | False | 0.4365 | True | True | 0.4865 | - | 0.5992 | -0.5095 | sum_pairs = sum( size( project(P, D) & N(y) ) for y in project(P, D) ) ; count = sum_pairs / 2 ; return count ; aggregate: total / 3 |
+| CU | triangle | 3 | True | 1 | 2 | False | False | 0.4332 | True | True | 0.4865 | - | 0.5338 | -0.5750 | S = project(P, D) ; total_pairs = sum(size(S & N(u)) for u in S) ; return total_pairs / 2 ; aggregate: total / 3 |
+| CU | triangle | 4 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | projected_P = project(P, D) ; inner_sum = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; return inner_sum ; aggregate: total / 6 |
+| CU | triangle | 5 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | sum_over_vw = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) / 2 ; return sum_over_vw ; aggregate: total / 3 |
+| CU | triangle | 6 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | return sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; aggregate: total / 2 / 3 |
+| CU | triangle | 7 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | sum_ordered = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; sum_pairs = sum_ordered / 2 ; return sum_pairs ; aggregate: total / 3 |
+| CU | triangle | 8 | True | 1 | 2 | False | False | 0.4365 | True | True | 0.4865 | - | 0.5992 | -0.5095 | projected_P = project(P, D) ; count = sum(size(N(u) & projected_P) for u in projected_P) ; return count ; aggregate: total / 6 |
+| CU | triangle | 9 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | S = project(P, D) ; sum_j_k = sum( sum( A(j, k) for k in S ) for j in S ) ; term = sum_j_k / 2 ; return term ; aggregate: total / 3 |
+| CU | triangle | 10 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | S = project(P, D) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; return sum_A / 2 ; aggregate: total / 3 |
+| CU | triangle | 11 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | projected = project(P, D) ; sum_total = sum( sum( A(v, w) for w in projected ) for v in projected ) ; return sum_total ; aggregate: total / 6 |
+| CU | triangle | 12 | True | 1 | 3 | False | False | 0.4365 | True | True | 0.4865 | - | 0.5992 | -0.5095 | S = project(P, D) ; sum_over_v = sum( size(N(v) & S) for v in S ) ; report = sum_over_v ; return report ; aggregate: total / 6 |
+| CU | triangle | 13 | True | 1 | 3 | False | False | 0.4365 | True | True | 0.4865 | - | 0.5992 | -0.5095 | s = size(project(P, D)) ; sum_ = sum(size(project(P, D) & N(j)) for j in project(P, D)) ; return sum_ / 2 ; aggregate: total / 3 |
+| CU | triangle | 14 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | neighbors = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in neighbors ) for u in neighbors ) ; contribution = sum_uv / 2 ; return contribution ; aggregate: total / 3 |
+| CU | triangle | 15 | True | 1 | 3 | False | False | 0.4365 | True | True | 0.4865 | - | 0.5992 | -0.5095 | S = project(P, D) ; T = sum(size(N(u) & S) for u in S) ; return T / 2 ; aggregate: total / 3 |
+| CU | triangle | 16 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | neighbors = project(P, D) ; return sum( sum( A(u, v) for v in neighbors ) for u in neighbors ) ; aggregate: total / 6 |
+| CU | triangle | 17 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | proj = project(P, D) ; return sum( sum( A(k, l) for l in proj ) for k in proj ) / 2 ; aggregate: total / 3 |
+| CU | triangle | 18 | True | 1 | 3 | False | False | 0.4365 | True | True | 0.4865 | - | 0.5992 | -0.5095 | return sum( size(project(P, D) & N(w)) for w in project(P, D) ) / 2 ; aggregate: total / 3 |
+| CU | triangle | 19 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | return sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; aggregate: total / 6 |
+| CU | triangle | 20 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | S = project(P, D) ; sum_A = sum( sum( A(j, k) for k in S ) for j in S ) ; return sum_A / 2 ; aggregate: total / 3 |
+| CU | triangle | 21 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | s = sum( sum( A(y, z) for z in project(P, D) ) for y in project(P, D) ) ; return s / 2 ; aggregate: total / 3 |
+| CU | triangle | 22 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | S = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in S ) for u in S ) ; edges_per_node = sum_uv / 2 ; return edges_per_node ; aggregate: total / 3 |
+| CU | triangle | 23 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | projected_P = project(P, D) ; total_pairs = sum( sum( A(j, k) for k in projected_P ) for j in projected_P ) ; return total_pairs ; aggregate: total / 6 |
+| CU | triangle | 24 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| CU | triangle | 25 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | sum_vw = sum( sum( A(v, w) for w in project(P, D)) for v in project(P, D) ) ; return sum_vw ; aggregate: total / 6 |
+| CU | triangle | 26 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | projected_P = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; return sum_uv / 2 ; aggregate: total / 3 |
+| CU | triangle | 27 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | s = sum(sum(A(j, k) for k in project(P, D)) for j in project(P, D)) ; return s / 2 ; aggregate: total / 3 |
+| CU | triangle | 28 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | S = project(P, D) ; sum_jk = sum( sum( A(j, k) for k in S ) for j in S ) ; return sum_jk / 2 ; aggregate: total / 3 |
+| CU | triangle | 29 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.2066 | - | 1.1088 | 0.0000 | P_proj = project(P, D) ; sum_A = sum( sum( A(u, v) for v in P_proj ) for u in P_proj ) ; triangles_contribution = sum_A / 2 ; return triangles_contribution ; aggregate: total / 3 |
+| ML | triangle | 0 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | return (sum(sum(A(v, w) for w in project(P, D)) for v in project(P, D)) / 2) ; aggregate: total / 3 |
+| ML | triangle | 1 | True | 1 | 2 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | return sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) / 2 ; aggregate: total / 3 |
+| ML | triangle | 2 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | return sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; aggregate: total / 6 |
+| ML | triangle | 3 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | s = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; return s / 2 ; aggregate: total / 3 |
+| ML | triangle | 4 | True | 1 | 3 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | total = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) / 6 ; return total ; aggregate: total |
+| ML | triangle | 5 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | total = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) / 2 ; return total ; aggregate: total / 3 |
+| ML | triangle | 6 | True | 1 | 1 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | projected_P = project(P, D) ; sum_A = sum(sum(A(j, k) for k in projected_P) for j in projected_P) ; edges_between_neighbors = sum_A / 2 ; return edges_between_neighbors ; aggregate: total / 3 |
+| ML | triangle | 7 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | P_proj = project(P, D) ; sum_A = sum( sum( A(j, k) for k in P_proj ) for j in P_proj ) ; contribution = sum_A / 2 ; return contribution ; aggregate: total / 3 |
+| ML | triangle | 8 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | triangle | 9 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | sum_jk = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) ; return sum_jk / 2 ; aggregate: total / 3 |
+| ML | triangle | 10 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 3.66e-17 | return sum( sum( A(u, v) for u in project(P, D) ) for v in project(P, D) ) / 6 ; aggregate: total |
+| ML | triangle | 11 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | sum_uv = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; triangles_contribution = sum_uv / 2 ; return triangles_contribution ; aggregate: total / 3 |
+| ML | triangle | 12 | True | 1 | 1 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | S = project(P, D) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; contribution = sum_A / 2 ; return contribution ; aggregate: total / 3 |
+| ML | triangle | 13 | True | 1 | 1 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | P_proj = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in P_proj ) for u in P_proj ) ; return sum_uv / 2 ; aggregate: total / 3 |
+| ML | triangle | 14 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | projected_P = project(P, D) ; sum_over_u_v = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; return sum_over_u_v ; aggregate: total / 6 |
+| ML | triangle | 15 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | total = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) / 2 ; return total ; aggregate: total / 3 |
+| ML | triangle | 16 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | projected = project(P, D) ; sum_over_all_pairs = sum( sum( A(j, k) for k in projected ) for j in projected ) ; sum_unordered_pairs = sum_over_all_pairs / 2 ; return sum_unordered_pairs ; aggregate: total / 3 |
+| ML | triangle | 17 | True | 1 | 2 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | proj = project(P, D) ; sum_vw = sum( sum( A(v, w) for w in proj ) for v in proj ) ; return sum_vw ; aggregate: total / 6 |
+| ML | triangle | 18 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | S = project(P, D) ; sum_uv = sum(sum(A(u, v) for v in S) for u in S) ; triangles_per_node = sum_uv / 2 ; return triangles_per_node ; aggregate: total / 3 |
+| ML | triangle | 19 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | projected_P = project(P, D) ; total = sum( sum( A(v, w) for w in projected_P ) for v in projected_P ) ; return total ; aggregate: total / 6 |
+| ML | triangle | 20 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | S = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in S ) for u in S ) ; return sum_uv ; aggregate: total / 6 |
+| ML | triangle | 21 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | sum_uv = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; return sum_uv / 2 ; aggregate: total / 3 |
+| ML | triangle | 22 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | s = project(P, D) ; sum_over_pairs = sum( sum( A(j, k) for k in s ) for j in s ) ; return sum_over_pairs ; aggregate: total / 6 |
+| ML | triangle | 23 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | triangle | 24 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| ML | triangle | 25 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | S = project(P, D) ; total_pairs = sum( sum( A(j, k) for k in S ) for j in S ) ; unordered_pairs = total_pairs / 2 ; return unordered_pairs ; aggregate: total / 3 |
+| ML | triangle | 26 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | return sum( sum( A(k, l) for l in project(P, D) ) for k in project(P, D) ) / 2 ; aggregate: total / 3 |
+| ML | triangle | 27 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | projected_P = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in projected_P ) for u in projected_P ) ; return sum_uv / 2 ; aggregate: total / 3 |
+| ML | triangle | 28 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1836 | - | 0.2487 | 0.0000 | sum_jk = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) ; return sum_jk ; aggregate: total / 6 |
+| ML | triangle | 29 | True | 1 | 1 | False | True | 0.4456 | True | True | 0.1836 | - | 0.1527 | -0.0960 | total_per_node = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) ; return total_per_node ; aggregate: total / 6 |
+| EE | triangle | 0 | True | 1 | 2 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | S = project(P, D) ; return sum( sum( A(j, k) for k in S ) for j in S ) ; aggregate: total / 6 |
+| EE | triangle | 1 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | total_contribution = sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) ; return total_contribution ; aggregate: total / 6 |
+| EE | triangle | 2 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | projected = project(P, D) ; sum_ordered = sum( sum( A(u, v) for v in projected ) for u in projected ) ; return sum_ordered ; aggregate: total / 6 |
+| EE | triangle | 3 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | triangle | 4 | True | 1 | 1 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | S = project(P, D) ; sum_vw = sum( sum( A(v, w) for w in S ) for v in S ) ; return sum_vw ; aggregate: total / 6 |
+| EE | triangle | 5 | True | 1 | 2 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | total = sum(sum(A(k, l) for l in project(P, D)) for k in project(P, D)) ; return total ; aggregate: total / 6 |
+| EE | triangle | 6 | True | 1 | 3 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | total = sum( sum( A(w, x) for x in project(P, D) ) for w in project(P, D) ) ; return total ; aggregate: total / 6 |
+| EE | triangle | 7 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; return sum( sum( A(u, v) for v in S ) for u in S ) ; aggregate: total / 6 |
+| EE | triangle | 8 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; sum_A = sum( sum( A(j, k) for k in S ) for j in S ) ; E = sum_A / 2 ; return E ; aggregate: total / 3 |
+| EE | triangle | 9 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; return sum( sum( A(j, k) for k in S ) for j in S ) ; aggregate: total / 6 |
+| EE | triangle | 10 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; edges = sum_A / 2 ; return edges ; aggregate: total / 3 |
+| EE | triangle | 11 | True | 1 | 1 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | S = project(P, D) ; sum_over_pairs = sum( sum( A(u, v) for v in S ) for u in S ) ; return sum_over_pairs / 2 ; aggregate: total / 3 |
+| EE | triangle | 12 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | triangle | 13 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | P_proj = project(P, D) ; sum_vw = sum( sum( A(v, w) for w in P_proj ) for v in P_proj ) ; return sum_vw / 2 ; aggregate: total / 3 |
+| EE | triangle | 14 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | sum_uv_A = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; contribution = sum_uv_A / 2 ; return contribution ; aggregate: total / 3 |
+| EE | triangle | 15 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | P_projected = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in P_projected ) for u in P_projected ) ; contribution = sum_uv / 2 ; return contribution ; aggregate: total / 3 |
+| EE | triangle | 16 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | projected = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in projected ) for u in projected ) ; sum_pairs = sum_uv * 0.5 ; return sum_pairs ; aggregate: total / 3 |
+| EE | triangle | 17 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | triangle | 18 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; sum_jk = sum( sum( A(j, k) for k in S ) for j in S ) ; return sum_jk / 2 ; aggregate: total / 3 |
+| EE | triangle | 19 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | return sum( sum( A(v, w) for w in project(P, D) ) for v in project(P, D) ) / 2 ; aggregate: total / 3 |
+| EE | triangle | 20 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | return sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) / 2 ; aggregate: total / 3 |
+| EE | triangle | 21 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; sum_uv_A = sum( sum( A(u, v) for v in S ) for u in S ) ; contribution = sum_uv_A / 2 ; return contribution ; aggregate: total / 3 |
+| EE | triangle | 22 | True | 1 | 1 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | total = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; return total ; aggregate: total / 6 |
+| EE | triangle | 23 | False | 1 | 3 | - | - | - | - | - | - | - | - | - | - |
+| EE | triangle | 24 | True | 1 | 2 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | sum1 = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) ; return sum1 / 2 ; aggregate: total / 3 |
+| EE | triangle | 25 | True | 1 | 1 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | S = project(P, D) ; sum_uv = sum(sum(A(u, v) for v in S) for u in S) ; edges = sum_uv / 2 ; return edges ; aggregate: total / 3 |
+| EE | triangle | 26 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | sum_uv = sum( sum( A(u, v) for v in project(P, D) ) for u in project(P, D) ) ; return sum_uv / 2 ; aggregate: total / 3 |
+| EE | triangle | 27 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | sum_jk = sum( sum( A(j, k) for k in project(P, D) ) for j in project(P, D) ) ; return sum_jk / 2 ; aggregate: total / 3 |
+| EE | triangle | 28 | True | 1 | 1 | False | True | 1.0000 | True | True | 0.1358 | - | 0.2392 | 0.0000 | S = project(P, D) ; sum_uv = sum( sum( A(u, v) for v in S ) for u in S ) ; return sum_uv / 2 ; aggregate: total / 3 |
+| EE | triangle | 29 | True | 1 | 1 | False | True | 0.9724 | True | True | 0.1358 | - | 0.2230 | -0.0162 | S = project(P, D) ; sum_A = sum( sum( A(u, v) for v in S ) for u in S ) ; return sum_A / 2 ; aggregate: total / 3 |

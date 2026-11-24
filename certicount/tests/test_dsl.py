@@ -184,6 +184,40 @@ def test_certificate_verification():
     assert not verify_certificate(cert, prog, PublicParams(49, 15, 15))[0]
 
 
+def test_certificate_rejects_non_finite_gs_and_untrusted_facts():
+    from dataclasses import replace
+
+    prog = PROGRAMS["triangle"].parse()
+    p = PublicParams(49, 16, 16)
+    cert = certify(prog, p)
+    for bad in (math.nan, math.inf, -math.inf, -1.0, True, "15"):
+        ok, reason = verify_certificate(replace(cert, gs=bad), prog, p)
+        assert not ok and "finite nonnegative" in reason
+    assert verify_certificate(replace(cert, gs=cert.gs * 2), prog, p)[0]  # over-stating is safe
+    # an environment without the symmetry fact: the certificate may not claim it, and the node
+    # derives with its own facts (GS 16 instead of dmax - 1 = 15)
+    env = Facts(symmetric_rows=False)
+    ok, reason = verify_certificate(cert, prog, p, env)
+    assert not ok and "symmetric_rows" in reason
+    honest = certify(prog, p, env)
+    assert honest.gs == 16 and verify_certificate(honest, prog, p, env)[0]
+    assert not verify_certificate(replace(honest, gs=15.0), prog, p, env)[0]
+
+
+def test_check_program_uses_the_node_facts():
+    from dataclasses import replace
+
+    from certicount.binding import BindingViolation, check_program
+
+    prog = PROGRAMS["triangle"].parse()
+    p = PublicParams(49, 16, 16)
+    assert check_program(prog, certify(prog, p), p) == 15
+    with pytest.raises(BindingViolation):
+        check_program(prog, replace(certify(prog, p), gs=math.nan), p)
+    with pytest.raises(BindingViolation):
+        check_program(prog, certify(prog, p), p, Facts(self_not_in_private=False))
+
+
 def test_design_loop_rewrites_a_loose_draft():
     fmt = create_formatter(ModelConfig())
     res = asyncio.run(design_program(MockDesignerModel(flawed_first=True), fmt, analyst_prompt("4-star", 49), 49,

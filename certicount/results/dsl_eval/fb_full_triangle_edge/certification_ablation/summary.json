@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/fb_full_triangle_edge",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 508,
+  "designs": 90,
+  "table": [
+    {
+      "task": "triangle-edge",
+      "drafts": 508,
+      "truncated": 1,
+      "parse": 197,
+      "duplicate": 8,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 180,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 122,
+      "rejected_share": 0.7441,
+      "runnable": 302,
+      "uncertified_violations": 228,
+      "uncertified_violation_share": 0.755,
+      "max_eps_ratio": 25.967440964863837,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 77,
+      "semantic_errors_published_without_check": 180
+    },
+    {
+      "task": "all",
+      "drafts": 508,
+      "truncated": 1,
+      "parse": 197,
+      "duplicate": 8,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 180,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 122,
+      "rejected_share": 0.7441,
+      "runnable": 302,
+      "uncertified_violations": 228,
+      "uncertified_violation_share": 0.755,
+      "max_eps_ratio": 25.967440964863837,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 77,
+      "semantic_errors_published_without_check": 180
+    }
+  ],
+  "designs_without_transcripts": 0
+}

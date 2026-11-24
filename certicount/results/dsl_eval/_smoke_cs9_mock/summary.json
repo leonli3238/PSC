@@ -1,0 +1,1190 @@
+{
+  "settings": {
+    "datasets": "ML",
+    "tasks": "degree-ge3,triangle-node,triangle-edge,4-cycle",
+    "designs": 2,
+    "max_iterations": 3,
+    "restarts": 1,
+    "design_mode": "exact",
+    "search_rounds": 4,
+    "search_proposals": 3,
+    "search_sims": 50,
+    "runs": 5,
+    "eps": 2.0,
+    "seed": 0,
+    "mechanism": "floor_tight",
+    "bounds": "5,10,20",
+    "utility_graphs": 100,
+    "utility_max_n": 16,
+    "no_falsify": false,
+    "node_bounds": true,
+    "clip_alpha": 5.0,
+    "noisy_gate": false,
+    "noisy_tau": 2.0,
+    "noisy_reps": 8,
+    "prompt": "generic",
+    "select": "simulated",
+    "releases": "rows,matrix",
+    "own_row_check": true,
+    "sim_reps": 8,
+    "sim_degrees": "4,8,16",
+    "sim_useless": 1.0,
+    "min_accepted": 1,
+    "early_stop": "",
+    "tighten": 1,
+    "slack_tol": 1.2,
+    "no_normalize": false,
+    "design_concurrency": 2,
+    "data": "/jizhicfs/leonlanli/work/PSC/psc/data",
+    "provider": "mock",
+    "profile": null,
+    "config": null,
+    "curator_model": null,
+    "temperature": null,
+    "flawed_first": false,
+    "dry_run": false,
+    "tag": "_smoke_cs9_mock"
+  },
+  "summary": [
+    {
+      "dataset": "ML",
+      "task": "degree-ge3",
+      "designs": 2,
+      "accept_rate": 1.0,
+      "accept_ci95": "[0.34, 1.00]",
+      "first_loop_rate": 1.0,
+      "first_try_rate": 1.0,
+      "mean_iterations": 1.0,
+      "mean_restarts": 1.0,
+      "mean_llm_calls": 2.0,
+      "distinct_programs": 1,
+      "same_as_reference": 1.0,
+      "split_match": 1.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 1.0,
+      "relative_error": 0.1183991440909258,
+      "gt_dsl_relative_error": 0.1183991440909258,
+      "design_error": 0.0,
+      "design_error_max": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 0.1183991440909258,
+      "mean_candidates": 1.0,
+      "runs_matrix": 0.0,
+      "runs_rows": 0.0
+    },
+    {
+      "dataset": "ML",
+      "task": "triangle-node",
+      "designs": 2,
+      "accept_rate": 1.0,
+      "accept_ci95": "[0.34, 1.00]",
+      "first_loop_rate": 1.0,
+      "first_try_rate": 1.0,
+      "mean_iterations": 1.0,
+      "mean_restarts": 1.0,
+      "mean_llm_calls": 2.0,
+      "distinct_programs": 1,
+      "same_as_reference": 0.0,
+      "split_match": 0.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 1.0,
+      "relative_error": 0.2548012237200181,
+      "gt_dsl_relative_error": 0.2156022056367636,
+      "design_error": 0.03919901808325454,
+      "design_error_max": 0.03919901808325454,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 0.2548012237200181,
+      "mean_candidates": 1.0,
+      "runs_matrix": 0.0,
+      "runs_rows": 1.0
+    },
+    {
+      "dataset": "ML",
+      "task": "triangle-edge",
+      "designs": 2,
+      "accept_rate": 1.0,
+      "accept_ci95": "[0.34, 1.00]",
+      "first_loop_rate": 1.0,
+      "first_try_rate": 1.0,
+      "mean_iterations": 1.0,
+      "mean_restarts": 1.0,
+      "mean_llm_calls": 3.0,
+      "distinct_programs": 1,
+      "same_as_reference": 0.0,
+      "split_match": 0.0,
+      "semantic_pass": 1.0,
+      "sound": 1.0,
+      "gs_ratio": 1.0,
+      "gs_ratio_max": 1.0,
+      "noise_ratio": 0.9113362827648542,
+      "relative_error": 0.3342251265508474,
+      "gt_dsl_relative_error": 0.37772180245296666,
+      "design_error": -0.04349667590211923,
+      "design_error_max": -0.04349667590211923,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "noise_free_pass": 1.0,
+      "median_relative_error": 0.3342251265508474,
+      "mean_candidates": 1.0,
+      "runs_matrix": 0.0,
+      "runs_rows": 1.0
+    },
+    {
+      "dataset": "ML",
+      "task": "4-cycle",
+      "designs": 2,
+      "accept_rate": 0.0,
+      "accept_ci95": "[0.00, 0.66]",
+      "first_loop_rate": 0.0,
+      "first_try_rate": 0.0,
+      "mean_iterations": null,
+      "mean_restarts": 1.0,
+      "mean_llm_calls": 5.0,
+      "distinct_programs": 0,
+      "same_as_reference": null,
+      "split_match": null,
+      "semantic_pass": null,
+      "sound": null,
+      "gs_ratio": null,
+      "gs_ratio_max": null,
+      "noise_ratio": null,
+      "relative_error": null,
+      "gt_dsl_relative_error": 0.7428425912173784,
+      "design_error": null,
+      "design_error_max": null,
+      "design_exact": null,
+      "both_zero": null,
+      "noise_free_pass": null,
+      "median_relative_error": null,
+      "mean_candidates": 1.0,
+      "runs_matrix": null,
+      "runs_rows": null
+    }
+  ],
+  "designs": [
+    {
+      "dataset": "ML",
+      "task": "degree-ge3",
+      "design": 0,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 1,
+      "first_loop_accepted": true,
+      "llm_calls": 2,
+      "design_seconds": 0.118,
+      "program": "return clip(size(P) - 2, 0, 1)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": 0,
+        "runtime": [
+          0
+        ],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 0.0685451883588794,
+            "noise_free_bias": 0.0,
+            "usable": true,
+            "error": null,
+            "split": [
+              0.0,
+              0.0,
+              2.0
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 0.10693435128160383
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 0.11271458648601486
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 0.054161554545227905
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 0.054161554545227905
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 0.054161554545227905
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.054161554545227905
+              }
+            ],
+            "releases": [
+              "rows",
+              "matrix"
+            ],
+            "program": "return clip(size(P) - 2, 0, 1)\naggregate: total",
+            "gs": 1.0,
+            "estimate_gs": 1.0
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": true
+        }
+      },
+      "same_as_reference": true,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "gs_ratio_raw": 1.0,
+      "relative_error": 0.1183991440909258,
+      "gt_dsl_relative_error": 0.1183991440909258,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.0,
+      "noise_free_pass": true,
+      "candidates": 1,
+      "runtime_alternatives": 1,
+      "runs_matrix": 0.0,
+      "runs_rows": 0.0
+    },
+    {
+      "dataset": "ML",
+      "task": "degree-ge3",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 1,
+      "first_loop_accepted": true,
+      "llm_calls": 2,
+      "design_seconds": 0.157,
+      "program": "return clip(size(P) - 2, 0, 1)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": 0,
+        "runtime": [
+          0
+        ],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 0.0685451883588794,
+            "noise_free_bias": 0.0,
+            "usable": true,
+            "error": null,
+            "split": [
+              0.0,
+              0.0,
+              2.0
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 0.10693435128160383
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 0.11271458648601486
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 0.054161554545227905
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 0.054161554545227905
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 0.054161554545227905
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.054161554545227905
+              }
+            ],
+            "releases": [
+              "rows",
+              "matrix"
+            ],
+            "program": "return clip(size(P) - 2, 0, 1)\naggregate: total",
+            "gs": 1.0,
+            "estimate_gs": 1.0
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": true
+        }
+      },
+      "same_as_reference": true,
+      "split_match": true,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "gs_ratio_raw": 1.0,
+      "relative_error": 0.1183991440909258,
+      "gt_dsl_relative_error": 0.1183991440909258,
+      "design_error": 0.0,
+      "design_error_se": 0.0,
+      "design_exact": 1.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.0,
+      "noise_free_pass": true,
+      "candidates": 1,
+      "runtime_alternatives": 1,
+      "runs_matrix": 0.0,
+      "runs_rows": 0.0
+    },
+    {
+      "dataset": "ML",
+      "task": "triangle-node",
+      "design": 0,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 1,
+      "first_loop_accepted": true,
+      "llm_calls": 2,
+      "design_seconds": 2.137,
+      "program": "Q = project(P, D)\nreturn clip(sum(size(Q & N(v)) for v in Q), 0, 1)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": 0,
+        "runtime": [
+          0
+        ],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 0.17106773360364075,
+            "noise_free_bias": 0.09919651181092828,
+            "usable": true,
+            "error": null,
+            "split": [
+              1.0,
+              0.2,
+              0.8
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 0.5772093140569585
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 0.2203468442314245
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 0.10758719245274735
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 0.12349325612946835
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 0.12409066618570126
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.11951585209520361
+              }
+            ],
+            "releases": [
+              "rows",
+              "matrix"
+            ],
+            "program": "Q = project(P, D)\nreturn clip(sum(size(Q & N(v)) for v in Q), 0, 1)\naggregate: total",
+            "gs": 1.0,
+            "estimate_gs": 1.0
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": true
+        }
+      },
+      "same_as_reference": false,
+      "split_match": false,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "gs_ratio_raw": 1.0,
+      "relative_error": 0.2548012237200181,
+      "gt_dsl_relative_error": 0.2156022056367636,
+      "design_error": 0.03919901808325454,
+      "design_error_se": 0.035834841181902964,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.14705882352941177,
+      "noise_free_pass": true,
+      "candidates": 1,
+      "runtime_alternatives": 1,
+      "runs_matrix": 0.0,
+      "runs_rows": 1.0
+    },
+    {
+      "dataset": "ML",
+      "task": "triangle-node",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 1,
+      "first_loop_accepted": true,
+      "llm_calls": 2,
+      "design_seconds": 2.455,
+      "program": "Q = project(P, D)\nreturn clip(sum(size(Q & N(v)) for v in Q), 0, 1)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": 0,
+        "runtime": [
+          0
+        ],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 0.17106773360364075,
+            "noise_free_bias": 0.09919651181092828,
+            "usable": true,
+            "error": null,
+            "split": [
+              1.0,
+              0.2,
+              0.8
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 0.5772093140569585
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 0.2203468442314245
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 0.10758719245274735
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 0.12349325612946835
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 0.12409066618570126
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.11951585209520361
+              }
+            ],
+            "releases": [
+              "rows",
+              "matrix"
+            ],
+            "program": "Q = project(P, D)\nreturn clip(sum(size(Q & N(v)) for v in Q), 0, 1)\naggregate: total",
+            "gs": 1.0,
+            "estimate_gs": 1.0
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": true
+        }
+      },
+      "same_as_reference": false,
+      "split_match": false,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.0,
+      "problems": [],
+      "gs_ratio_raw": 1.0,
+      "relative_error": 0.2548012237200181,
+      "gt_dsl_relative_error": 0.2156022056367636,
+      "design_error": 0.03919901808325454,
+      "design_error_se": 0.035834841181902964,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 1.0,
+      "noise_ratio": 1.0,
+      "noise_free_bias": 0.14705882352941177,
+      "noise_free_pass": true,
+      "candidates": 1,
+      "runtime_alternatives": 1,
+      "runs_matrix": 0.0,
+      "runs_rows": 1.0
+    },
+    {
+      "dataset": "ML",
+      "task": "triangle-edge",
+      "design": 0,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 1,
+      "first_loop_accepted": true,
+      "llm_calls": 3,
+      "design_seconds": 2.769,
+      "program": "Q = project(P, D)\nreturn 0.5 * sum(clip(size(Q & N(v)), 0, 1) for v in Q)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "not_tighter"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": 0,
+        "runtime": [
+          0
+        ],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 0.28285590874371275,
+            "noise_free_bias": 0.17570585688976653,
+            "usable": true,
+            "error": null,
+            "split": [
+              1.0,
+              0.2,
+              0.8
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 1.4911888467032524
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 0.5848716284491878
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 0.1912919098366859
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 0.12202190536366105
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 0.1182182883498656
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.21280374113388129
+              }
+            ],
+            "releases": [
+              "rows",
+              "matrix"
+            ],
+            "program": "Q = project(P, D)\nreturn 0.5 * sum(clip(size(Q & N(v)), 0, 1) for v in Q)\naggregate: total",
+            "gs": 5.0,
+            "estimate_gs": 5.0
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": true
+        }
+      },
+      "same_as_reference": false,
+      "split_match": false,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.5,
+      "problems": [],
+      "gs_ratio_raw": 1.0,
+      "relative_error": 0.3342251265508474,
+      "gt_dsl_relative_error": 0.37772180245296666,
+      "design_error": -0.04349667590211923,
+      "design_error_se": 0.11191624566269756,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 0.9113362827648542,
+      "noise_ratio": 0.9113362827648542,
+      "noise_free_bias": 0.038,
+      "noise_free_pass": true,
+      "candidates": 1,
+      "runtime_alternatives": 1,
+      "runs_matrix": 0.0,
+      "runs_rows": 1.0
+    },
+    {
+      "dataset": "ML",
+      "task": "triangle-edge",
+      "design": 1,
+      "accepted": true,
+      "iterations": 1,
+      "restarts": 1,
+      "first_loop_accepted": true,
+      "llm_calls": 3,
+      "design_seconds": 3.21,
+      "program": "Q = project(P, D)\nreturn 0.5 * sum(clip(size(Q & N(v)), 0, 1) for v in Q)\naggregate: total",
+      "search_score": null,
+      "feedback": [
+        "accepted"
+      ],
+      "stages": [
+        "accepted",
+        "accepted",
+        "not_tighter"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": 0,
+        "runtime": [
+          0
+        ],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 0.28285590874371275,
+            "noise_free_bias": 0.17570585688976653,
+            "usable": true,
+            "error": null,
+            "split": [
+              1.0,
+              0.2,
+              0.8
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 1.4911888467032524
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 0.5848716284491878
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 0.1912919098366859
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 0.12202190536366105
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 0.1182182883498656
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.21280374113388129
+              }
+            ],
+            "releases": [
+              "rows",
+              "matrix"
+            ],
+            "program": "Q = project(P, D)\nreturn 0.5 * sum(clip(size(Q & N(v)), 0, 1) for v in Q)\naggregate: total",
+            "gs": 5.0,
+            "estimate_gs": 5.0
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": true
+        }
+      },
+      "same_as_reference": false,
+      "split_match": false,
+      "gs_ratio": 1.0,
+      "gs_ratios": {
+        "5": 1.0,
+        "10": 1.0,
+        "20": 1.0
+      },
+      "semantic_pass": true,
+      "semantic_failures": 0,
+      "semantic_graphs": 110,
+      "sound": true,
+      "falsifier_max_delta": 1.5,
+      "problems": [],
+      "gs_ratio_raw": 1.0,
+      "relative_error": 0.3342251265508474,
+      "gt_dsl_relative_error": 0.37772180245296666,
+      "design_error": -0.04349667590211923,
+      "design_error_se": 0.11191624566269756,
+      "design_exact": 0.0,
+      "both_zero": 0.0,
+      "run_gs_ratio": 0.9113362827648542,
+      "noise_ratio": 0.9113362827648542,
+      "noise_free_bias": 0.038,
+      "noise_free_pass": true,
+      "candidates": 1,
+      "runtime_alternatives": 1,
+      "runs_matrix": 0.0,
+      "runs_rows": 1.0
+    },
+    {
+      "dataset": "ML",
+      "task": "4-cycle",
+      "design": 0,
+      "accepted": false,
+      "iterations": 3,
+      "restarts": 1,
+      "first_loop_accepted": false,
+      "llm_calls": 5,
+      "design_seconds": 4.09,
+      "program": null,
+      "search_score": null,
+      "feedback": [
+        "rejected: this design round must not read N(...): read the unbiased matrix A(...) or P only",
+        "rejected: identical to attempt 1, which was already rejected",
+        "rejected: identical to attempt 1, which was already rejected"
+      ],
+      "stages": [
+        "accepted",
+        "not_tighter",
+        "release",
+        "duplicate",
+        "duplicate"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": null,
+        "runtime": [],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 4.326930413164285,
+            "noise_free_bias": 6.665215069262038,
+            "usable": false,
+            "error": null,
+            "split": [
+              1.0,
+              0.2,
+              0.8
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 26.722412752796927
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 18.731392257358056
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 2.9925589332355864
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 3.8304232714372155
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 1.192554470257358
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.9591047342623849
+              }
+            ],
+            "releases": [
+              "rows"
+            ],
+            "program": "Q = project(P, D)\nreturn 0.5 * sum(sum(size(N(v) & N(w)) for w in Q) for v in Q) - 0.5 * sum(size(N(v)) for v in Q) - comb(size(Q), 2)\naggregate: total / 4",
+            "gs": 109.0,
+            "estimate_gs": 27.25
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": false
+        }
+      },
+      "candidates": 1
+    },
+    {
+      "dataset": "ML",
+      "task": "4-cycle",
+      "design": 1,
+      "accepted": false,
+      "iterations": 3,
+      "restarts": 1,
+      "first_loop_accepted": false,
+      "llm_calls": 5,
+      "design_seconds": 4.094,
+      "program": null,
+      "search_score": null,
+      "feedback": [
+        "rejected: this design round must not read N(...): read the unbiased matrix A(...) or P only",
+        "rejected: identical to attempt 1, which was already rejected",
+        "rejected: identical to attempt 1, which was already rejected"
+      ],
+      "stages": [
+        "accepted",
+        "not_tighter",
+        "release",
+        "duplicate",
+        "duplicate"
+      ],
+      "normalized_drafts": 0,
+      "selection": {
+        "rule": "simulated",
+        "releases": [
+          "rows",
+          "matrix"
+        ],
+        "sim": {
+          "n": 77,
+          "eps": 2.0,
+          "node_bounds": true,
+          "alpha": 5.0,
+          "mechanism": "floor_tight",
+          "r1": 0.5,
+          "r2": 0.2,
+          "avg_degrees": [
+            4.0,
+            8.0,
+            16.0
+          ],
+          "triads": [
+            0.1,
+            0.6
+          ],
+          "reps": 8,
+          "seed": 11,
+          "useless": 1.0
+        },
+        "chosen": null,
+        "runtime": [],
+        "candidates": [
+          {
+            "index": 0,
+            "score": 4.326930413164285,
+            "noise_free_bias": 6.665215069262038,
+            "usable": false,
+            "error": null,
+            "split": [
+              1.0,
+              0.2,
+              0.8
+            ],
+            "per_graph": [
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.1)",
+                "relative_error": 26.722412752796927
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=2, p=0.6)",
+                "relative_error": 18.731392257358056
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.1)",
+                "relative_error": 2.9925589332355864
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=4, p=0.6)",
+                "relative_error": 3.8304232714372155
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.1)",
+                "relative_error": 1.192554470257358
+              },
+              {
+                "graph": "Holme-Kim(n=77, m=8, p=0.6)",
+                "relative_error": 0.9591047342623849
+              }
+            ],
+            "releases": [
+              "rows"
+            ],
+            "program": "Q = project(P, D)\nreturn 0.5 * sum(sum(size(N(v) & N(w)) for w in Q) for v in Q) - 0.5 * sum(size(N(v)) for v in Q) - comb(size(Q), 2)\naggregate: total / 4",
+            "gs": 109.0,
+            "estimate_gs": 27.25
+          }
+        ],
+        "accepted_by_release": {
+          "rows": true,
+          "matrix": false
+        }
+      },
+      "candidates": 1
+    }
+  ]
+}

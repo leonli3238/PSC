@@ -1,0 +1,37 @@
+PM triangle: design-time choice matrix scores [0.905, 0.4533] runtime [0, 1] (12.8s)
+CU triangle: design-time choice rows scores [0.2955, 0.5785] runtime [0, 1] (0.4s)
+Do triangle: design-time choice matrix scores [0.4463, 0.435] runtime [0, 1] (0.5s)
+ML triangle: design-time choice matrix scores [0.7059, 0.6779] runtime [0, 1] (0.6s)
+CS triangle: design-time choice matrix scores [0.6987, 0.547] runtime [0, 1] (0.7s)
+EE triangle: design-time choice matrix scores [0.9165, 0.5511] runtime [0, 1] (1.5s)
+[20/600 chunks] 55s
+[40/600 chunks] 56s
+[60/600 chunks] 107s
+[80/600 chunks] 108s
+[100/600 chunks] 113s
+[120/600 chunks] 114s
+[140/600 chunks] 119s
+[160/600 chunks] 120s
+[180/600 chunks] 122s
+[200/600 chunks] 129s
+[220/600 chunks] 130s
+[240/600 chunks] 135s
+[260/600 chunks] 138s
+[280/600 chunks] 143s
+[300/600 chunks] 148s
+[320/600 chunks] 153s
+[340/600 chunks] 156s
+[360/600 chunks] 160s
+[380/600 chunks] 166s
+[400/600 chunks] 168s
+[420/600 chunks] 172s
+[440/600 chunks] 176s
+[460/600 chunks] 180s
+[480/600 chunks] 183s
+[500/600 chunks] 186s
+[520/600 chunks] 194s
+[540/600 chunks] 198s
+[560/600 chunks] 206s
+[580/600 chunks] 210s
+[600/600 chunks] 216s
+wrote /jizhicfs/leonlanli/work/PSC/certicount/results/execution/cs8_gt_select_r1000

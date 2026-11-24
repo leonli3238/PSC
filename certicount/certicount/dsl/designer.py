@@ -713,7 +713,11 @@ class DesignOptions:
     ``release`` (per-node architecture, :func:`design_candidates`): ``"rows"`` rejects drafts that
     read ``A``, ``"matrix"`` drafts that read ``N``; ``None``: no restriction.
     ``own_row``: reject drafts that read this node's own entries of the release (``N(self)``,
-    ``A(self, .)``, :data:`OWN_ROW_FEEDBACK`); for the per-node architecture only."""
+    ``A(self, .)``, :data:`OWN_ROW_FEEDBACK`); for the per-node architecture only.
+    ``feedback`` (ablation, :data:`FEEDBACK_MODES`): what the next draft's prompt shows of the
+    rejected ones. ``"full"``: every attempt with the checker's diagnosis; ``"binary"``: every
+    attempt with the verdict "rejected" only; ``"none"``: nothing, every draft is an independent
+    sample of the first prompt. The checks themselves are the same in all modes."""
 
     normalize: bool = True
     tighten: int = 0
@@ -723,9 +727,32 @@ class DesignOptions:
     min_accepted: int = 1
     release: str | None = None
     own_row: bool = False
+    feedback: str = "full"
+
+    def __post_init__(self) -> None:
+        if self.feedback not in FEEDBACK_MODES:
+            raise ValueError(f"unknown feedback mode {self.feedback!r}; known: {', '.join(FEEDBACK_MODES)}")
+        if self.feedback != "full" and self.tighten:
+            raise ValueError("tighten requests are feedback: use feedback='full' or tighten=0")
 
     def to_dict(self) -> dict:
         return {k: (list(v) if isinstance(v, tuple) else v) for k, v in asdict(self).items()}
+
+
+FEEDBACK_MODES = ("full", "binary", "none")
+
+
+def visible_history(history: list[dict], mode: str) -> list[dict]:
+    """The part of ``history`` the next draft's prompt shows (:attr:`DesignOptions.feedback`).
+    ``binary`` keeps the drafts (program, aggregate, budget, or the unreadable reply) and replaces
+    every diagnosis, repair hint and normalisation note by the bare verdict."""
+    if mode == "full":
+        return history
+    if mode == "none":
+        return []
+    keep = ("program", "aggregate", "budget", "reply")
+    return [{**{k: h[k] for k in keep if k in h},
+             "feedback": "accepted" if h.get("feedback") == "accepted" else "rejected"} for h in history]
 
 
 LEGACY_OPTIONS = DesignOptions(normalize=False)
@@ -760,8 +787,9 @@ async def design_program(
     async def draft() -> tuple[Program | None, dict]:
         nonlocal calls
         calls += 1
+        shown = visible_history(history, opts.feedback)
         text = await chat(model, formatter, DESIGNER_SYSTEM,
-                          design_prompt(input_prompt, n, history, matrix, spec, opts.release), agent="Curator")
+                          design_prompt(input_prompt, n, shown, matrix, spec, opts.release), agent="Curator")
         return read_draft(text, normalize=opts.normalize, core=(spec or V0).core)
 
     for it in range(1, max_iterations + 1):
