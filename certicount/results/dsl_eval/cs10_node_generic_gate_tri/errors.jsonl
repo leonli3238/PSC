@@ -1,0 +1,1 @@
+{"time": "2026-11-27T18:18:23.904", "kind": "api_error", "dataset": "PM", "task": "triangle", "design": 10, "model": "Qwen3-8B", "attempt": 1, "elapsed": 21.26, "status": null, "message": "APITimeoutError: Request timed out."}

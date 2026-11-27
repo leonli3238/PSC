@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/cs10_node_generic_nogate_tri",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 283,
+  "designs": 120,
+  "table": [
+    {
+      "task": "triangle",
+      "drafts": 283,
+      "truncated": 0,
+      "parse": 114,
+      "duplicate": 1,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 85,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 83,
+      "rejected_share": 0.7032,
+      "runnable": 168,
+      "uncertified_violations": 32,
+      "uncertified_violation_share": 0.1905,
+      "max_eps_ratio": 7.333333333333333,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 12,
+      "semantic_errors_published_without_check": 85
+    },
+    {
+      "task": "all",
+      "drafts": 283,
+      "truncated": 0,
+      "parse": 114,
+      "duplicate": 1,
+      "gs_failed": 0,
+      "gs_loose": 0,
+      "semantic": 85,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 83,
+      "rejected_share": 0.7032,
+      "runnable": 168,
+      "uncertified_violations": 32,
+      "uncertified_violation_share": 0.1905,
+      "max_eps_ratio": 7.333333333333333,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 12,
+      "semantic_errors_published_without_check": 85
+    }
+  ],
+  "designs_without_transcripts": 0
+}

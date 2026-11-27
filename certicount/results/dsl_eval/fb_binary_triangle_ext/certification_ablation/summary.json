@@ -1,0 +1,62 @@
+{
+  "run_dir": "results/dsl_eval/fb_binary_triangle_ext",
+  "checks": [
+    [
+      5,
+      3,
+      null
+    ],
+    [
+      7,
+      4,
+      300
+    ]
+  ],
+  "drafts": 431,
+  "designs": 90,
+  "table": [
+    {
+      "task": "triangle",
+      "drafts": 431,
+      "truncated": 0,
+      "parse": 153,
+      "duplicate": 20,
+      "gs_failed": 0,
+      "gs_loose": 3,
+      "semantic": 109,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 146,
+      "rejected_share": 0.6148,
+      "runnable": 258,
+      "uncertified_violations": 79,
+      "uncertified_violation_share": 0.3062,
+      "max_eps_ratio": 18.0,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 47,
+      "semantic_errors_published_without_check": 109
+    },
+    {
+      "task": "all",
+      "drafts": 431,
+      "truncated": 0,
+      "parse": 153,
+      "duplicate": 20,
+      "gs_failed": 0,
+      "gs_loose": 3,
+      "semantic": 109,
+      "noisy": 0,
+      "refuted": 0,
+      "accepted": 146,
+      "rejected_share": 0.6148,
+      "runnable": 258,
+      "uncertified_violations": 79,
+      "uncertified_violation_share": 0.3062,
+      "max_eps_ratio": 18.0,
+      "certificate_unsound": 0,
+      "accepted_looser_than_reference": 47,
+      "semantic_errors_published_without_check": 109
+    }
+  ],
+  "designs_without_transcripts": 0
+}
