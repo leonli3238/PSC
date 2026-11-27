@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Compile the Chinese translation. System lualatex points at a missing luahbtex,
+# so this drives the LuaTeX engine with a local lualatex format.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+FMT="$ROOT/.texlive/fmt/lualatex.fmt"
+
+export TEXMFVAR="$ROOT/.texlive/texmf-var"
+export TEXMFHOME="$ROOT/.texlive/texmf-home"
+export TEXMFCACHE="$ROOT/.texlive/texmf-var"
+
+if [[ ! -f "$FMT" ]]; then
+  mkdir -p "$ROOT/.texlive/fmt"
+  (cd "$ROOT/.texlive/fmt" && luatex -jobname=lualatex -ini lualatex.ini)
+fi
+
+exec luatex --fmt="$FMT" "$@"

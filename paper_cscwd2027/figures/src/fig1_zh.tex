@@ -1,0 +1,63 @@
+\documentclass{article}
+\pagestyle{empty}
+\input{/data/workspace/PSC/paper_cscwd2027/zhfont.tex}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\newcommand{\GS}{\mathrm{GS}}
+\newcommand{\Lap}{\mathrm{Lap}}
+\newcommand{\DeriveGS}{\mathsf{DeriveGS}}
+
+\newsavebox{\figbox}
+
+\begin{document}
+\savebox{\figbox}{%
+\begin{tikzpicture}[
+    font=\sffamily\scriptsize,
+    box/.style={draw, rounded corners=2.5pt, align=center, inner sep=3.5pt, minimum height=16pt},
+    untrusted/.style={box, fill=red!6, draw=red!55!black},
+    llmnode/.style={box, fill=orange!12, draw=orange!75!black},
+    trusted/.style={box, fill=green!7, draw=green!45!black},
+    arr/.style={-{Stealth[scale=0.85]}, semithick}
+]
+\path (-7.55, -1.05) rectangle (7.65, 2.55);
+
+\node[font=\sffamily\scriptsize\bfseries] at (-3.75, 2.28) {（a）多智能体 LLM（PSC）};
+\node[untrusted, minimum width=6.9cm] (p_cur) at (-3.75, 1.58)
+  {不可信策展者 LLM\\[-1pt]{\tiny 自然语言规则与预设 $\GS_{\mathrm{rule}}$}};
+\draw[dashed, gray!85, thick] (-7.35, 0.92) -- (-0.15, 0.92);
+\node[font=\sffamily\tiny, text=gray!65!black, fill=white, inner sep=1.5pt] at (-3.75, 0.92)
+  {信任边界（本地节点 $i$）};
+\node[llmnode, minimum width=6.9cm] (p_node) at (-3.75, 0.22)
+  {节点 LLM（提示词中序列化 $P_i$）\\[-1pt]{\tiny 误计模式；敏感度未经验证}};
+\node[trusted, minimum width=6.9cm] (p_lap) at (-3.75, -0.62)
+  {拉普拉斯扰动\\[-1pt]{\tiny 上报 $\tilde{c}_i + \Lap(\GS_{\mathrm{rule}}/\varepsilon_3)$}};
+\draw[arr] (p_cur) -- node[right, font=\sffamily\tiny, inner sep=1pt]{规则文本} (p_node);
+\draw[arr] (p_node) -- (p_lap);
+
+\draw[dotted, gray!60, semithick] (0.05, -0.95) -- (0.05, 2.42);
+
+\node[font=\sffamily\scriptsize\bfseries] at (3.85, 2.28) {（b）CertiCount（本文）};
+\node[untrusted, minimum width=7.05cm] (c_cur) at (3.85, 1.58)
+  {策展者 LLM + 验证器（公开 $Q, n$）\\[-1pt]{\tiny DSL 合成、诊断修复与仿真门控}};
+\draw[dashed, gray!85, thick] (0.22, 0.92) -- (7.48, 0.92);
+\node[font=\sffamily\tiny, text=gray!65!black, fill=white, inner sep=1.5pt] at (3.85, 0.92)
+  {信任边界（本地节点 $i$）};
+\node[trusted, minimum width=7.05cm] (c_ver) at (3.85, 0.22)
+  {节点证书验证器（$\mathsf{VerifyCert}$）\\[-1pt]{\tiny 在本地重推导 $\GS_i = \DeriveGS(\Pi, \theta_i)$}};
+\node[trusted, minimum width=7.05cm] (c_exe) at (3.85, -0.62)
+  {$P_i$ 上的确定性 AST 解释器\\[-1pt]{\tiny 上报 $\Pi(P_i) + \Lap(\GS_i/\varepsilon_3)$（0 次节点 LLM 调用）}};
+\draw[arr] (c_cur) -- node[right, font=\sffamily\tiny, inner sep=1pt]{$(\Pi, \mathsf{cert})$} (c_ver);
+\draw[arr] (c_ver) -- (c_exe);
+\end{tikzpicture}%
+}%
+\pagewidth=\wd\figbox
+\pageheight=\dimexpr\ht\figbox+\dp\figbox\relax
+\hoffset=-1in
+\voffset=-1in
+\topmargin=0pt \headheight=0pt \headsep=0pt \oddsidemargin=0pt \evensidemargin=0pt
+\parindent=0pt
+\vbox to \pageheight{\hbox to \pagewidth{\usebox{\figbox}}\vss}
+\end{document}

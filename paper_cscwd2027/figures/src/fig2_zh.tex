@@ -1,0 +1,49 @@
+\documentclass{article}
+\pagestyle{empty}
+\input{/data/workspace/PSC/paper_cscwd2027/zhfont.tex}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\newcommand{\GS}{\mathrm{GS}}
+\newcommand{\Lap}{\mathrm{Lap}}
+
+\newsavebox{\figbox}
+
+\begin{document}
+\savebox{\figbox}{%
+\begin{tikzpicture}[
+    font=\sffamily\scriptsize,
+    stage/.style={draw=blue!45!black, rounded corners=2.5pt, fill=blue!4, align=center, inner sep=3.2pt, minimum height=28pt},
+    exec/.style={draw=green!45!black, rounded corners=2.5pt, fill=green!6, align=center, inner sep=3.2pt, minimum height=28pt},
+    arr/.style={-{Stealth[scale=0.85]}, semithick}
+]
+\node[stage, minimum width=2.55cm] (s1) at (0, 0) {\textbf{1. 公开规格}\\{\tiny 查询 $Q$、规模 $n$、$\varepsilon$}};
+\node[stage, minimum width=3.55cm, right=0.32cm of s1] (s2) {\textbf{2. 双发布合成}\\{\tiny 含噪行 $N(\cdot)$ 与无偏 $A(\cdot,\cdot)$}};
+\node[stage, minimum width=3.85cm, right=0.32cm of s2] (s3) {\textbf{3. 多阶段验证器}\\{\tiny AST $\to \mathsf{DeriveGS} \to$ 语义 $\to$ 证伪}};
+\node[stage, minimum width=3.35cm, right=0.32cm of s3] (s4) {\textbf{4. 离线仿真门控}\\{\tiny Holme--Kim 合成图 DP 试验}};
+\node[exec, minimum width=4.15cm, right=0.42cm of s4] (s5) {\textbf{5. 认证节点执行}\\[-1pt]{\tiny Chung--Lu 选择 $\to \mathsf{VerifyCert}$}\\[-1pt]{\tiny $\to$ 本地 AST + $\Lap(\GS_i/\varepsilon_3)$}};
+
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (s3);
+\draw[arr] (s3) -- node[above, font=\sffamily\tiny]{已认证} (s4);
+\draw[arr] (s4) -- (s5);
+\draw[arr, red!65!black] (s3.south) -- ++(0,-0.62) -| node[pos=0.22, below=1pt, font=\sffamily\tiny]{分阶段诊断修复（$\le 3$ 稿）} (s2.south);
+
+\draw[densely dashed, blue!45!black] ($(s1.north west)+(0,0.42)$) -- ($(s4.north east)+(0,0.42)$)
+    node[midway, fill=white, inner sep=2pt, font=\sffamily\tiny\bfseries, text=blue!50!black] {离线合成与选择（隐私开销为 0，仅公开元数据）};
+\draw[densely dashed, green!45!black] ($(s5.north west)+(0,0.42)$) -- ($(s5.north east)+(0,0.42)$)
+    node[midway, fill=white, inner sep=2pt, font=\sffamily\tiny\bfseries, text=green!45!black] {在线 $\varepsilon$-边 LDP 执行};
+
+\path ($(s1.south west)+(-0.15,-1.05)$) rectangle ($(s5.north east)+(0.15,0.68)$);
+\end{tikzpicture}%
+}%
+\pagewidth=\wd\figbox
+\pageheight=\dimexpr\ht\figbox+\dp\figbox\relax
+\hoffset=-1in
+\voffset=-1in
+\topmargin=0pt \headheight=0pt \headsep=0pt \oddsidemargin=0pt \evensidemargin=0pt
+\parindent=0pt
+\vbox to \pageheight{\hbox to \pagewidth{\usebox{\figbox}}\vss}
+\end{document}

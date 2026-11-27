@@ -1,0 +1,46 @@
+% Chinese setup.
+% Overleaf has ctex and the Fandol fonts, but not this machine's Droid font
+% or the absolute /data/workspace paths. Use ctex there, and the bundled
+% TrueType file only when ctex is absent.
+\IfFileExists{ctex.sty}{%
+  \usepackage[fontset=fandol]{ctex}%
+  \newcommand{\cjkfont}{}%
+  \newcommand{\cjkbr}{}%
+  \newcount\cjkbreakoff
+}{%
+  \directlua{tex.enableprimitives("", tex.extraprimitives("pdftex", "luatex"))}%
+  \usepackage{fontspec}%
+  \defaultfontfeatures{Ligatures=TeX}%
+  \IfFileExists{fonts/DroidSansFallback.ttf}{%
+    \newfontfamily\cjkfont{DroidSansFallback}[
+      Path=fonts/,
+      Extension=.ttf,
+      UprightFont=*,
+      BoldFont=*,
+      BoldFeatures={FakeBold=2.4},
+      ItalicFont=*,
+      ItalicFeatures={FakeSlant=0.16},
+      BoldItalicFont=*,
+      BoldItalicFeatures={FakeBold=2.4,FakeSlant=0.16}
+    ]%
+  }{%
+    \newfontfamily\cjkfont{DroidSansFallback}[
+      Path=../../fonts/,
+      Extension=.ttf,
+      UprightFont=*,
+      BoldFont=*,
+      BoldFeatures={FakeBold=2.4},
+      ItalicFont=*,
+      ItalicFeatures={FakeSlant=0.16},
+      BoldItalicFont=*,
+      BoldItalicFeatures={FakeBold=2.4,FakeSlant=0.16}
+    ]%
+  }%
+  \DeclareRobustCommand{\cjkbr}{\ifmmode\else\hskip 0pt plus 0.15pt minus 0.05pt\relax\fi}%
+  \newcount\cjkbreakoff
+  \directlua{%
+    local name = "cjkbreak.lua"
+    local path = kpse.find_file(name, "tex") or kpse.find_file(name) or name
+    dofile(path)
+  }%
+}

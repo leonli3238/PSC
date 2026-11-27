@@ -1,0 +1,81 @@
+\documentclass{article}
+\pagestyle{empty}
+\input{/data/workspace/PSC/paper_cscwd2027/zhfont.tex}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+
+\newsavebox{\figbox}
+
+\newcommand{\sqmark}[3]{\fill[#1] ([shift={(-1.3pt,-1.3pt)}]#2,#3) rectangle ([shift={(1.3pt,1.3pt)}]#2,#3);}
+\newcommand{\trimark}[3]{\fill[#1] ([shift={(0pt,1.8pt)}]#2,#3) -- ([shift={(-1.6pt,-1.1pt)}]#2,#3) -- ([shift={(1.6pt,-1.1pt)}]#2,#3) -- cycle;}
+
+\begin{document}
+\savebox{\figbox}{%
+\begin{tikzpicture}[font=\sffamily\scriptsize]
+\path (-1.05, -1.05) rectangle (8.15, 2.62);
+
+\node[rotate=90, font=\sffamily\tiny, anchor=center] at (-0.78, 1.05) {认证设计率};
+
+\begin{scope}[xshift=0cm]
+\node[font=\sffamily\scriptsize\bfseries] at (1.20, 2.38) {（a）三角形};
+\draw[gray!30, very thin] (0,0) grid[xstep=1.20, ystep=0.525] (2.40, 2.10);
+\draw[-{Stealth[scale=0.75]}, black!80] (0,0) -- (2.58,0);
+\draw[-{Stealth[scale=0.75]}, black!80] (0,0) -- (0,2.24);
+\node[font=\sffamily\tiny] at (1.20, -0.38) {草稿预算 $k$};
+\foreach \x/\lbl in {0/1, 1.20/2, 2.40/3} \draw (\x,0) -- (\x,-0.05) node[below, font=\sffamily\tiny]{\lbl};
+\foreach \y/\lbl in {0.0/0.00, 0.525/0.25, 1.05/0.50, 1.575/0.75, 2.10/1.00} \draw (0,\y) -- (-0.05,\y) node[left, font=\sffamily\tiny]{\lbl};
+
+\draw[blue!75!black, thick] (0,1.050) -- (1.20,1.563) -- (2.40,1.913);
+\foreach \x/\y in {0/1.050, 1.20/1.563, 2.40/1.913} \fill[blue!75!black] (\x,\y) circle (1.5pt);
+
+\draw[black!72, thick, densely dashed] (0,0.957) -- (1.20,1.575) -- (2.40,1.785);
+\foreach \x/\y in {0/0.957, 1.20/1.575, 2.40/1.785} \sqmark{black!72}{\x}{\y};
+
+\draw[red!75!black, thick, densely dotted] (0,0.863) -- (1.20,1.213) -- (2.40,1.447);
+\foreach \x/\y in {0/0.863, 1.20/1.213, 2.40/1.447} \trimark{red!75!black}{\x}{\y};
+\end{scope}
+
+\begin{scope}[xshift=4.55cm]
+\node[font=\sffamily\scriptsize\bfseries] at (1.20, 2.38) {（b）三角形边};
+\draw[gray!30, very thin] (0,0) grid[xstep=1.20, ystep=0.525] (2.40, 2.10);
+\draw[-{Stealth[scale=0.75]}, black!80] (0,0) -- (2.58,0);
+\draw[-{Stealth[scale=0.75]}, black!80] (0,0) -- (0,2.24);
+\node[font=\sffamily\tiny] at (1.20, -0.38) {草稿预算 $k$};
+\foreach \x/\lbl in {0/1, 1.20/2, 2.40/3} \draw (\x,0) -- (\x,-0.05) node[below, font=\sffamily\tiny]{\lbl};
+\foreach \y/\lbl in {0.0/0.00, 0.525/0.15, 1.05/0.30, 1.575/0.45, 2.10/0.60} \draw (0,\y) -- (-0.05,\y) node[left, font=\sffamily\tiny]{\lbl};
+
+\draw[blue!75!black, thick] (0,0.330) -- (1.20,0.992) -- (2.40,1.555);
+\foreach \x/\y in {0/0.330, 1.20/0.992, 2.40/1.555} \fill[blue!75!black] (\x,\y) circle (1.5pt);
+
+\draw[black!72, thick, densely dashed] (0,0.408) -- (1.20,0.797) -- (2.40,1.108);
+\foreach \x/\y in {0/0.408, 1.20/0.797, 2.40/1.108} \sqmark{black!72}{\x}{\y};
+
+\draw[red!75!black, thick, densely dotted] (0,0.467) -- (1.20,0.778) -- (2.40,1.011);
+\foreach \x/\y in {0/0.467, 1.20/0.778, 2.40/1.011} \trimark{red!75!black}{\x}{\y};
+\end{scope}
+
+\begin{scope}[yshift=-0.82cm]
+\draw[blue!75!black, thick] (-0.35,0) -- (0.15,0);
+\fill[blue!75!black] (-0.10,0) circle (1.5pt);
+\node[right, font=\sffamily\tiny] at (0.22,0) {诊断修复（本文）};
+
+\draw[black!72, thick, densely dashed] (2.55,0) -- (3.05,0);
+\sqmark{black!72}{2.80}{0};
+\node[right, font=\sffamily\tiny] at (3.12,0) {独立重采样};
+
+\draw[red!75!black, thick, densely dotted] (5.05,0) -- (5.55,0);
+\trimark{red!75!black}{5.30}{0};
+\node[right, font=\sffamily\tiny] at (5.62,0) {二元拒绝};
+\end{scope}
+\end{tikzpicture}%
+}%
+\pagewidth=\wd\figbox
+\pageheight=\dimexpr\ht\figbox+\dp\figbox\relax
+\hoffset=-1in
+\voffset=-1in
+\topmargin=0pt \headheight=0pt \headsep=0pt \oddsidemargin=0pt \evensidemargin=0pt
+\parindent=0pt
+\vbox to \pageheight{\hbox to \pagewidth{\usebox{\figbox}}\vss}
+\end{document}

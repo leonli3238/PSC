@@ -1,0 +1,121 @@
+\relax 
+\citation{IEEEexample:BSTcontrol}
+\citation{imola2021locally,he2025robust}
+\citation{wang2023can,chen2024graphwiz}
+\citation{imola2021locally,imola2022communication}
+\citation{imola2021locally,imola2022communication,he2025robust,guo2025nam}
+\citation{zhang2026psc}
+\citation{liu2023lost}
+\citation{zhang2026psc}
+\citation{dwork2014algorithmic}
+\citation{imola2022communication}
+\citation{guo2025nam}
+\citation{holme2002growing,chung2002connected}
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\newlabel{sec:intro}{{I}{1}}
+\citation{dwork2014algorithmic}
+\citation{imola2021locally}
+\citation{imola2022communication}
+\citation{he2025robust}
+\citation{guo2025nam}
+\citation{chen2026power}
+\citation{wang2023can,chen2024graphwiz,hu2024scalable}
+\citation{liu2023lost}
+\citation{zhang2026psc}
+\citation{jagielski2020auditing}
+\citation{bichsel2021dpsniper}
+\citation{zhang2017lightdp}
+\citation{zhang2019fuzzi}
+\citation{wang2020checkdp}
+\citation{wang2021dpgen}
+\citation{madaan2023selfrefine}
+\citation{shinn2023reflexion}
+\citation{miculicich2025veriguard}
+\citation{chu2025dpcheatsheet}
+\citation{imola2021locally,zhang2026psc}
+\citation{imola2022communication}
+\citation{guo2025nam}
+\citation{dwork2014algorithmic}
+\citation{holme2002growing}
+\citation{chung2002connected}
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{}\protected@file@percent }
+\newlabel{sec:related}{{II}{2}}
+\@writefile{toc}{\contentsline {section}{\numberline {III}System and Threat Model}{2}{}\protected@file@percent }
+\newlabel{sec:model}{{III}{2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Trust-boundary comparison between (a) multi-agent LLM execution and (b) \textsc  {CertiCount}'s certified deterministic execution.}}{2}{}\protected@file@percent }
+\newlabel{fig:arch}{{1}{2}}
+\newlabel{eq:nam}{{1}{2}}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}\textsc  {CertiCount} Design}{2}{}\protected@file@percent }
+\newlabel{sec:design}{{IV}{2}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}System Overview}{2}{}\protected@file@percent }
+\newlabel{sec:overview}{{\mbox  {IV-A}}{2}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces End-to-end \textsc  {CertiCount} pipeline: offline verifier-guided synthesis and simulation selection over public inputs (Steps 1--4), followed by online node-verified execution over private neighbor lists (Step 5).}}{3}{}\protected@file@percent }
+\newlabel{fig:pipeline}{{2}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Graph-LDP DSL and Deterministic Interpreter}{3}{}\protected@file@percent }
+\newlabel{sec:dsl}{{\mbox  {IV-B}}{3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-C}}Static Sensitivity Derivation and Node Verification}{3}{}\protected@file@percent }
+\newlabel{sec:cert}{{\mbox  {IV-C}}{3}}
+\newlabel{prop:privacy}{{1}{3}}
+\citation{holme2002growing}
+\citation{chung2002connected}
+\citation{zhang2026psc}
+\citation{he2025robust,zhang2026psc}
+\citation{imola2022communication,zhang2026psc}
+\citation{zhang2026psc}
+\citation{imola2021locally}
+\citation{jagielski2020auditing}
+\citation{imola2022communication}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-D}}Noise-Aware Candidate Selection and Iterative Repair}{4}{}\protected@file@percent }
+\newlabel{sec:selection}{{\mbox  {IV-D}}{4}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Evaluation}{4}{}\protected@file@percent }
+\newlabel{sec:eval}{{V}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Experimental Setup}{4}{}\protected@file@percent }
+\newlabel{sec:setup}{{\mbox  {V-A}}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}RQ1: Utility, Scalability, and Node Privacy Audit}{4}{}\protected@file@percent }
+\newlabel{sec:rq1}{{\mbox  {V-B}}{4}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-C}}RQ2: Certification Soundness and Simulation Selection}{4}{}\protected@file@percent }
+\newlabel{sec:rq2}{{\mbox  {V-C}}{4}}
+\citation{imola2021locally,zhang2026psc}
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Mean relative error $\mathrm  {RE}$ ($\downarrow $) across six datasets at $\varepsilon =2$: PSC (Qwen3) ($10$ runs/cell), code baselines GT-PSC and GT-DSL (runs $0..99$), and \textsc  {CertiCount} ($20$ designs $\times $ $100$ paired runs; synthesis acceptance $80\%$--$100\%$ per cell).}}{5}{}\protected@file@percent }
+\newlabel{tab:rq1}{{I}{5}}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Certification counterfactuals, fuzzing, and fault injection.}}{5}{}\protected@file@percent }
+\newlabel{tab:rq2}{{II}{5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-D}}RQ3: Role of Diagnostic Feedback in Iterative Synthesis}{5}{}\protected@file@percent }
+\newlabel{sec:rq3}{{\mbox  {V-D}}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Cumulative certified design rate across draft budgets $k \in \{1,2,3\}$ ($30$ designs/cell; Diagnostic Repair and Independent Resampling pooled over six networks, Binary Rejection over \texttt  {CU}, \texttt  {EE}, \texttt  {ML}).}}{5}{}\protected@file@percent }
+\newlabel{fig:feedback}{{3}{5}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-E}}RQ4: Generalization to Unseen Subgraph Queries}{5}{}\protected@file@percent }
+\newlabel{sec:rq4}{{\mbox  {V-E}}{5}}
+\bibstyle{IEEEtran}
+\bibdata{references}
+\bibcite{imola2021locally}{1}
+\bibcite{he2025robust}{2}
+\bibcite{wang2023can}{3}
+\bibcite{chen2024graphwiz}{4}
+\bibcite{imola2022communication}{5}
+\bibcite{guo2025nam}{6}
+\bibcite{zhang2026psc}{7}
+\bibcite{liu2023lost}{8}
+\bibcite{dwork2014algorithmic}{9}
+\bibcite{holme2002growing}{10}
+\bibcite{chung2002connected}{11}
+\bibcite{chen2026power}{12}
+\bibcite{hu2024scalable}{13}
+\bibcite{jagielski2020auditing}{14}
+\bibcite{bichsel2021dpsniper}{15}
+\bibcite{zhang2017lightdp}{16}
+\bibcite{zhang2019fuzzi}{17}
+\bibcite{wang2020checkdp}{18}
+\bibcite{wang2021dpgen}{19}
+\bibcite{madaan2023selfrefine}{20}
+\bibcite{shinn2023reflexion}{21}
+\bibcite{miculicich2025veriguard}{22}
+\bibcite{chu2025dpcheatsheet}{23}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Mean relative error $\mathrm  {RE}$ ($\downarrow $) on unseen subgraph queries under the Zero-Shot Syntax Prompt ($\varepsilon =2$, $20$ designs $\times $ $100$ runs/cell paired on seeds $0..99$).}}{6}{}\protected@file@percent }
+\newlabel{tab:rq4}{{III}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Discussion and Limitations}{6}{}\protected@file@percent }
+\newlabel{sec:discussion}{{VI}{6}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{6}{}\protected@file@percent }
+\newlabel{sec:conclusion}{{VII}{6}}
+\@writefile{toc}{\contentsline {section}{References}{6}{}\protected@file@percent }
+\gdef \@abspage@last{6}
