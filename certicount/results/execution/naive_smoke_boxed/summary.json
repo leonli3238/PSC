@@ -1,0 +1,42 @@
+[
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "n": 49,
+    "truth": 250.0,
+    "runs": 2,
+    "answered": 2,
+    "Naive": 2.154,
+    "se_naive": 1.326,
+    "GT-Naive": 5.474,
+    "naive_minus_gt": -3.3199999999999994,
+    "parse_failures": 0,
+    "failed_calls": 0,
+    "api_retries": 0,
+    "median_estimate": 581.5,
+    "noisy_edges": 235,
+    "provider": "vllm",
+    "curator_model": "Qwen3-8B",
+    "naive_prompt": "boxed"
+  },
+  {
+    "dataset": "CU",
+    "task": "degree-ge3",
+    "n": 49,
+    "truth": 43.0,
+    "runs": 2,
+    "answered": 2,
+    "Naive": 0.4767441860465116,
+    "se_naive": 0.4302325581395348,
+    "GT-Naive": 0.13953488372093023,
+    "naive_minus_gt": 0.33720930232558133,
+    "parse_failures": 0,
+    "failed_calls": 0,
+    "api_retries": 0,
+    "median_estimate": 22.5,
+    "noisy_edges": 235,
+    "provider": "vllm",
+    "curator_model": "Qwen3-8B",
+    "naive_prompt": "boxed"
+  }
+]

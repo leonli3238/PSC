@@ -1,0 +1,42 @@
+[
+  {
+    "dataset": "CU",
+    "task": "open-wedge",
+    "n": 49,
+    "truth": 250.0,
+    "runs": 1,
+    "answered": 1,
+    "Naive": 3.096,
+    "se_naive": null,
+    "GT-Naive": 5.904,
+    "naive_minus_gt": -2.808,
+    "parse_failures": 0,
+    "failed_calls": 0,
+    "api_retries": 0,
+    "median_estimate": 1024.0,
+    "noisy_edges": 235,
+    "provider": "vllm",
+    "curator_model": "Qwen3-8B",
+    "naive_prompt": "paper"
+  },
+  {
+    "dataset": "CU",
+    "task": "degree-ge3",
+    "n": 49,
+    "truth": 43.0,
+    "runs": 1,
+    "answered": 1,
+    "Naive": 0.3023255813953488,
+    "se_naive": null,
+    "GT-Naive": 0.13953488372093023,
+    "naive_minus_gt": 0.1627906976744186,
+    "parse_failures": 0,
+    "failed_calls": 0,
+    "api_retries": 0,
+    "median_estimate": 30.0,
+    "noisy_edges": 235,
+    "provider": "vllm",
+    "curator_model": "Qwen3-8B",
+    "naive_prompt": "paper"
+  }
+]

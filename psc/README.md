@@ -114,6 +114,53 @@ python scripts/build_exp1_table.py
 `runs.jsonl`，全部完成后写 `summary.json`、`runs.json` 和 `table.md`；没有断点续跑，中断后用
 `merge_runs.py` 合并。
 
+### 判定类任务（Naive）
+
+`scripts/run_naive_struct_tasks.py` 用同一套 Naive 机制（ε 全部用于 RR 噪声图，curator 模型只看
+`(V(G), Q)` + `G'` 的边表并直接作答）跑四个判定类任务，任务定义与真值在 `psc/struct_tasks.py`：
+
+| task | 问题 | 答案 |
+|---|---|---|
+| `open-wedge` | open wedge（共享一个端点、另两端点不相连的边对）的数量 | 整数（精确匹配 + 相对误差） |
+| `degree-ge3` | 指定节点的度数是否 ≥ 3 | yes / no |
+| `triangle-edge` | 指定边是否属于某个三角形 | yes / no |
+| `triangle-node` | 指定节点是否属于某个三角形 | yes / no |
+
+每个 (数据集, 任务) 跑 `--runs` 次，默认每次换一个实例（节点/边按 `[seed, 101+dataset, task, run]`
+抽取，`--fixed-target` 固定），DP 噪声由 `[seed, run-1]` 决定，都可复现。每次运行还会用代码在
+同一张噪声图上算出"完美 curator"的答案（GT-Naive）作对照。
+
+```bash
+# 本地 vLLM 的 Qwen3-8B：Naive 只用 curator 模型，两个角色都指向同一个服务
+VLLM_CURATOR_BASE_URL=http://127.0.0.1:8000/v1 ../.venv/bin/python scripts/run_naive_struct_tasks.py \
+  --provider vllm --config config.vllm.toml --node-model Qwen3-8B --curator-model Qwen3-8B \
+  --datasets CU,Do --runs 4 --tag qwen3-8b_vllm_cudo_r4_paper
+
+# DashScope 的 qwen3-8b（需要 DASHSCOPE_API_KEY）
+../.venv/bin/python scripts/run_naive_struct_tasks.py --provider dashscope --datasets CU,Do --runs 10
+
+# 无 API 的离线自测 / 12 节点随机图
+../.venv/bin/python scripts/run_naive_struct_tasks.py --provider mock --datasets CU --runs 4
+../.venv/bin/python scripts/run_naive_struct_tasks.py --provider mock --synthetic --nodes 12 --edges 22
+```
+
+Qwen3-8B（本地 vLLM，ε = 2，每格 4 次，`results/naive_struct/qwen3-8b_vllm_cudo_r4_paper/`；
+准确率为 Naive / GT-Naive，GT-Naive 是以同噪声图的精确答案为准的完美执行）：
+
+| Task | CU | Do |
+|---|---|---|
+| open-wedge | 0.00 / 0.00 | 0.00 / 0.00 |
+| degree-ge3 | 0.00 / 0.00 | 0.25 / 0.25 |
+| triangle-edge | 0.00 / 0.75 | 0.50 / 0.50 |
+| triangle-node | 0.25 / 0.25 | 0.25 / 0.50 |
+
+open-wedge 的平均相对误差：CU 2.57（GT 5.44）、Do 7.95（GT 3.75）。
+
+ε = 2 的 RR 噪声图密度接近 0.5，局部结构基本被抹平：布尔任务上模型几乎一律答 yes，
+准确率主要由各格真值的 yes/no 比例决定，模型在噪声图上判断错误还会让它低于 GT-Naive
+（CU triangle-edge 0.00 对 0.75）；open-wedge 的计数全部猜错（GT-Naive 也全错），CU 上
+Naive 误差反而低于 GT-Naive 属于"凑巧降幅"（猜 1024，噪声图规则值 1511，真值 250）。
+
 ### 调用量
 
 每次 PSC 运行的 LLM 调用数为 `2n + 3`（triangle）或 `n + 3`（degree / k-star），n 为节点数；

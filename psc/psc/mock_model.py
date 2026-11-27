@@ -64,6 +64,11 @@ class MockChatModel(ChatModelBase):
         if phase in ("naive_answer", "single_llm"):
             edges = [tuple(e) for e in p["edges"]]
             return {"result": rules.naive_answer(p["task"], p["n"], edges)}
+        if phase == "naive_struct":
+            from .struct_tasks import naive_answer_on_edges
+
+            edges = [tuple(e) for e in p["edges"]]
+            return {"result": naive_answer_on_edges(p["task"], p["n"], edges, p.get("target"))}
         raise ValueError(f"unknown phase {phase!r} in structured input")
 
     def _maybe_perturb(self, value: float) -> float:
